@@ -198,67 +198,96 @@ async function loadProps() {
   renderPropList();
 }
 
-function propItemList(p) {
-  const cover = coverUrl(p);
-  const n = (p.fotograflar || []).length;
-  return `<div class="admin-item" data-view="${p.id}" title="Detayı gör">
-    <div class="thumb-wrap">
-      ${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}
-      ${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}
-    </div>
-    <div class="meta">
-      <div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>
-      ${propTags(p)}
-    </div>
-    <div class="acts">
-      <button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button>
-      <button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>
-    </div>
+// ---- Birleşik görünüm sistemi (browse = Daireler, select = portföy seçimi) ----
+function priceText(p) { return p.fiyat != null ? fmtPrice(p.fiyat, p.para_birimi, p.tip).replace(/<[^>]+>/g, '') : '—'; }
+function tipBadge(p) { return `<span class="badge-${p.tip === 'satilik' ? 'sale' : 'rent'}">${p.tip === 'satilik' ? 'Satılık' : 'Kiralık'}</span>`; }
+function itemTail(p, ctx) {
+  if (ctx === 'select') return `<span class="row-check">${ICON.check}</span>`;
+  return `<div class="acts"><button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div>`;
+}
+function selCls(p, ctx) { return ctx === 'select' && selected.has(p.id) ? ' sel' : ''; }
+
+function itemList(p, ctx) {
+  const cover = coverUrl(p); const n = (p.fotograflar || []).length;
+  return `<div class="admin-item${selCls(p, ctx)}" data-id="${p.id}">
+    <div class="thumb-wrap">${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}</div>
+    <div class="meta"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}</div>
+    ${itemTail(p, ctx)}
   </div>`;
 }
-function propItemGrid(p) {
-  const cover = coverUrl(p);
-  const n = (p.fotograflar || []).length;
-  return `<div class="prop-gcard" data-view="${p.id}" title="Detayı gör">
-    <div class="gcard-media">
-      ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
-      ${n ? `<span class="pcount">${ICON.camera}${n}</span>` : ''}
-    </div>
-    <div class="gcard-body">
-      <div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>
-      ${propTags(p)}
-      <div class="gcard-acts">
-        <button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button>
-        <button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>
-      </div>
-    </div>
+function itemGrid(p, ctx) {
+  const cover = coverUrl(p); const n = (p.fotograflar || []).length;
+  return `<div class="prop-gcard${selCls(p, ctx)}" data-id="${p.id}">
+    <div class="gcard-media">${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}${n ? `<span class="pcount">${ICON.camera}${n}</span>` : ''}${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : ''}</div>
+    <div class="gcard-body"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ctx === 'browse' ? `<div class="gcard-acts">${itemTail(p, ctx)}</div>` : ''}</div>
   </div>`;
 }
-function propItemGallery(p) {
+function itemGallery(p, ctx) {
   const cover = coverUrl(p);
-  return `<div class="gtile" data-view="${p.id}" title="Detayı gör">
+  return `<div class="gtile${selCls(p, ctx)}" data-id="${p.id}">
     ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
     <div class="gtile-overlay">${esc(pickTitle(p) || 'Başlıksız')}</div>
-    <button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>
+    ${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : `<button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>`}
   </div>`;
 }
+function itemCompact(p, ctx) {
+  const meta = [tipBadge(p), p.konut_tipi ? esc(p.konut_tipi) : null, regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : null, p.oda_sayisi ? esc(p.oda_sayisi) : null].filter(Boolean).join(' · ');
+  return `<div class="compact-row${selCls(p, ctx)}" data-id="${p.id}">
+    ${ctx === 'select' ? `<span class="row-check">${ICON.check}</span>` : ''}
+    <span class="c-title">${esc(pickTitle(p) || 'Başlıksız')}</span>
+    <span class="c-meta">${meta}</span>
+    <span class="c-price">${priceText(p)}</span>
+    ${ctx === 'browse' ? itemTail(p, ctx) : ''}
+  </div>`;
+}
+function viewTable(list, ctx) {
+  const head = `<tr>${ctx === 'select' ? '<th></th>' : ''}<th>İlan No</th><th>Başlık</th><th>Tip</th><th>Konut</th><th>Bölge</th><th>Oda</th><th>m²</th><th>Fiyat</th><th>Eşya</th>${ctx === 'browse' ? '<th></th>' : ''}</tr>`;
+  const rows = list.map((p) => `<tr data-id="${p.id}" class="${selCls(p, ctx).trim()}">
+    ${ctx === 'select' ? `<td><span class="tcheck">${ICON.check}</span></td>` : ''}
+    <td>${esc(p.ref_kodu || '—')}</td>
+    <td class="td-title">${esc(pickTitle(p) || '—')}</td>
+    <td>${tipBadge(p)}</td>
+    <td>${esc(p.konut_tipi || '—')}</td>
+    <td>${esc(regionDisplay(p.bolge) || '—')}</td>
+    <td>${esc(p.oda_sayisi || '—')}</td>
+    <td>${p.metrekare != null ? esc(p.metrekare) : '—'}</td>
+    <td class="price">${priceText(p)}</td>
+    <td>${p.esyali == null ? '—' : (p.esyali ? 'Eşyalı' : 'Eşyasız')}</td>
+    ${ctx === 'browse' ? `<td><div class="t-acts"><button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div></td>` : ''}
+  </tr>`).join('');
+  return `<table class="prop-table"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
+}
 
+const VIEW_MAP = { list: [itemList, 'admin-list'], grid: [itemGrid, 'prop-grid'], gallery: [itemGallery, 'prop-gallery'], compact: [itemCompact, 'prop-compact'] };
+
+function renderView(el, list, mode, ctx) {
+  if (mode === 'table') { el.className = 'prop-table-wrap'; el.innerHTML = viewTable(list, ctx); }
+  else { const [tmpl, cls] = VIEW_MAP[mode] || VIEW_MAP.list; el.className = cls; el.innerHTML = list.map((p) => tmpl(p, ctx)).join(''); }
+
+  if (ctx === 'browse') {
+    el.querySelectorAll('[data-id]').forEach((it) => it.addEventListener('click', (e) => {
+      if (e.target.closest('[data-edit],[data-del]')) return;
+      openGallery(it.dataset.id);
+    }));
+    el.querySelectorAll('[data-edit]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); openProp(b.dataset.edit); });
+    el.querySelectorAll('[data-del]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); delProp(b.dataset.del); });
+  } else {
+    el.querySelectorAll('[data-id]').forEach((it) => it.addEventListener('click', () => {
+      const id = it.dataset.id;
+      if (selected.has(id)) { selected.delete(id); it.classList.remove('sel'); } else { selected.add(id); it.classList.add('sel'); }
+      $('#selCount').textContent = selected.size;
+    }));
+  }
+}
+
+let viewMode = 'list';
 function renderPropList() {
   const el = $('#propList');
   if (!props.length) { el.className = 'admin-list'; el.innerHTML = `<p class="text-muted">Henüz daire eklenmemiş. “Yeni daire ekle” ile başlayın.</p>`; $('#propShown').textContent = ''; return; }
   const list = sortProps(props.filter((p) => matchFilter(p, fProps)), fProps.sort);
   $('#propShown').textContent = `${list.length} / ${props.length} gösteriliyor`;
-  el.className = viewMode === 'grid' ? 'prop-grid' : viewMode === 'gallery' ? 'prop-gallery' : 'admin-list';
   if (!list.length) { el.className = 'admin-list'; el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; return; }
-  const tmpl = viewMode === 'grid' ? propItemGrid : viewMode === 'gallery' ? propItemGallery : propItemList;
-  el.innerHTML = list.map(tmpl).join('');
-
-  el.querySelectorAll('[data-view]').forEach((item) => item.addEventListener('click', (e) => {
-    if (e.target.closest('[data-edit],[data-del]')) return;
-    openGallery(item.dataset.view);
-  }));
-  el.querySelectorAll('[data-edit]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); openProp(b.dataset.edit); });
-  el.querySelectorAll('[data-del]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); delProp(b.dataset.del); });
+  renderView(el, list, viewMode, 'browse');
 }
 
 // İlan önizleme (galeri + tüm detaylar — ilan sayfası gibi)
@@ -356,13 +385,21 @@ $('#pf_furn').addEventListener('change', (e) => { fProps.furn = e.target.value; 
 $('#pf_sort').addEventListener('change', (e) => { fProps.sort = e.target.value; renderPropList(); });
 $('#pf_q').addEventListener('input', (e) => { fProps.q = e.target.value.trim(); renderPropList(); });
 
-// Görünüm anahtarı (liste / sütun / galeri)
-let viewMode = 'list';
+// Görünüm anahtarı (Daireler)
 $('#propView').addEventListener('click', (e) => {
   const b = e.target.closest('button[data-view]'); if (!b) return;
   viewMode = b.dataset.view;
   $$('#propView button').forEach((x) => x.classList.toggle('active', x === b));
   renderPropList();
+});
+
+// Görünüm anahtarı (Portföy seçimi)
+let selView = 'list';
+$('#selView')?.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-view]'); if (!b) return;
+  selView = b.dataset.view;
+  $$('#selView button').forEach((x) => x.classList.toggle('active', x === b));
+  renderSelectGrid();
 });
 
 // Çoklu bölge menüsü aç/kapa + dışarı tıklayınca kapan
@@ -654,27 +691,11 @@ $('#addPortBtn').addEventListener('click', () => {
 
 function renderSelectGrid() {
   const el = $('#selectGrid');
-  if (!props.length) { el.innerHTML = `<p class="text-muted">Önce daire eklemelisiniz.</p>`; $('#selCount').textContent = selected.size; return; }
-  const list = props.filter((p) => matchFilter(p, fSel));
-  if (!list.length) { el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; $('#selCount').textContent = selected.size; return; }
-  el.innerHTML = list.map((p) => {
-    const cover = coverUrl(p);
-    return `<div class="select-row ${selected.has(p.id) ? 'sel' : ''}" data-id="${p.id}">
-      ${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}
-      <div class="meta">
-        <div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>
-        ${propTags(p)}
-      </div>
-      <div class="check">${ICON.check}</div>
-    </div>`;
-  }).join('');
-  el.querySelectorAll('.select-row').forEach((row) => row.onclick = () => {
-    const id = row.dataset.id;
-    if (selected.has(id)) selected.delete(id); else selected.add(id);
-    row.classList.toggle('sel');
-    $('#selCount').textContent = selected.size;
-  });
   $('#selCount').textContent = selected.size;
+  if (!props.length) { el.className = ''; el.innerHTML = `<p class="text-muted">Önce daire eklemelisiniz.</p>`; return; }
+  const list = props.filter((p) => matchFilter(p, fSel));
+  if (!list.length) { el.className = ''; el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; return; }
+  renderView(el, list, selView, 'select');
 }
 
 // Portföy seçim filtresi olayları

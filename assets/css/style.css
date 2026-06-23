@@ -311,6 +311,44 @@ button { font-family: inherit; cursor: pointer; }
 .gtile:hover .gt-del { opacity: 1; }
 @media (max-width: 560px){ .gtile .gt-del { opacity: 1; } }
 
+/* Seçim onay göstergeleri (portföy seçimi) */
+.row-check { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line); display: inline-grid; place-items: center; color: transparent; flex-shrink: 0; background: #fff; }
+.row-check svg { width: 15px; height: 15px; }
+.tile-check { position: absolute; top: 8px; right: 8px; z-index: 3; width: 26px; height: 26px; border-radius: 50%; border: 2px solid #fff; background: rgba(255,255,255,.85); display: grid; place-items: center; color: transparent; }
+.tile-check svg { width: 15px; height: 15px; }
+.sel > .row-check, .sel .tile-check, .sel .tcheck { background: var(--navy); border-color: var(--navy); color: #fff; }
+.admin-item.sel, .compact-row.sel { border-color: var(--navy); background: #F4F8FC; }
+.prop-gcard.sel { border-color: var(--navy); box-shadow: 0 0 0 2px rgba(10,37,64,.18); }
+.gtile.sel { outline: 3px solid var(--navy); outline-offset: -3px; }
+
+/* Etiket rozetleri (tablo/kompakt) */
+.badge-rent, .badge-sale { display: inline-block; font-size: .7rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+.badge-rent { background: #E8EEF6; color: var(--navy); }
+.badge-sale { background: #F5ECDB; color: #8A6A2B; }
+
+/* Tablo (Excel) görünümü */
+.prop-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: var(--radius-sm); }
+.prop-table { width: 100%; border-collapse: collapse; font-size: .84rem; min-width: 760px; }
+.prop-table th { background: var(--bg-soft); text-align: left; padding: 11px 12px; font-weight: 700; color: var(--navy); border-bottom: 2px solid var(--line); white-space: nowrap; }
+.prop-table td { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; vertical-align: middle; }
+.prop-table tbody tr { cursor: pointer; transition: background .12s; }
+.prop-table tbody tr:hover { background: var(--bg-soft); }
+.prop-table tbody tr.sel { background: #EEF4FA; }
+.prop-table .td-title { font-weight: 600; color: var(--navy); max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+.prop-table .price { font-weight: 700; color: var(--navy); }
+.prop-table .tcheck { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); display: inline-grid; place-items: center; color: transparent; }
+.prop-table .tcheck svg { width: 12px; height: 12px; }
+.prop-table .t-acts { display: flex; gap: 6px; }
+
+/* Kompakt görünüm */
+.prop-compact { display: flex; flex-direction: column; gap: 6px; }
+.compact-row { display: flex; align-items: center; gap: 12px; padding: 10px 13px; border: 1px solid var(--line); border-radius: 9px; background: #fff; cursor: pointer; transition: .12s; }
+.compact-row:hover { background: var(--bg-soft); }
+.compact-row .c-title { font-weight: 700; font-size: .88rem; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 38%; min-width: 90px; }
+.compact-row .c-meta { font-size: .78rem; color: var(--muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+.compact-row .c-price { font-weight: 700; color: var(--navy); font-size: .85rem; white-space: nowrap; }
+.compact-row .acts { flex-shrink: 0; }
+
 .admin-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
 .admin-item { display: flex; gap: 14px; border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 12px; align-items: center; background: #fff; transition: .2s; cursor: pointer; }
 .admin-item:hover { box-shadow: var(--shadow); border-color: var(--navy-500); }
