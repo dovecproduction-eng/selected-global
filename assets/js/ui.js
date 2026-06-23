@@ -193,11 +193,142 @@ export async function downloadPhotosZip(urls, zipName, onProgress) {
     if (onProgress) onProgress(done, urls.length);
   }
   const content = await zip.generateAsync({ type: 'blob' });
+  triggerDownload(content, `${zipName}.zip`);
+}
+
+function triggerDownload(blob, filename) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(content);
-  a.download = `${zipName}.zip`;
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
   document.body.appendChild(a); a.click();
   setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 1000);
+}
+
+// Bir görseli (blob üzerinden, taint olmadan) yükle
+function loadImage(url) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const res = await fetch(url);
+      const blob = await res.blob();
+      const obj = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => { resolve({ img, obj }); };
+      img.onerror = (e) => { URL.revokeObjectURL(obj); reject(e); };
+      img.src = obj;
+    } catch (e) { reject(e); }
+  });
+}
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + w, y, x + w, y + h, r);
+  ctx.arcTo(x + w, y + h, x, y + h, r);
+  ctx.arcTo(x, y + h, x, y, r);
+  ctx.arcTo(x, y, x + w, y, r);
+  ctx.closePath();
+}
+
+// Markalı kapağı (foto + gradyen + logo + bilgiler) gerçek bir görsele çizip blob döndürür
+export async function renderCoverImage(row) {
+  const cover = coverUrl(row);
+  if (!cover) return null;
+  const W = 1080, H = 1350;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  // Kapak fotoğrafı (cover-fit)
+  let photoObj;
+  try {
+    const { img, obj } = await loadImage(cover); photoObj = obj;
+    const s = Math.max(W / img.width, H / img.height);
+    const dw = img.width * s, dh = img.height * s;
+    ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } catch (e) { ctx.fillStyle = '#0A2540'; ctx.fillRect(0, 0, W, H); }
+
+  // Alt gradyen
+  const g = ctx.createLinearGradient(0, H * 0.42, 0, H);
+  g.addColorStop(0, 'rgba(10,37,64,0)');
+  g.addColorStop(0.5, 'rgba(10,37,64,0.55)');
+  g.addColorStop(1, 'rgba(10,37,64,0.97)');
+  ctx.fillStyle = g; ctx.fillRect(0, H * 0.42, W, H * 0.58);
+
+  try { await document.fonts.ready; } catch (e) {}
+
+  // Tip rozeti (sol üst)
+  const isSale = row.tip === 'satilik';
+  const tag = isSale ? 'SATILIK' : 'KİRALIK';
+  ctx.font = '800 30px Manrope, system-ui, sans-serif';
+  const tw = ctx.measureText(tag).width;
+  const padX = 24, tagH = 60, tagX = 48, tagY = 48;
+  roundRect(ctx, tagX, tagY, tw + padX * 2, tagH, 30);
+  ctx.fillStyle = isSale ? '#B8924A' : '#ffffff'; ctx.fill();
+  ctx.fillStyle = isSale ? '#ffffff' : '#0A2540';
+  ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
+  ctx.fillText(tag, tagX + padX, tagY + tagH / 2 + 2);
+
+  // Logo (ortada, alt bölümde)
+  try {
+    const { img: logo, obj } = await loadImage(BRAND.logoLight);
+    const lw = 320, lh = lw * (logo.height / logo.width || 0.166);
+    ctx.drawImage(logo, (W - lw) / 2, H - 250, lw, lh);
+    URL.revokeObjectURL(obj);
+  } catch (e) {
+    ctx.font = '600 54px Georgia, serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    ctx.fillText('SELECTED · GLOBAL', W / 2, H - 210);
+  }
+
+  // Bilgiler: konum (sol, altın), oda+eşya (sağ, beyaz)
+  ctx.textBaseline = 'alphabetic';
+  const baseY = H - 95;
+  if (row.bolge) {
+    ctx.font = '800 32px Manrope, system-ui, sans-serif';
+    ctx.fillStyle = '#D9B26A'; ctx.textAlign = 'left';
+    ctx.fillText(regionDisplay(row.bolge).toLocaleUpperCase('tr'), 60, baseY);
+  }
+  const right = [];
+  if (row.oda_sayisi) right.push(row.oda_sayisi);
+  if (row.esyali != null) right.push(row.esyali ? 'Eşyalı' : 'Eşyasız');
+  if (right.length) {
+    ctx.font = '600 32px Manrope, system-ui, sans-serif';
+    ctx.fillStyle = '#ffffff'; ctx.textAlign = 'right';
+    ctx.fillText(right.join('  ·  '), W - 60, baseY);
+  }
+  ctx.textAlign = 'left';
+
+  if (photoObj) setTimeout(() => URL.revokeObjectURL(photoObj), 1000);
+  return await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));
+}
+
+// Daire(ler)in fotoğraflarını + markalı kapağı ZIP olarak indir
+export async function downloadPropertyPhotos(rows, zipName, onProgress) {
+  if (!window.JSZip) { toast('İndirme aracı yüklenemedi', 'err'); return; }
+  rows = (Array.isArray(rows) ? rows : [rows]).filter(Boolean);
+  const zip = new window.JSZip();
+  const total = rows.reduce((n, r) => n + 1 + ((r.fotograflar || []).length), 0);
+  let done = 0;
+  for (const row of rows) {
+    const base = slugify(`${row.bolge || ''}-${pickTitle(row)}`) || 'daire';
+    const folder = rows.length > 1 ? zip.folder(base) : zip;
+    // Markalı kapak (ilk dosya)
+    try {
+      const coverBlob = await renderCoverImage(row);
+      if (coverBlob) folder.file('00-kapak.jpg', coverBlob);
+    } catch (e) { /* kapak üretilemezse ham fotoğraflarla devam */ }
+    done++; if (onProgress) onProgress(done, total);
+    // Ham fotoğraflar
+    const photos = row.fotograflar || [];
+    for (let i = 0; i < photos.length; i++) {
+      try {
+        const res = await fetch(photos[i]); const blob = await res.blob();
+        const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
+        folder.file(`${String(i + 1).padStart(2, '0')}.${ext}`, blob);
+      } catch (e) {}
+      done++; if (onProgress) onProgress(done, total);
+    }
+  }
+  const content = await zip.generateAsync({ type: 'blob' });
+  triggerDownload(content, `${zipName}.zip`);
 }
 
 export { getLang, setLang, t, applyI18n };

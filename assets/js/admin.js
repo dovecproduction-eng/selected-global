@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
 import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPhotosZip, slugify, regionDistrict, regionDisplay } from './ui.js';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js';
 
 // Üst bardaki "Web sitesi" linki
 document.getElementById('viewSiteLink').href = ALL_LISTINGS_URL;
@@ -338,7 +338,7 @@ function openGallery(id) {
   dl.onclick = async () => {
     const orig = dl.innerHTML; dl.disabled = true;
     dl.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Hazırlanıyor…</span>`;
-    await downloadPhotosZip(photos, slugify(`${p.bolge || ''}-${pickTitle(p)}`), () => {});
+    await downloadPropertyPhotos([p], slugify(`${p.bolge || ''}-${pickTitle(p)}`), () => {});
     dl.disabled = false; dl.innerHTML = orig;
     toast('Fotoğraflar indirildi', 'ok');
   };

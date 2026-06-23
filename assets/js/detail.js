@@ -3,7 +3,7 @@ import { supabase, BRAND, CURRENCY } from './config.js';
 import { t, applyI18n, getLang } from './i18n.js';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
-  renderHeader, renderFooter, wireLangSwitch, toast, downloadPhotosZip,
+  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
 } from './ui.js';
 
 document.getElementById('header').innerHTML = renderHeader();
@@ -90,7 +90,7 @@ function render() {
       dl.disabled = true;
       dl.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>${t('preparing')}</span>`;
       const name = slugify(`${row.bolge || ''}-${pickTitle(row)}`);
-      await downloadPhotosZip(row.fotograflar, name, (d, total) => {
+      await downloadPropertyPhotos([row], name, (d, total) => {
         dl.querySelector('span:last-child').textContent = `${t('preparing')} ${d}/${total}`;
       });
       dl.disabled = false; dl.innerHTML = orig;

@@ -3,7 +3,7 @@ import { supabase, ALL_LISTINGS_URL } from './config.js';
 import { t, applyI18n, getLang } from './i18n.js';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
-  renderHeader, renderFooter, wireLangSwitch, toast, downloadPhotosZip,
+  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
 } from './ui.js';
 
 document.getElementById('header').innerHTML = renderHeader();
@@ -60,34 +60,34 @@ function render() {
   }
   grid.innerHTML = items.map((r, i) => card(r, i)).join('');
 
-  // Tek tek indirme
+  // Tek tek indirme (markalı kapak dahil)
   grid.querySelectorAll('button[data-dl]').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const row = items.find((x) => x.id === btn.dataset.dl);
-      await runDownload(btn, row.fotograflar, slugify(`${row.bolge||''}-${pickTitle(row)}`));
+      await runDownload(btn, [row], slugify(`${row.bolge||''}-${pickTitle(row)}`));
     });
   });
 
-  // Tümünü indir
-  const allPhotos = items.flatMap((r) => r.fotograflar || []);
+  // Tümünü indir (her dairenin kapağı + fotoğrafları)
+  const hasPhotos = items.some((r) => (r.fotograflar || []).length);
   const dlAll = document.getElementById('dlAllBtn');
-  if (allPhotos.length) {
+  if (hasPhotos) {
     dlAll.classList.remove('hidden');
     dlAll.innerHTML = `${ICON.download}<span data-i18n="download_all">${t('download_all')}</span>`;
     dlAll.onclick = async () => {
       const name = slugify((portfolio && portfolio.baslik) || 'selected-global-portfoy');
-      await runDownload(dlAll, allPhotos, name);
+      await runDownload(dlAll, items, name);
     };
   } else {
     dlAll.classList.add('hidden');
   }
 }
 
-async function runDownload(btn, urls, name) {
+async function runDownload(btn, rows, name) {
   const orig = btn.innerHTML;
   btn.disabled = true;
   btn.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>${t('preparing')}</span>`;
-  await downloadPhotosZip(urls, name, (d, total) => {
+  await downloadPropertyPhotos(rows, name, (d, total) => {
     btn.querySelector('span:last-child').textContent = `${t('preparing')} ${d}/${total}`;
   });
   btn.disabled = false; btn.innerHTML = orig;
