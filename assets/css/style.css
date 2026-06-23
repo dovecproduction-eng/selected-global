@@ -285,7 +285,13 @@ button { font-family: inherit; cursor: pointer; }
 .view-switch button + button { border-left: 1px solid var(--line); }
 .view-switch button svg { width: 16px; height: 16px; }
 .view-switch button.active { background: var(--navy); color: #fff; }
-@media (max-width: 600px){ .view-switch { width: 100%; margin-left: 0; } .view-switch button { flex: 1; justify-content: center; } }
+@media (max-width: 600px){
+  /* Görünüm anahtarı: dar ekranda sarılan küçük çipler */
+  .view-switch { width: 100%; margin-left: 0; flex-wrap: wrap; gap: 6px; border: 0; background: transparent; overflow: visible; border-radius: 0; }
+  .view-switch button { flex: 0 0 auto; border: 1px solid var(--line); border-radius: 999px; padding: 7px 12px; }
+  .view-switch button + button { border-left: 1px solid var(--line); }
+  .view-switch button.active { border-color: var(--navy); }
+}
 
 /* Sütun görünümü (kart ızgarası) */
 .prop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
