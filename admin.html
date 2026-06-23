@@ -91,9 +91,13 @@
             Sarı zorunlu olmayan sütunları boş bırakabilirsiniz. Fotoğrafları sonradan “Düzenle” ile yükleyin.
           </p>
           <div class="uploader" id="xlsUploader" style="margin-top:14px">
-            <div>📂 Excel dosyasını buraya sürükle ya da <strong>tıklayıp seç</strong> (.xlsx veya .csv)
+            <div>📂 Dosyayı buraya sürükle ya da <strong>tıklayıp seç</strong> (.xlsx veya .csv)
               <br><span class="hint">Yükleyince otomatik işlenir; sonuç aşağıda gösterilir.</span></div>
             <input type="file" id="xlsInput" accept=".xlsx,.xls,.csv" hidden />
+          </div>
+          <div class="csv-tip">
+            💡 <strong>Mac'te Excel sorun çıkarırsa</strong> (en garantili yol): Excel'de <em>Dosya → Farklı Kaydet</em> →
+            biçim olarak <strong>“CSV UTF-8 (Virgülle ayrılmış)”</strong> seç → kaydet → o <strong>.csv</strong> dosyasını buraya yükle. CSV her zaman sorunsuz çalışır.
           </div>
           <div id="importResult" style="margin-top:12px"></div>
         </div>
@@ -329,7 +333,7 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
   <script type="module" src="assets/js/admin.js"></script>
 </body>
 </html>

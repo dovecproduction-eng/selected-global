@@ -319,6 +319,8 @@ button { font-family: inherit; cursor: pointer; }
 .excel-head td:not(.excel-rownum) { background: #217346; color: #fff; font-weight: 700; }
 .excel-empty { color: #b0b0b0; font-style: italic; }
 .excel-mock tr:hover td:not(.excel-rownum):not(.excel-cols td) { background: #f7fbf9; }
+.csv-tip { margin-top: 10px; padding: 11px 14px; background: #FBF7EC; border: 1px solid #EADFC2; border-radius: var(--radius-sm); font-size: .84rem; color: #6B5A2E; line-height: 1.5; }
+.csv-tip strong { color: #5A4A22; }
 .import-summary { border: 1px solid var(--line); border-radius: var(--radius-sm); padding: 14px 16px; background: var(--bg-soft); }
 .import-summary .big { font-weight: 800; color: var(--ok); }
 .import-summary .warn { color: var(--gold); font-weight: 700; }
