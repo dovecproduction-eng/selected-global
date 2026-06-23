@@ -149,7 +149,7 @@ function fail() {
     `<div class="state" style="grid-column:1/-1"><a class="btn btn-ghost" href="index.html">← ${t('back_to_listings')}</a></div>`;
 }
 
-document.getElementById('allListingsBtn').href = ALL_LISTINGS_URL;
+document.getElementById('allListingsBtn').href = 'daireler.html';
 wireLangSwitch(() => render());
 applyI18n(document);
 load();

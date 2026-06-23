@@ -53,6 +53,8 @@ export const I18N = {
     portfolio_lead: 'Sizin için hazırladığımız daireler aşağıdadır.',
     download_all: 'Tüm fotoğrafları indir',
     see_all: 'Tüm dairelerimiz',
+    all_title: 'Tüm Dairelerimiz',
+    all_lead: 'Kiralık ve satılık dairelerimizin tamamı. Beğendiğinize tıklayıp detay ve fotoğraflara ulaşın.',
     view_photos: 'Fotoğraflar & detay',
     portfolio_empty: 'Bu portföyde gösterilecek ilan yok.',
 
@@ -110,6 +112,8 @@ export const I18N = {
     portfolio_lead: 'Below are the properties we have prepared for you.',
     download_all: 'Download all photos',
     see_all: 'All our properties',
+    all_title: 'All Our Properties',
+    all_lead: 'All our properties for rent and sale. Tap any to see details and photos.',
     view_photos: 'Photos & details',
     portfolio_empty: 'No listings to show in this portfolio.',
 

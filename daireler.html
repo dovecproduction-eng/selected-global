@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Tüm Dairelerimiz — Selected Global</title>
+  <meta name="description" content="Selected Global — Kuzey Kıbrıs kiralık ve satılık tüm daireler." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400;1,9..144,500&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css?v=2" />
+</head>
+<body>
+  <div id="header"></div>
+
+  <section class="hero">
+    <div class="container">
+      <p class="eyebrow reveal" data-i18n="hero_eyebrow">KKTC Gayrimenkul</p>
+      <h1 class="reveal" style="animation-delay:.05s;font-weight:400"><span data-i18n="all_title">Tüm Dairelerimiz</span></h1>
+      <p class="lead reveal" style="animation-delay:.12s" data-i18n="all_lead">Kiralık ve satılık dairelerimizin tamamı. Beğendiğinize tıklayıp detay ve fotoğraflara ulaşın.</p>
+    </div>
+  </section>
+
+  <div class="filters">
+    <div class="container filters-inner">
+      <div class="segmented" id="typeSeg">
+        <button data-type="all" class="active" data-i18n="f_all">Tümü</button>
+        <button data-type="kiralik" data-i18n="f_rent">Kiralık</button>
+        <button data-type="satilik" data-i18n="f_sale">Satılık</button>
+      </div>
+      <div class="select-wrap"><select id="regionSel"><option value="" data-i18n="f_region">Tüm Bölgeler</option></select></div>
+      <div class="select-wrap"><select id="roomSel"><option value="" data-i18n="f_rooms">Tüm Oda Tipleri</option></select></div>
+      <div class="spacer"></div>
+      <div class="result-count"><span id="resCount">0</span> <span data-i18n="results">ilan</span></div>
+    </div>
+  </div>
+
+  <main class="container">
+    <div class="grid" id="grid"></div>
+  </main>
+
+  <div id="footer"></div>
+
+  <script type="module" src="assets/js/catalog.js?v=2"></script>
+</body>
+</html>
