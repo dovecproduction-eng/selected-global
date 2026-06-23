@@ -1,5 +1,5 @@
 // Selected Global — Admin paneli
-import { supabase, REGIONS, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
 import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPhotosZip, slugify, regionDistrict, regionDisplay } from './ui.js';
 
 // Üst bardaki "Web sitesi" linki
@@ -14,19 +14,17 @@ let editId = null;
 let photos = [];           // [{url, path}]
 let selected = new Set();  // portföy seçimi
 
-// Filtre durumları
-const fProps = { tip: 'all', region: '', furn: '', sort: 'new', q: '' };
-const fSel   = { tip: 'all', region: '', furn: '', q: '' };
+// Filtre durumları (regions = çoklu seçim dizisi)
+const fProps = { tip: 'all', regions: [], furn: '', sort: 'new', q: '' };
+const fSel   = { tip: 'all', regions: [], furn: '', q: '' };
 
 function matchFilter(p, f) {
   if (f.tip !== 'all' && p.tip !== f.tip) return false;
-  if (f.region) {
+  if (f.regions && f.regions.length) {
     const kk = (s) => (s || '').trim().toLocaleLowerCase('tr');
-    if (f.region.startsWith('__il__')) {
-      const il = f.region.slice(6);
-      const pd = regionDistrict(p.bolge) || p.bolge;
-      if (kk(pd) !== kk(il)) return false;
-    } else if (kk(p.bolge) !== kk(f.region)) return false;
+    const pd = regionDistrict(p.bolge) || p.bolge;
+    const ok = f.regions.some((r) => r.startsWith('__il__') ? kk(pd) === kk(r.slice(6)) : kk(p.bolge) === kk(r));
+    if (!ok) return false;
   }
   if (f.furn !== '') { if (p.esyali == null || String(p.esyali) !== f.furn) return false; }
   if (f.q) {
@@ -42,33 +40,57 @@ function sortProps(list, sort) {
   else if (sort === 'price_desc') a.sort((x, y) => (y.fiyat ?? -Infinity) - (x.fiyat ?? -Infinity));
   return a; // 'new' = created_at desc (zaten sıralı)
 }
-function fillRegionSelect(id) {
-  const sel = $(id); if (!sel) return; const cur = sel.value;
+
+// Kullanılan bölgeleri ilçeye göre grupla
+function groupedUsedRegions() {
   const key = (s) => (s || '').trim().toLocaleLowerCase('tr');
-  // kullanılan benzersiz bölgeler
   const seen = new Set(); const used = [];
   props.map((p) => (p.bolge || '').trim()).filter(Boolean).forEach((r) => {
     const k = key(r); if (!seen.has(k)) { seen.add(k); used.push(r); }
   });
-  // ilçeye göre grupla
-  const groups = {}; const other = [];
-  used.forEach((r) => { const d = regionDistrict(r); if (d) (groups[d] = groups[d] || []).push(r); else other.push(r); });
-
-  let html = `<option value="">Tüm bölgeler</option>`;
+  const grp = {}; const other = [];
+  used.forEach((r) => { const d = regionDistrict(r); if (d) (grp[d] = grp[d] || []).push(r); else other.push(r); });
+  const out = [];
   Object.keys(REGION_GROUPS).forEach((d) => {
-    const areas = groups[d]; if (!areas || !areas.length) return;
-    const order = REGION_GROUPS[d];
-    areas.sort((a, b) => order.indexOf(a) - order.indexOf(b));
-    html += `<optgroup label="${esc(d)}">`;
-    html += `<option value="__il__${esc(d)}">${esc(d)} (tümü)</option>`;
-    areas.forEach((a) => { if (key(a) !== key(d)) html += `<option value="${esc(a)}">${esc(regionDisplay(a))}</option>`; });
-    html += `</optgroup>`;
+    const a = grp[d]; if (a && a.length) { const order = REGION_GROUPS[d]; a.sort((x, y) => order.indexOf(x) - order.indexOf(y)); out.push({ district: d, areas: a }); }
   });
-  if (other.length) {
-    html += `<optgroup label="Diğer">` + other.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('') + `</optgroup>`;
-  }
-  sel.innerHTML = html;
-  sel.value = cur;
+  return { groups: out, other };
+}
+
+function updateRegionBtn(btn, state) {
+  const n = state.regions.length;
+  btn.textContent = n ? `${n} bölge` : 'Tüm bölgeler';
+  btn.classList.toggle('has-sel', n > 0);
+}
+
+// Çoklu bölge panelini doldur ve bağla
+function renderRegionMulti(panelSel, btnSel, state, onChange) {
+  const panel = $(panelSel), btn = $(btnSel); if (!panel || !btn) return;
+  const key = (s) => (s || '').trim().toLocaleLowerCase('tr');
+  const { groups, other } = groupedUsedRegions();
+  let html = '';
+  groups.forEach(({ district, areas }) => {
+    html += `<div class="mp-group-label">${esc(district)}</div>`;
+    html += `<label class="multi-opt"><input type="checkbox" value="__il__${esc(district)}"> ${esc(district)} (tümü)</label>`;
+    areas.forEach((a) => { if (key(a) !== key(district)) html += `<label class="multi-opt"><input type="checkbox" value="${esc(a)}"> ${esc(regionDisplay(a))}</label>`; });
+  });
+  if (other.length) html += `<div class="mp-group-label">Diğer</div>` + other.map((r) => `<label class="multi-opt"><input type="checkbox" value="${esc(r)}"> ${esc(r)}</label>`).join('');
+  html += `<div class="multi-actions"><button type="button" data-clear>Temizle</button><button type="button" data-done>Kapat</button></div>`;
+  panel.innerHTML = html.includes('multi-opt') ? html : '<p class="text-muted" style="padding:8px">Henüz bölge yok</p>';
+
+  panel.querySelectorAll('input[type=checkbox]').forEach((cb) => {
+    cb.checked = state.regions.includes(cb.value);
+    cb.addEventListener('change', () => {
+      state.regions = Array.from(panel.querySelectorAll('input:checked')).map((x) => x.value);
+      updateRegionBtn(btn, state); onChange();
+    });
+  });
+  panel.querySelector('[data-clear]')?.addEventListener('click', () => {
+    state.regions = []; panel.querySelectorAll('input').forEach((x) => (x.checked = false));
+    updateRegionBtn(btn, state); onChange();
+  });
+  panel.querySelector('[data-done]')?.addEventListener('click', () => panel.classList.add('hidden'));
+  updateRegionBtn(btn, state);
 }
 function propTags(p) {
   const tags = [];
@@ -171,42 +193,72 @@ async function loadProps() {
   if (error) { toast('Daireler yüklenemedi', 'err'); return; }
   props = data || [];
   $('#propCount').textContent = props.length;
-  fillRegionSelect('#pf_region');
-  fillRegionSelect('#sf_region');
+  renderRegionMulti('#pf_region_panel', '#pf_region_btn', fProps, renderPropList);
+  renderRegionMulti('#sf_region_panel', '#sf_region_btn', fSel, renderSelectGrid);
   renderPropList();
+}
+
+function propItemList(p) {
+  const cover = coverUrl(p);
+  const n = (p.fotograflar || []).length;
+  return `<div class="admin-item" data-view="${p.id}" title="Detayı gör">
+    <div class="thumb-wrap">
+      ${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}
+      ${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}
+    </div>
+    <div class="meta">
+      <div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>
+      ${propTags(p)}
+    </div>
+    <div class="acts">
+      <button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button>
+      <button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>
+    </div>
+  </div>`;
+}
+function propItemGrid(p) {
+  const cover = coverUrl(p);
+  const n = (p.fotograflar || []).length;
+  return `<div class="prop-gcard" data-view="${p.id}" title="Detayı gör">
+    <div class="gcard-media">
+      ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
+      ${n ? `<span class="pcount">${ICON.camera}${n}</span>` : ''}
+    </div>
+    <div class="gcard-body">
+      <div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>
+      ${propTags(p)}
+      <div class="gcard-acts">
+        <button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button>
+        <button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>
+      </div>
+    </div>
+  </div>`;
+}
+function propItemGallery(p) {
+  const cover = coverUrl(p);
+  return `<div class="gtile" data-view="${p.id}" title="Detayı gör">
+    ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
+    <div class="gtile-overlay">${esc(pickTitle(p) || 'Başlıksız')}</div>
+    <button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>
+  </div>`;
 }
 
 function renderPropList() {
   const el = $('#propList');
-  if (!props.length) { el.innerHTML = `<p class="text-muted">Henüz daire eklenmemiş. “Yeni daire ekle” ile başlayın.</p>`; $('#propShown').textContent = ''; return; }
+  if (!props.length) { el.className = 'admin-list'; el.innerHTML = `<p class="text-muted">Henüz daire eklenmemiş. “Yeni daire ekle” ile başlayın.</p>`; $('#propShown').textContent = ''; return; }
   const list = sortProps(props.filter((p) => matchFilter(p, fProps)), fProps.sort);
   $('#propShown').textContent = `${list.length} / ${props.length} gösteriliyor`;
-  if (!list.length) { el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; return; }
-  el.innerHTML = list.map((p) => {
-    const cover = coverUrl(p);
-    const n = (p.fotograflar || []).length;
-    return `<div class="admin-item" data-view="${p.id}" title="Fotoğrafları gör">
-      <div class="thumb-wrap">
-        ${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}
-        ${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}
-      </div>
-      <div class="meta">
-        <div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>
-        ${propTags(p)}
-      </div>
-      <div class="acts">
-        <button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button>
-        <button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>
-      </div>
-    </div>`;
-  }).join('');
+  el.className = viewMode === 'grid' ? 'prop-grid' : viewMode === 'gallery' ? 'prop-gallery' : 'admin-list';
+  if (!list.length) { el.className = 'admin-list'; el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; return; }
+  const tmpl = viewMode === 'grid' ? propItemGrid : viewMode === 'gallery' ? propItemGallery : propItemList;
+  el.innerHTML = list.map(tmpl).join('');
 
-  el.querySelectorAll('.admin-item').forEach((item) => item.addEventListener('click', (e) => {
-    if (e.target.closest('.acts')) return; // edit/sil butonları galeriyi açmasın
+  el.querySelectorAll('[data-view]').forEach((item) => item.addEventListener('click', (e) => {
+    if (e.target.closest('[data-edit],[data-del]')) return;
     openGallery(item.dataset.view);
   }));
-  el.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openProp(b.dataset.edit));
-  el.querySelectorAll('[data-del]').forEach((b) => b.onclick = () => delProp(b.dataset.del));
+  el.querySelectorAll('[data-edit]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); openProp(b.dataset.edit); });
+  el.querySelectorAll('[data-del]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); delProp(b.dataset.del); });
 }
 
 // İlan önizleme (galeri + tüm detaylar — ilan sayfası gibi)
@@ -300,10 +352,27 @@ $('#pf_tip').addEventListener('click', (e) => {
   $$('#pf_tip button').forEach((x) => x.classList.toggle('active', x === b));
   renderPropList();
 });
-$('#pf_region').addEventListener('change', (e) => { fProps.region = e.target.value; renderPropList(); });
 $('#pf_furn').addEventListener('change', (e) => { fProps.furn = e.target.value; renderPropList(); });
 $('#pf_sort').addEventListener('change', (e) => { fProps.sort = e.target.value; renderPropList(); });
 $('#pf_q').addEventListener('input', (e) => { fProps.q = e.target.value.trim(); renderPropList(); });
+
+// Görünüm anahtarı (liste / sütun / galeri)
+let viewMode = 'list';
+$('#propView').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-view]'); if (!b) return;
+  viewMode = b.dataset.view;
+  $$('#propView button').forEach((x) => x.classList.toggle('active', x === b));
+  renderPropList();
+});
+
+// Çoklu bölge menüsü aç/kapa + dışarı tıklayınca kapan
+['#pf_region_btn', '#sf_region_btn'].forEach((sel) => {
+  const panel = sel.replace('_btn', '_panel');
+  $(sel).addEventListener('click', (e) => { e.stopPropagation(); $(panel).classList.toggle('hidden'); });
+});
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.multi-region')) { $('#pf_region_panel')?.classList.add('hidden'); $('#sf_region_panel')?.classList.add('hidden'); }
+});
 
 /* ---- Daire modalı ---- */
 function openModal(id) { $(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
@@ -459,6 +528,14 @@ async function handleFiles(fileList) {
 
 $('#savePropBtn').addEventListener('click', async () => {
   if (photos.some((p) => p.uploading)) { toast('Fotoğraflar yükleniyor, bekleyin…'); return; }
+  // Bölge zorunlu
+  if (!$('#f_il').value && !$('#f_bolge').value) {
+    toast('Lütfen bölge (il) seçin', 'err');
+    $('#f_il').focus();
+    $('#f_il').style.borderColor = 'var(--danger)';
+    return;
+  }
+  $('#f_il').style.borderColor = '';
   const btn = $('#savePropBtn'); btn.disabled = true; btn.textContent = 'Kaydediliyor…';
 
   const payload = {
@@ -566,6 +643,11 @@ async function delPort(kod) {
 $('#addPortBtn').addEventListener('click', () => {
   selected = new Set();
   $('#port_title').value = '';
+  // filtreleri sıfırla
+  fSel.tip = 'all'; fSel.regions = []; fSel.furn = ''; fSel.q = '';
+  $$('#sf_tip button').forEach((b) => b.classList.toggle('active', b.dataset.tip === 'all'));
+  $('#sf_furn').value = ''; $('#sf_q').value = '';
+  renderRegionMulti('#sf_region_panel', '#sf_region_btn', fSel, renderSelectGrid);
   renderSelectGrid();
   openModal('#portModal');
 });
@@ -602,7 +684,6 @@ $('#sf_tip').addEventListener('click', (e) => {
   $$('#sf_tip button').forEach((x) => x.classList.toggle('active', x === b));
   renderSelectGrid();
 });
-$('#sf_region').addEventListener('change', (e) => { fSel.region = e.target.value; renderSelectGrid(); });
 $('#sf_furn').addEventListener('change', (e) => { fSel.furn = e.target.value; renderSelectGrid(); });
 $('#sf_q').addEventListener('input', (e) => { fSel.q = e.target.value.trim(); renderSelectGrid(); });
 
