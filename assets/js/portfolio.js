@@ -9,13 +9,20 @@ import {
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
 
-// Admin önizlemesi ise "geri" çubuğu göster (müşteri linkinde görünmez)
+// Admin önizlemesi ise lead yazısının soluna "geri" butonu koy (müşteri linkinde görünmez)
 if (new URLSearchParams(location.search).has('admin')) {
-  const bar = document.createElement('div');
-  bar.className = 'container preview-backbar';
-  bar.innerHTML = `<a class="btn btn-ghost btn-sm" href="admin.html#ports">← Tüm portföyler</a><span class="preview-tag">Önizleme</span>`;
-  const hero = document.querySelector('.portfolio-hero');
-  hero.parentNode.insertBefore(bar, hero);
+  const lead = document.getElementById('pLead');
+  const wrap = document.createElement('div');
+  wrap.className = 'lead-with-back';
+  const back = document.createElement('a');
+  back.className = 'lead-back-btn';
+  back.href = 'admin.html#ports';
+  back.title = 'Gönderilen portföylere dön';
+  back.setAttribute('aria-label', 'Geri');
+  back.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>';
+  lead.parentNode.insertBefore(wrap, lead);
+  wrap.appendChild(back);
+  wrap.appendChild(lead);
 }
 
 const kod = new URLSearchParams(location.search).get('kod');
