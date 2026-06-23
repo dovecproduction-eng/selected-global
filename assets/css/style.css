@@ -533,8 +533,8 @@ button { font-family: inherit; cursor: pointer; }
 /* Gradyenli alt geçiş: logo ortada üstte, konum ve oda/eşya altta iki yanda */
 .cover-overlay {
   position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-  padding: 52px 16px 14px;
-  background: linear-gradient(to top, rgba(10,37,64,.95) 6%, rgba(10,37,64,.72) 40%, rgba(10,37,64,.2) 76%, transparent 100%);
+  padding: 72px 16px 14px;
+  background: linear-gradient(to top, rgba(10,37,64,.95) 8%, rgba(10,37,64,.74) 38%, rgba(10,37,64,.34) 64%, rgba(10,37,64,.1) 88%, transparent 100%);
   display: flex; flex-direction: column; align-items: center; gap: 9px;
   color: #fff;
 }
