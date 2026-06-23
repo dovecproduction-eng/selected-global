@@ -703,9 +703,21 @@ function renderSelectGrid() {
   $('#selCount').textContent = selected.size;
   if (!props.length) { el.className = ''; el.innerHTML = `<p class="text-muted">Önce daire eklemelisiniz.</p>`; return; }
   const list = props.filter((p) => matchFilter(p, fSel));
+  // "Tümünü seç" buton metni
+  const allSel = list.length && list.every((p) => selected.has(p.id));
+  $('#selAllBtn').textContent = allSel ? 'Seçimi kaldır' : 'Tümünü seç';
   if (!list.length) { el.className = ''; el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; return; }
   renderView(el, list, selView, 'select');
 }
+
+// Tümünü seç / kaldır (filtreye göre görünenler)
+$('#selAllBtn').addEventListener('click', () => {
+  const list = props.filter((p) => matchFilter(p, fSel));
+  const allSel = list.length && list.every((p) => selected.has(p.id));
+  if (allSel) list.forEach((p) => selected.delete(p.id));
+  else list.forEach((p) => selected.add(p.id));
+  renderSelectGrid();
+});
 
 // Portföy seçim filtresi olayları
 $('#sf_tip').addEventListener('click', (e) => {

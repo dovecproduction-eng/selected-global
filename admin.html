@@ -328,7 +328,10 @@
           </div>
         </div>
         <div class="field">
-          <label>Daireleri seçin (<span id="selCount">0</span> seçili)</label>
+          <label style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+            <span>Daireleri seçin (<span id="selCount">0</span> seçili)</span>
+            <button type="button" id="selAllBtn" class="btn btn-ghost btn-sm">Tümünü seç</button>
+          </label>
           <div class="admin-filters" style="margin-bottom:12px">
             <div class="segmented" id="sf_tip">
               <button data-tip="all" class="active">Tümü</button>
@@ -367,14 +370,12 @@
       <div class="modal-head"><h3>Portföy linki hazır 🎉</h3><button class="icon-btn" data-close></button></div>
       <div class="modal-body">
         <p class="text-muted" style="margin-top:0">Bu linki müşterinize gönderin. Sadece seçtiğiniz daireleri görecekler.</p>
-        <div class="field">
+        <a class="btn btn-wa btn-block" id="waLinkBtn" target="_blank" rel="noopener" style="font-size:1.05rem;padding:16px">WhatsApp'tan gönder</a>
+        <div class="field" style="margin-top:16px">
           <label>Paylaşılabilir link</label>
           <input id="linkOut" readonly onclick="this.select()" />
         </div>
-        <div class="contact-row" style="display:flex;gap:10px;flex-wrap:wrap">
-          <a class="btn btn-wa" id="waLinkBtn" target="_blank" rel="noopener" style="flex:1;min-width:160px">WhatsApp'tan gönder</a>
-          <button class="btn btn-ghost" id="copyLinkBtn" style="flex:1;min-width:120px">Kopyala</button>
-        </div>
+        <button class="btn btn-ghost btn-block" id="copyLinkBtn">Kopyala</button>
       </div>
     </div>
   </div>
