@@ -451,7 +451,7 @@ function renderPortList() {
     const date = new Date(p.created_at).toLocaleDateString('tr-TR');
     const waText = encodeURIComponent(`Selected Global — sizin için seçtiğimiz daireler:\n${url}`);
     return `
-    <div class="port-card">
+    <div class="port-card" data-preview="${url}&admin=1" title="Önizlemek için tıkla">
       <div class="port-card-top">
         <div class="port-icon">${ICON.link}</div>
         <div class="port-meta">
@@ -473,6 +473,11 @@ function renderPortList() {
 
   el.querySelectorAll('.port-link[data-copy]').forEach((b) => b.onclick = () => copy(portUrl(b.dataset.copy)));
   el.querySelectorAll('[data-delport]').forEach((b) => b.onclick = () => delPort(b.dataset.delport));
+  // Kartın boş yerine tıklayınca önizleme aç (buton/link/sil hariç)
+  el.querySelectorAll('.port-card').forEach((card) => card.addEventListener('click', (e) => {
+    if (e.target.closest('.port-link, .port-actions, [data-delport]')) return;
+    window.open(card.dataset.preview, '_blank', 'noopener');
+  }));
 }
 
 async function delPort(kod) {
