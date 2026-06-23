@@ -613,12 +613,30 @@ async function importXlsx(file) {
   result.innerHTML = `<div class="import-summary">İşleniyor…</div>`;
   let rows;
   try {
-    const buf = await file.arrayBuffer();
-    const wb = XLSX.read(buf, { type: 'array' });
+    const name = (file.name || '').toLowerCase();
+    let wb;
+    if (name.endsWith('.csv')) {
+      wb = XLSX.read(await file.text(), { type: 'string' });
+    } else {
+      const data = new Uint8Array(await file.arrayBuffer());
+      try {
+        wb = XLSX.read(data, { type: 'array' });
+      } catch (inner) {
+        // Yedek: bazı dosyalar binary string olarak daha iyi okunur
+        let bin = ''; for (let i = 0; i < data.length; i++) bin += String.fromCharCode(data[i]);
+        wb = XLSX.read(bin, { type: 'binary' });
+      }
+    }
     const ws = wb.Sheets[wb.SheetNames[0]];
     rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' });
   } catch (e) {
-    result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Dosya okunamadı. Geçerli bir .xlsx dosyası seçtiğinizden emin olun.</span></div>`;
+    console.error('Excel okuma hatası:', e);
+    const kb = Math.round((file.size || 0) / 1024);
+    result.innerHTML = `<div class="import-summary">
+      <span style="color:var(--danger)">Dosya okunamadı.</span> (${esc(file.name || '')}, ${kb} KB)<br>
+      <span class="text-muted" style="font-size:.82rem">Teknik sebep: ${esc(e.message || String(e))}</span><br>
+      <strong style="font-size:.85rem">Çözüm:</strong> <span style="font-size:.85rem">İndirdiğiniz şablonu kullanın ve dosyayı <strong>Excel Çalışma Kitabı (.xlsx)</strong> olarak kaydedin. Numbers kullanıyorsanız: <em>Dosya → Dışa Aktar → Excel</em>. Alternatif olarak <strong>.csv</strong> de yükleyebilirsiniz.</span>
+    </div>`;
     return;
   }
   if (!rows || rows.length < 2) { result.innerHTML = `<div class="import-summary">Dosyada veri satırı bulunamadı. Şablonu kullanın.</div>`; return; }
