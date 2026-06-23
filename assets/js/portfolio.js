@@ -1,5 +1,5 @@
 // Selected Global — Portföy linki sayfası (müşteriye gönderilen seçki)
-import { supabase, ALL_LISTINGS_URL } from './config.js?v=2';
+import { supabase, ALL_LISTINGS_URL, creatorContact } from './config.js?v=2';
 import { t, applyI18n, getLang } from './i18n.js?v=2';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
@@ -28,13 +28,15 @@ if (new URLSearchParams(location.search).has('admin')) {
 const kod = new URLSearchParams(location.search).get('kod');
 let portfolio = null;
 let items = [];
+let contact = null;
 
 function card(row, i) {
   const photos = (row.fotograflar || []).length;
   const title = pickTitle(row);
+  const tel = contact ? `&tel=${contact.phoneRaw}` : '';
   return `
   <div class="pcard reveal" style="animation-delay:${Math.min(i*0.05,0.4)}s">
-    <a href="daire.html?id=${row.id}" style="display:block">${brandedCover(row)}</a>
+    <a href="daire.html?id=${row.id}${tel}" style="display:block">${brandedCover(row)}</a>
     <div class="pcard-body">
       ${title ? `<h3 class="pcard-title">${esc(title)}</h3>` : ''}
       <div class="pcard-row">
@@ -42,7 +44,7 @@ function card(row, i) {
         ${row.metrekare ? `<span class="text-muted" style="font-weight:600;font-size:.88rem">${esc(row.metrekare)} m²</span>` : ''}
       </div>
       <div style="display:flex;gap:8px">
-        <a class="btn btn-ghost btn-sm" href="daire.html?id=${row.id}" style="flex:1">${ICON.camera}<span data-i18n="view_photos">${t('view_photos')}</span></a>
+        <a class="btn btn-ghost btn-sm" href="daire.html?id=${row.id}${tel}" style="flex:1">${ICON.camera}<span data-i18n="view_photos">${t('view_photos')}</span></a>
         ${photos ? `<button class="btn btn-primary btn-sm" data-dl="${row.id}" title="${t('download_photos')}">${ICON.download}</button>` : ''}
       </div>
     </div>
@@ -70,6 +72,25 @@ function render() {
     return;
   }
   grid.innerHTML = items.map((r, i) => card(r, i)).join('');
+
+  // İletişim kartı (portföyü oluşturana göre WhatsApp + Ara)
+  if (contact) {
+    let c = document.getElementById('pContact');
+    if (!c) { c = document.createElement('div'); c.id = 'pContact'; c.className = 'container portfolio-contact'; grid.after(c); }
+    const waText = encodeURIComponent(getLang() === 'tr' ? 'Merhaba, gönderdiğiniz portföydeki daireler hakkında bilgi almak istiyorum.' : 'Hello, I would like information about the properties in the portfolio you sent.');
+    c.innerHTML = `
+      <div class="contact-card">
+        <div class="ci-text">
+          <span class="ci-label">${getLang() === 'tr' ? 'Bilgi ve randevu için' : 'For info & viewings'}</span>
+          <span class="ci-name">${esc(contact.name)}</span>
+          <span class="ci-phone">${esc(contact.phone)}</span>
+        </div>
+        <div class="ci-btns">
+          <a class="btn btn-wa" target="_blank" rel="noopener" href="https://wa.me/${contact.phoneRaw}?text=${waText}">${ICON.wa}<span>WhatsApp</span></a>
+          <a class="btn btn-primary" href="tel:+${contact.phoneRaw}">${ICON.phone}<span>${getLang() === 'tr' ? 'Ara' : 'Call'}</span></a>
+        </div>
+      </div>`;
+  }
 
   // Tek tek indirme (markalı kapak dahil)
   grid.querySelectorAll('button[data-dl]').forEach((btn) => {
@@ -110,6 +131,7 @@ async function load() {
   const { data: p, error } = await supabase.from('portfolios').select('*').eq('kod', kod).single();
   if (error || !p) { fail(); return; }
   portfolio = p;
+  contact = creatorContact(p.olusturan);
   const ids = p.property_ids || [];
   if (ids.length) {
     const { data: props } = await supabase.from('properties').select('*').in('id', ids);

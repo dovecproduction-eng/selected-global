@@ -25,6 +25,19 @@ export const BRAND = {
 // >>> Gerçek adres verilince burayı değiştir. <<<
 export const ALL_LISTINGS_URL = 'https://www.selectedglobal.com/tr';
 
+// Portföyü oluşturan kişiye göre iletişim numarası
+// keys: "Hazırlayan" alanında geçebilecek kelimeler (küçük harf). Yeni danışman eklemek için buraya ekle.
+export const CREATORS = [
+  { keys: ['janna'], name: 'Janna', phone: '0533 883 45 25', phoneRaw: '905338834525' },
+  { keys: ['orçun', 'orcun', 'döveç', 'dovec'], name: 'Orçun Döveç', phone: '0548 869 05 15', phoneRaw: '905488690515' },
+];
+// olusturan metnine göre ilgili danışmanı bul; yoksa Selected Global genel numarası
+export function creatorContact(olusturan) {
+  const s = (olusturan || '').toLocaleLowerCase('tr');
+  for (const c of CREATORS) if (c.keys.some((k) => s.includes(k))) return c;
+  return { name: BRAND.name, phone: BRAND.phone, phoneRaw: BRAND.phoneRaw };
+}
+
 // KKTC bölgeleri — ilçe + ilan yoğun popüler alt bölgeler (gruplu). Sıra: İskele, Gazimağusa, Girne...
 export const REGION_GROUPS = {
   'İskele': ['İskele', 'İskele Merkez', 'Long Beach', 'Boğaz', 'Bahçeler', 'Bafra', 'Kumyalı', 'Yeni İskele'],

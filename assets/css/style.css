@@ -207,6 +207,19 @@ button { font-family: inherit; cursor: pointer; }
 .portfolio-hero h1 { font-size: clamp(2rem, 5vw, 3.4rem); font-weight: 400; }
 .portfolio-hero p { color: var(--muted); margin-top: 14px; }
 .portfolio-bar { display: flex; justify-content: center; margin: 22px 0 8px; }
+/* Portföy iletişim kartı (oluşturana göre) */
+.portfolio-contact { margin: 34px auto 12px; }
+.contact-card { display: flex; align-items: center; justify-content: space-between; gap: 18px; flex-wrap: wrap; background: linear-gradient(135deg, var(--navy), var(--navy-700)); color: #fff; border-radius: var(--radius-lg); padding: 24px 28px; box-shadow: var(--shadow); }
+.contact-card .ci-text { display: flex; flex-direction: column; gap: 3px; }
+.contact-card .ci-label { font-size: .72rem; letter-spacing: .14em; text-transform: uppercase; color: rgba(255,255,255,.65); font-weight: 700; }
+.contact-card .ci-name { font-family: var(--font-display); font-size: 1.45rem; font-weight: 600; }
+.contact-card .ci-phone { font-size: 1.05rem; color: var(--gold); font-weight: 800; letter-spacing: .02em; }
+.contact-card .ci-btns { display: flex; gap: 10px; }
+@media (max-width: 520px){
+  .contact-card { padding: 20px; }
+  .contact-card .ci-btns { width: 100%; }
+  .contact-card .ci-btns .btn { flex: 1; }
+}
 /* Lead yazısının solundaki geri butonu (admin önizleme) */
 .lead-with-back { display: flex; align-items: center; justify-content: center; gap: 14px; }
 .lead-with-back #pLead { margin: 0; }

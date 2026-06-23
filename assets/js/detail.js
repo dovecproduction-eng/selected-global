@@ -10,6 +10,7 @@ document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
 
 const id = new URLSearchParams(location.search).get('id');
+const contactRaw = new URLSearchParams(location.search).get('tel') || BRAND.phoneRaw;
 let row = null;
 let activePhoto = 0;
 
@@ -64,8 +65,8 @@ function render() {
         <div class="detail-cta">
           ${photos.length ? `<button class="btn btn-primary btn-block" id="dlBtn">${ICON.download}<span data-i18n="download_photos">${t('download_photos')}</span></button>` : ''}
           <div class="contact-row">
-            <a class="btn btn-ghost" href="tel:${BRAND.phoneRaw}">${ICON.phone}<span data-i18n="call_now">${t('call_now')}</span></a>
-            <a class="btn btn-gold" target="_blank" href="https://wa.me/${BRAND.phoneRaw}?text=${encodeURIComponent((getLang()==='tr'?'Merhaba, şu ilanla ilgileniyorum: ':'Hello, I am interested in: ') + pickTitle(row))}">${ICON.wa}<span>WhatsApp</span></a>
+            <a class="btn btn-ghost" href="tel:+${contactRaw}">${ICON.phone}<span data-i18n="call_now">${t('call_now')}</span></a>
+            <a class="btn btn-gold" target="_blank" href="https://wa.me/${contactRaw}?text=${encodeURIComponent((getLang()==='tr'?'Merhaba, şu ilanla ilgileniyorum: ':'Hello, I am interested in: ') + pickTitle(row))}">${ICON.wa}<span>WhatsApp</span></a>
           </div>
         </div>
       </div>
