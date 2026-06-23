@@ -25,8 +25,16 @@ export const BRAND = {
 // >>> Gerçek adres verilince burayı değiştir. <<<
 export const ALL_LISTINGS_URL = 'https://www.selectedglobal.com/tr';
 
-// KKTC bölgeleri
-export const REGIONS = ['Girne', 'Gazimağusa', 'Lefkoşa', 'İskele', 'Güzelyurt', 'Lefke'];
+// KKTC bölgeleri — ilçe + ilan yoğun popüler alt bölgeler (gruplu)
+export const REGION_GROUPS = {
+  'Girne': ['Girne', 'Girne Merkez', 'Alsancak', 'Lapta', 'Çatalköy', 'Esentepe', 'Karşıyaka', 'Karaoğlanoğlu', 'Zeytinlik', 'Ozanköy', 'Edremit', 'Bellapais', 'Arapköy'],
+  'Gazimağusa': ['Gazimağusa', 'Mağusa Merkez', 'Tuzla', 'Yeniboğaziçi', 'Sakarya', 'Maraş', 'Karakol'],
+  'İskele': ['İskele', 'İskele Merkez', 'Long Beach', 'Boğaz', 'Bahçeler', 'Bafra', 'Kumyalı', 'Yeni İskele'],
+  'Lefkoşa': ['Lefkoşa', 'Lefkoşa Merkez', 'Gönyeli', 'Hamitköy', 'Yenikent', 'Ortaköy', 'Küçük Kaymaklı'],
+  'Güzelyurt': ['Güzelyurt'],
+  'Lefke': ['Lefke'],
+};
+export const REGIONS = Object.values(REGION_GROUPS).flat();
 
 // Para birimi simgeleri
 export const CURRENCY = { GBP: '£', EUR: '€', USD: '$', TRY: '₺' };

@@ -1,5 +1,5 @@
 // Selected Global — Admin paneli
-import { supabase, REGIONS, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
+import { supabase, REGIONS, REGION_GROUPS, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
 import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPhotosZip, slugify } from './ui.js';
 
 // Üst bardaki "Web sitesi" linki
@@ -20,7 +20,7 @@ const fSel   = { tip: 'all', region: '', furn: '', q: '' };
 
 function matchFilter(p, f) {
   if (f.tip !== 'all' && p.tip !== f.tip) return false;
-  if (f.region && p.bolge !== f.region) return false;
+  if (f.region && (p.bolge || '').trim().toLocaleLowerCase('tr') !== f.region.trim().toLocaleLowerCase('tr')) return false;
   if (f.furn !== '') { if (p.esyali == null || String(p.esyali) !== f.furn) return false; }
   if (f.q) {
     const q = f.q.toLowerCase();
@@ -36,10 +36,16 @@ function sortProps(list, sort) {
   return a; // 'new' = created_at desc (zaten sıralı)
 }
 function fillRegionSelect(id) {
-  const used = [...new Set(props.map((p) => p.bolge).filter(Boolean))];
-  const ordered = REGIONS.filter((r) => used.includes(r)).concat(used.filter((r) => !REGIONS.includes(r)));
   const sel = $(id); if (!sel) return; const cur = sel.value;
-  sel.innerHTML = `<option value="">Tüm bölgeler</option>` + ordered.map((r) => `<option value="${r}">${r}</option>`).join('');
+  const key = (s) => (s || '').trim().toLocaleLowerCase('tr');
+  const seen = new Set(); const out = [];
+  const add = (r) => { const k = key(r); if (!r || !r.trim() || seen.has(k)) return; seen.add(k); out.push(r.trim()); };
+  const used = props.map((p) => (p.bolge || '').trim()).filter(Boolean);
+  const usedKeys = new Set(used.map(key));
+  // önce tanımlı bölgeler (kullanılanlar), sonra listede olmayan serbest girilen bölgeler
+  REGIONS.forEach((r) => { if (usedKeys.has(key(r))) add(r); });
+  used.forEach(add);
+  sel.innerHTML = `<option value="">Tüm bölgeler</option>` + out.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
   sel.value = cur;
 }
 function propTags(p) {
@@ -58,9 +64,11 @@ $('#plusIcon').innerHTML = ICON.plus;
 $('#plusIcon2').innerHTML = ICON.plus;
 $$('.icon-btn[data-close]').forEach((b) => (b.innerHTML = ICON.x));
 
-// Bölge seçeneklerini doldur
+// Bölge seçeneklerini doldur (ilçeye göre gruplu)
 $('#f_bolge').innerHTML = '<option value="">Seçiniz</option>' +
-  REGIONS.map((r) => `<option value="${r}">${r}</option>`).join('');
+  Object.entries(REGION_GROUPS).map(([grp, list]) =>
+    `<optgroup label="${esc(grp)}">` + list.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('') + '</optgroup>'
+  ).join('');
 
 /* ============== AUTH ============== */
 async function init() {
