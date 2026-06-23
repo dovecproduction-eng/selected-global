@@ -1,6 +1,25 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js';
 import { getLang, setLang, t, applyI18n } from './i18n.js';
+
+// ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
+const AREA_TO_DISTRICT = {};
+for (const [d, list] of Object.entries(REGION_GROUPS)) for (const a of list) AREA_TO_DISTRICT[a.trim().toLocaleLowerCase('tr')] = d;
+
+export function regionDistrict(bolge) {
+  if (!bolge) return null;
+  return AREA_TO_DISTRICT[bolge.trim().toLocaleLowerCase('tr')] || null;
+}
+// "Long Beach" -> "İskele, Long Beach"; "İskele" -> "İskele"; "İskele Merkez" -> "İskele Merkez"
+export function regionDisplay(bolge) {
+  if (!bolge) return '';
+  const b = bolge.trim();
+  const d = regionDistrict(b);
+  if (!d) return b;
+  const bl = b.toLocaleLowerCase('tr'), dl = d.toLocaleLowerCase('tr');
+  if (bl === dl || bl.startsWith(dl)) return b;
+  return `${d}, ${b}`;
+}
 
 // ---------- İkonlar (inline SVG) ----------
 export const ICON = {
@@ -79,8 +98,8 @@ export function brandedCover(row) {
   if (row.oda_sayisi) right.push(esc(row.oda_sayisi));
   if (row.esyali != null) right.push(`<span class="furn">${row.esyali ? t('sp_furnished') : t('sp_unfurnished')}</span>`);
   const rightHtml = right.join('<span class="sep">·</span>');
-  // Sol bilgi: konum
-  const leftHtml = row.bolge ? `<span class="loc">${ICON.pin}${esc(row.bolge)}</span>` : '';
+  // Sol bilgi: konum (ilçe + alt bölge)
+  const leftHtml = row.bolge ? `<span class="loc">${ICON.pin}${esc(regionDisplay(row.bolge))}</span>` : '';
   return `
   <figure class="cover-figure" style="margin:0">
     <div class="cover-photo">

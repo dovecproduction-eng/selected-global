@@ -2,7 +2,7 @@
 import { supabase, BRAND, CURRENCY } from './config.js';
 import { t, applyI18n, getLang } from './i18n.js';
 import {
-  ICON, fmtPrice, esc, pickTitle, pickDesc, slugify,
+  ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPhotosZip,
 } from './ui.js';
 
@@ -18,7 +18,7 @@ function specRows() {
   const rows = [
     [t('sp_type'), r.tip === 'satilik' ? t('badge_sale') : t('badge_rent')],
     [t('sp_konut'), r.konut_tipi],
-    [t('sp_region'), r.bolge],
+    [t('sp_region'), regionDisplay(r.bolge)],
     [t('sp_rooms'), r.oda_sayisi],
     [t('sp_area'), r.metrekare ? `${r.metrekare} m²` : null],
     [t('sp_bath'), r.banyo_sayisi],
@@ -55,7 +55,7 @@ function render() {
     <div class="detail-grid">
       <div class="gallery">${gallery()}</div>
       <div class="detail-panel">
-        ${row.bolge ? `<div class="detail-region">${esc(row.bolge)}</div>` : ''}
+        ${row.bolge ? `<div class="detail-region">${esc(regionDisplay(row.bolge))}</div>` : ''}
         <h1 class="detail-title">${esc(pickTitle(row) || t('not_specified'))}</h1>
         <div class="detail-price">${fmtPrice(row.fiyat, row.para_birimi, row.tip)}</div>
         <div class="spec-table">${specRows()}</div>

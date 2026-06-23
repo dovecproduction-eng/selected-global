@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
 import { supabase, REGIONS, REGION_GROUPS, KONUT_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPhotosZip, slugify } from './ui.js';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPhotosZip, slugify, regionDistrict, regionDisplay } from './ui.js';
 
 // Üst bardaki "Web sitesi" linki
 document.getElementById('viewSiteLink').href = ALL_LISTINGS_URL;
@@ -20,7 +20,14 @@ const fSel   = { tip: 'all', region: '', furn: '', q: '' };
 
 function matchFilter(p, f) {
   if (f.tip !== 'all' && p.tip !== f.tip) return false;
-  if (f.region && (p.bolge || '').trim().toLocaleLowerCase('tr') !== f.region.trim().toLocaleLowerCase('tr')) return false;
+  if (f.region) {
+    const kk = (s) => (s || '').trim().toLocaleLowerCase('tr');
+    if (f.region.startsWith('__il__')) {
+      const il = f.region.slice(6);
+      const pd = regionDistrict(p.bolge) || p.bolge;
+      if (kk(pd) !== kk(il)) return false;
+    } else if (kk(p.bolge) !== kk(f.region)) return false;
+  }
   if (f.furn !== '') { if (p.esyali == null || String(p.esyali) !== f.furn) return false; }
   if (f.q) {
     const q = f.q.toLowerCase();
@@ -38,21 +45,36 @@ function sortProps(list, sort) {
 function fillRegionSelect(id) {
   const sel = $(id); if (!sel) return; const cur = sel.value;
   const key = (s) => (s || '').trim().toLocaleLowerCase('tr');
-  const seen = new Set(); const out = [];
-  const add = (r) => { const k = key(r); if (!r || !r.trim() || seen.has(k)) return; seen.add(k); out.push(r.trim()); };
-  const used = props.map((p) => (p.bolge || '').trim()).filter(Boolean);
-  const usedKeys = new Set(used.map(key));
-  // önce tanımlı bölgeler (kullanılanlar), sonra listede olmayan serbest girilen bölgeler
-  REGIONS.forEach((r) => { if (usedKeys.has(key(r))) add(r); });
-  used.forEach(add);
-  sel.innerHTML = `<option value="">Tüm bölgeler</option>` + out.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('');
+  // kullanılan benzersiz bölgeler
+  const seen = new Set(); const used = [];
+  props.map((p) => (p.bolge || '').trim()).filter(Boolean).forEach((r) => {
+    const k = key(r); if (!seen.has(k)) { seen.add(k); used.push(r); }
+  });
+  // ilçeye göre grupla
+  const groups = {}; const other = [];
+  used.forEach((r) => { const d = regionDistrict(r); if (d) (groups[d] = groups[d] || []).push(r); else other.push(r); });
+
+  let html = `<option value="">Tüm bölgeler</option>`;
+  Object.keys(REGION_GROUPS).forEach((d) => {
+    const areas = groups[d]; if (!areas || !areas.length) return;
+    const order = REGION_GROUPS[d];
+    areas.sort((a, b) => order.indexOf(a) - order.indexOf(b));
+    html += `<optgroup label="${esc(d)}">`;
+    html += `<option value="__il__${esc(d)}">${esc(d)} (tümü)</option>`;
+    areas.forEach((a) => { if (key(a) !== key(d)) html += `<option value="${esc(a)}">${esc(regionDisplay(a))}</option>`; });
+    html += `</optgroup>`;
+  });
+  if (other.length) {
+    html += `<optgroup label="Diğer">` + other.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('') + `</optgroup>`;
+  }
+  sel.innerHTML = html;
   sel.value = cur;
 }
 function propTags(p) {
   const tags = [];
   tags.push(`<span class="tag ${p.tip === 'satilik' ? 'sale' : 'rent'}">${p.tip === 'satilik' ? 'Satılık' : 'Kiralık'}</span>`);
   if (p.konut_tipi) tags.push(`<span class="tag">${esc(p.konut_tipi)}</span>`);
-  if (p.bolge) tags.push(`<span class="tag">${esc(p.bolge)}</span>`);
+  if (p.bolge) tags.push(`<span class="tag">${esc(regionDisplay(p.bolge))}</span>`);
   if (p.oda_sayisi) tags.push(`<span class="tag">${esc(p.oda_sayisi)}</span>`);
   if (p.esyali != null) tags.push(`<span class="tag">${p.esyali ? 'Eşyalı' : 'Eşyasız'}</span>`);
   const price = fmtPrice(p.fiyat, p.para_birimi, p.tip).replace(/<[^>]+>/g, '');
@@ -167,7 +189,7 @@ function listingSpecRows(p) {
   const rows = [
     ['Tip', p.tip === 'satilik' ? 'Satılık' : 'Kiralık'],
     ['Konut Tipi', p.konut_tipi],
-    ['Bölge', p.bolge],
+    ['Bölge', p.bolge ? regionDisplay(p.bolge) : null],
     ['Oda Sayısı', p.oda_sayisi],
     ['Alan', p.metrekare ? `${p.metrekare} m²` : null],
     ['Banyo', p.banyo_sayisi],
@@ -208,7 +230,7 @@ function openGallery(id) {
       </div>
       <div class="listing-info">
         <span class="badge ${isSale ? 'sale' : ''}" style="position:static;display:inline-block;margin-bottom:10px">${isSale ? 'Satılık' : 'Kiralık'}</span>
-        ${p.bolge ? `<div class="detail-region">${esc(p.bolge)}</div>` : ''}
+        ${p.bolge ? `<div class="detail-region">${esc(regionDisplay(p.bolge))}</div>` : ''}
         <h2 class="detail-title" style="font-size:1.7rem">${esc(pickTitle(p) || 'Başlıksız')}</h2>
         <div class="detail-price">${fmtPrice(p.fiyat, p.para_birimi, p.tip)}</div>
         <div class="spec-table">${listingSpecRows(p)}</div>
