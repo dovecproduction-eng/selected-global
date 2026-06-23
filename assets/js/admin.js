@@ -632,10 +632,15 @@ async function importXlsx(file) {
   } catch (e) {
     console.error('Excel okuma hatası:', e);
     const kb = Math.round((file.size || 0) / 1024);
+    const isEncrypted = /encrypt/i.test(e.message || '');
     result.innerHTML = `<div class="import-summary">
-      <span style="color:var(--danger)">Dosya okunamadı.</span> (${esc(file.name || '')}, ${kb} KB)<br>
-      <span class="text-muted" style="font-size:.82rem">Teknik sebep: ${esc(e.message || String(e))}</span><br>
-      <strong style="font-size:.85rem">Çözüm:</strong> <span style="font-size:.85rem">İndirdiğiniz şablonu kullanın ve dosyayı <strong>Excel Çalışma Kitabı (.xlsx)</strong> olarak kaydedin. Numbers kullanıyorsanız: <em>Dosya → Dışa Aktar → Excel</em>. Alternatif olarak <strong>.csv</strong> de yükleyebilirsiniz.</span>
+      <span style="color:var(--danger)">Bu Excel dosyası okunamadı.</span> (${esc(file.name || '')}, ${kb} KB)<br>
+      ${isEncrypted
+        ? `<span style="font-size:.88rem">Dosyanız <strong>şifreli/korumalı</strong> kaydedilmiş (Excel for Mac bunu bazen otomatik yapar).</span><br>
+           <strong style="font-size:.9rem;color:var(--ok)">✅ Kesin çözüm — CSV olarak kaydedin:</strong>
+           <span style="font-size:.85rem">Excel'de <em>Dosya → Farklı Kaydet</em> → biçim <strong>“CSV UTF-8 (Virgülle ayrılmış)”</strong> → kaydet → o <strong>.csv</strong> dosyasını buraya yükleyin. Tüm bilgiler aynı şekilde aktarılır.</span>`
+        : `<span class="text-muted" style="font-size:.82rem">Teknik sebep: ${esc(e.message || String(e))}</span><br>
+           <strong style="font-size:.85rem">Çözüm:</strong> <span style="font-size:.85rem">İndirdiğiniz şablonu kullanın ya da dosyayı <strong>.csv</strong> olarak kaydedip yükleyin.</span>`}
     </div>`;
     return;
   }
