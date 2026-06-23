@@ -25,11 +25,11 @@ export const BRAND = {
 // >>> Gerçek adres verilince burayı değiştir. <<<
 export const ALL_LISTINGS_URL = 'https://www.selectedglobal.com/tr';
 
-// KKTC bölgeleri — ilçe + ilan yoğun popüler alt bölgeler (gruplu)
+// KKTC bölgeleri — ilçe + ilan yoğun popüler alt bölgeler (gruplu). Sıra: İskele, Gazimağusa, Girne...
 export const REGION_GROUPS = {
-  'Girne': ['Girne', 'Girne Merkez', 'Alsancak', 'Lapta', 'Çatalköy', 'Esentepe', 'Karşıyaka', 'Karaoğlanoğlu', 'Zeytinlik', 'Ozanköy', 'Edremit', 'Bellapais', 'Arapköy'],
-  'Gazimağusa': ['Gazimağusa', 'Mağusa Merkez', 'Tuzla', 'Yeniboğaziçi', 'Sakarya', 'Maraş', 'Karakol'],
   'İskele': ['İskele', 'İskele Merkez', 'Long Beach', 'Boğaz', 'Bahçeler', 'Bafra', 'Kumyalı', 'Yeni İskele'],
+  'Gazimağusa': ['Gazimağusa', 'Mağusa Merkez', 'Tuzla', 'Yeniboğaziçi', 'Sakarya', 'Maraş', 'Karakol'],
+  'Girne': ['Girne', 'Girne Merkez', 'Alsancak', 'Lapta', 'Çatalköy', 'Esentepe', 'Karşıyaka', 'Karaoğlanoğlu', 'Zeytinlik', 'Ozanköy', 'Edremit', 'Bellapais', 'Arapköy'],
   'Lefkoşa': ['Lefkoşa', 'Lefkoşa Merkez', 'Gönyeli', 'Hamitköy', 'Yenikent', 'Ortaköy', 'Küçük Kaymaklı'],
   'Güzelyurt': ['Güzelyurt'],
   'Lefke': ['Lefke'],
@@ -38,6 +38,9 @@ export const REGIONS = Object.values(REGION_GROUPS).flat();
 
 // Konut tipleri (opsiyonel)
 export const KONUT_TIPLERI = ['Daire', 'Stüdyo', 'Penthouse', 'Dubleks', 'Villa', 'İkiz Villa', 'Müstakil Ev', 'Bungalov', 'Townhouse', 'Loft', 'Rezidans', 'Arsa', 'İşyeri / Dükkan'];
+
+// Oda sayısı seçenekleri
+export const ODA_TIPLERI = ['Stüdyo', '1+0', '1+1', '2+1', '3+1', '3+2', '4+1', '4+2', '5+1', '6+1', '7+1'];
 
 // Para birimi simgeleri
 export const CURRENCY = { GBP: '£', EUR: '€', USD: '$', TRY: '₺' };

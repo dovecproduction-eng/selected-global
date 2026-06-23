@@ -1,5 +1,5 @@
 // Selected Global — Admin paneli
-import { supabase, REGIONS, REGION_GROUPS, KONUT_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
+import { supabase, REGIONS, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
 import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPhotosZip, slugify, regionDistrict, regionDisplay } from './ui.js';
 
 // Üst bardaki "Web sitesi" linki
@@ -87,15 +87,40 @@ $('#plusIcon').innerHTML = ICON.plus;
 $('#plusIcon2').innerHTML = ICON.plus;
 $$('.icon-btn[data-close]').forEach((b) => (b.innerHTML = ICON.x));
 
-// Bölge seçeneklerini doldur (ilçeye göre gruplu)
-$('#f_bolge').innerHTML = '<option value="">Seçiniz</option>' +
-  Object.entries(REGION_GROUPS).map(([grp, list]) =>
-    `<optgroup label="${esc(grp)}">` + list.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('') + '</optgroup>'
-  ).join('');
+const rkey = (s) => (s || '').trim().toLocaleLowerCase('tr');
+
+// İl seçeneklerini doldur
+$('#f_il').innerHTML = '<option value="">Seçiniz</option>' +
+  Object.keys(REGION_GROUPS).map((d) => `<option value="${esc(d)}">${esc(d)}</option>`).join('');
+
+// Seçilen ile göre ilçeleri doldur
+function fillIlceOptions(il, selected) {
+  const sel = $('#f_bolge');
+  if (!il || !REGION_GROUPS[il]) { sel.innerHTML = '<option value="">Önce il seçin</option>'; sel.value = ''; return; }
+  const areas = REGION_GROUPS[il].filter((a) => rkey(a) !== rkey(il));
+  sel.innerHTML = `<option value="">${esc(il)} (geneli)</option>` +
+    areas.map((a) => `<option value="${esc(a)}">${esc(a)}</option>`).join('');
+  sel.value = selected || '';
+}
+// İl değişince ilçeleri tazele + önizleme
+$('#f_il').addEventListener('change', () => { fillIlceOptions($('#f_il').value); updateCoverPreview(); });
 
 // Konut tipi seçeneklerini doldur
 $('#f_konut').innerHTML = '<option value="">Belirtilmemiş</option>' +
   KONUT_TIPLERI.map((k) => `<option value="${esc(k)}">${esc(k)}</option>`).join('');
+
+// Oda sayısı seçeneklerini doldur
+$('#f_oda').innerHTML = '<option value="">Seçiniz</option>' +
+  ODA_TIPLERI.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+
+// Bir select'te olmayan değeri (eski/serbest) koruyarak seç
+function setSelectValue(selId, val) {
+  const el = $(selId); val = val || '';
+  if (val && !Array.from(el.options).some((o) => o.value === val)) {
+    el.insertAdjacentHTML('beforeend', `<option value="${esc(val)}">${esc(val)}</option>`);
+  }
+  el.value = val;
+}
 
 /* ============== AUTH ============== */
 async function init() {
@@ -299,9 +324,21 @@ function openProp(id) {
   $('#f_baslik').value = p?.baslik || '';
   $('#f_title_en').value = p?.title_en || '';
   $('#f_tip').value = p?.tip || 'kiralik';
-  $('#f_bolge').value = p?.bolge || '';
+  // İl / ilçe (kademeli)
+  const district = regionDistrict(p?.bolge);
+  if (district) {
+    $('#f_il').value = district;
+    fillIlceOptions(district, rkey(p.bolge) !== rkey(district) ? p.bolge : '');
+  } else if (p?.bolge) {
+    $('#f_il').value = '';
+    $('#f_bolge').innerHTML = `<option value="${esc(p.bolge)}">${esc(p.bolge)}</option>`;
+    $('#f_bolge').value = p.bolge;
+  } else {
+    $('#f_il').value = '';
+    fillIlceOptions('', '');
+  }
   $('#f_konut').value = p?.konut_tipi || '';
-  $('#f_oda').value = p?.oda_sayisi || '';
+  setSelectValue('#f_oda', p?.oda_sayisi);
   $('#f_m2').value = p?.metrekare ?? '';
   $('#f_fiyat').value = p?.fiyat ?? '';
   $('#f_cur').value = p?.para_birimi || 'GBP';
@@ -376,7 +413,7 @@ function updateCoverPreview() {
     fotograflar: [cover.url],
     kapak_index: 0,
     tip: $('#f_tip').value,
-    bolge: $('#f_bolge').value || null,
+    bolge: $('#f_bolge').value || $('#f_il').value || null,
     oda_sayisi: $('#f_oda').value.trim() || null,
     esyali: $('#f_esyali').value === '' ? null : $('#f_esyali').value === 'true',
     baslik: $('#f_baslik').value,
@@ -430,7 +467,7 @@ $('#savePropBtn').addEventListener('click', async () => {
     title_en: $('#f_title_en').value.trim() || null,
     tip: $('#f_tip').value,
     konut_tipi: $('#f_konut').value || null,
-    bolge: $('#f_bolge').value || null,
+    bolge: $('#f_bolge').value || $('#f_il').value || null,
     oda_sayisi: $('#f_oda').value.trim() || null,
     metrekare: numOrNull($('#f_m2').value),
     fiyat: numOrNull($('#f_fiyat').value),
