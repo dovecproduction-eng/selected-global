@@ -9,6 +9,15 @@ import {
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
 
+// Admin önizlemesi ise "geri" çubuğu göster (müşteri linkinde görünmez)
+if (new URLSearchParams(location.search).has('admin')) {
+  const bar = document.createElement('div');
+  bar.className = 'container preview-backbar';
+  bar.innerHTML = `<a class="btn btn-ghost btn-sm" href="admin.html#ports">← Tüm portföyler</a><span class="preview-tag">Önizleme</span>`;
+  const hero = document.querySelector('.portfolio-hero');
+  hero.parentNode.insertBefore(bar, hero);
+}
+
 const kod = new URLSearchParams(location.search).get('kod');
 let portfolio = null;
 let items = [];

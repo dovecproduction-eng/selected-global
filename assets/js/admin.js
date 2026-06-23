@@ -74,6 +74,12 @@ function showApp() {
   $('#app').classList.remove('hidden');
   loadProps();
   loadPorts();
+  // Adres #ports / #excel ile geldiyse o sekmeyi aç (önizlemeden "geri" için)
+  const hashTab = (location.hash || '').replace('#', '');
+  if (['props', 'ports', 'excel'].includes(hashTab)) {
+    const btn = document.querySelector(`.admin-tabs button[data-tab="${hashTab}"]`);
+    if (btn) btn.click();
+  }
 }
 
 $('#loginForm').addEventListener('submit', async (e) => {
@@ -460,7 +466,7 @@ function renderPortList() {
       </div>
       <div class="port-actions">
         <a class="btn btn-wa btn-sm" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">${ICON.wa}<span>WhatsApp'tan gönder</span></a>
-        <a class="btn btn-ghost btn-sm" href="${url}" target="_blank" rel="noopener">${ICON.link}<span>Önizle</span></a>
+        <a class="btn btn-ghost btn-sm" href="${url}&admin=1" target="_blank" rel="noopener">${ICON.link}<span>Önizle</span></a>
       </div>
     </div>`;
   }).join('');
