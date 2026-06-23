@@ -17,6 +17,7 @@ function specRows() {
   const r = row;
   const rows = [
     [t('sp_type'), r.tip === 'satilik' ? t('badge_sale') : t('badge_rent')],
+    [t('sp_konut'), r.konut_tipi],
     [t('sp_region'), r.bolge],
     [t('sp_rooms'), r.oda_sayisi],
     [t('sp_area'), r.metrekare ? `${r.metrekare} m²` : null],

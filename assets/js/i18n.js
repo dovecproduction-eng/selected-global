@@ -29,6 +29,7 @@ export const I18N = {
     per_month: '/ay',
 
     sp_rooms: 'Oda',
+    sp_konut: 'Konut Tipi',
     sp_area: 'Alan',
     sp_bath: 'Banyo',
     sp_floor: 'Kat',
@@ -85,6 +86,7 @@ export const I18N = {
     per_month: '/mo',
 
     sp_rooms: 'Rooms',
+    sp_konut: 'Property Type',
     sp_area: 'Area',
     sp_bath: 'Bath',
     sp_floor: 'Floor',

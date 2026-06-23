@@ -70,19 +70,19 @@
             <table class="excel-mock">
               <tr class="excel-cols">
                 <td class="excel-corner"></td>
-                <td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td><td>G</td><td>H</td><td>I</td><td>J</td><td>K</td><td>L</td><td>M</td><td>N</td><td>O</td><td>P</td>
+                <td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td><td>G</td><td>H</td><td>I</td><td>J</td><td>K</td><td>L</td><td>M</td><td>N</td><td>O</td><td>P</td><td>Q</td>
               </tr>
               <tr class="excel-head">
                 <td class="excel-rownum">1</td>
-                <td>İlan No</td><td>Başlık</td><td>Başlık (EN)</td><td>Tip</td><td>Bölge</td><td>Oda Sayısı</td><td>Fiyat</td><td>Para Birimi</td><td>m2</td><td>Banyo</td><td>Kat</td><td>Eşya</td><td>Özellikler</td><td>Açıklama</td><td>Açıklama (EN)</td><td>Fotoğraf URL'leri</td>
+                <td>İlan No</td><td>Başlık</td><td>Başlık (EN)</td><td>Tip</td><td>Konut Tipi</td><td>Bölge</td><td>Oda Sayısı</td><td>Fiyat</td><td>Para Birimi</td><td>m2</td><td>Banyo</td><td>Kat</td><td>Eşya</td><td>Özellikler</td><td>Açıklama</td><td>Açıklama (EN)</td><td>Fotoğraf URL'leri</td>
               </tr>
               <tr>
                 <td class="excel-rownum">2</td>
-                <td>SG-001</td><td>Denize sıfır 2+1 lüks daire</td><td>Seafront luxury 2+1</td><td>Kiralık</td><td>Girne</td><td>2+1</td><td>750</td><td>GBP</td><td>95</td><td>1</td><td>3. kat</td><td>Eşyalı</td><td>Havuz, Otopark</td><td>Geniş balkonlu, deniz manzaralı.</td><td>Spacious sea-view balcony.</td><td class="excel-empty">(boş)</td>
+                <td>SG-001</td><td>Denize sıfır 2+1 lüks daire</td><td>Seafront luxury 2+1</td><td>Kiralık</td><td>Daire</td><td>Girne</td><td>2+1</td><td>750</td><td>GBP</td><td>95</td><td>1</td><td>3. kat</td><td>Eşyalı</td><td>Havuz, Otopark</td><td>Geniş balkonlu, deniz manzaralı.</td><td>Spacious sea-view balcony.</td><td class="excel-empty">(boş)</td>
               </tr>
               <tr>
                 <td class="excel-rownum">3</td>
-                <td>SG-002</td><td>Merkezde 3+1 satılık daire</td><td>Central 3+1 for sale</td><td>Satılık</td><td>Gazimağusa</td><td>3+1</td><td>145000</td><td>GBP</td><td>130</td><td>2</td><td>5. kat</td><td>Eşyasız</td><td>Asansör, Otopark</td><td>Yatırımlık, merkezi konum.</td><td>Central investment flat.</td><td class="excel-empty">(boş)</td>
+                <td>SG-002</td><td>Merkezde 3+1 satılık villa</td><td>Central 3+1 villa</td><td>Satılık</td><td>Villa</td><td>Gazimağusa</td><td>3+1</td><td>145000</td><td>GBP</td><td>130</td><td>2</td><td>5. kat</td><td>Eşyasız</td><td>Asansör, Otopark</td><td>Yatırımlık, merkezi konum.</td><td>Central investment flat.</td><td class="excel-empty">(boş)</td>
               </tr>
             </table>
           </div>
@@ -215,13 +215,19 @@
               <input id="f_kat" placeholder="Örn. 3. kat, Bahçe katı" />
             </div>
           </div>
-          <div class="field">
-            <label>Eşya durumu</label>
-            <select id="f_esyali">
-              <option value="">Belirtilmemiş</option>
-              <option value="true">Eşyalı</option>
-              <option value="false">Eşyasız</option>
-            </select>
+          <div class="field-row">
+            <div class="field">
+              <label>Konut Tipi <span class="text-muted">— opsiyonel</span></label>
+              <select id="f_konut"><option value="">Belirtilmemiş</option></select>
+            </div>
+            <div class="field">
+              <label>Eşya durumu</label>
+              <select id="f_esyali">
+                <option value="">Belirtilmemiş</option>
+                <option value="true">Eşyalı</option>
+                <option value="false">Eşyasız</option>
+              </select>
+            </div>
           </div>
           <div class="field">
             <label>Özellikler <span class="text-muted">— virgülle ayırın</span></label>

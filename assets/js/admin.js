@@ -1,5 +1,5 @@
 // Selected Global — Admin paneli
-import { supabase, REGIONS, REGION_GROUPS, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
+import { supabase, REGIONS, REGION_GROUPS, KONUT_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
 import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPhotosZip, slugify } from './ui.js';
 
 // Üst bardaki "Web sitesi" linki
@@ -51,6 +51,7 @@ function fillRegionSelect(id) {
 function propTags(p) {
   const tags = [];
   tags.push(`<span class="tag ${p.tip === 'satilik' ? 'sale' : 'rent'}">${p.tip === 'satilik' ? 'Satılık' : 'Kiralık'}</span>`);
+  if (p.konut_tipi) tags.push(`<span class="tag">${esc(p.konut_tipi)}</span>`);
   if (p.bolge) tags.push(`<span class="tag">${esc(p.bolge)}</span>`);
   if (p.oda_sayisi) tags.push(`<span class="tag">${esc(p.oda_sayisi)}</span>`);
   if (p.esyali != null) tags.push(`<span class="tag">${p.esyali ? 'Eşyalı' : 'Eşyasız'}</span>`);
@@ -69,6 +70,10 @@ $('#f_bolge').innerHTML = '<option value="">Seçiniz</option>' +
   Object.entries(REGION_GROUPS).map(([grp, list]) =>
     `<optgroup label="${esc(grp)}">` + list.map((r) => `<option value="${esc(r)}">${esc(r)}</option>`).join('') + '</optgroup>'
   ).join('');
+
+// Konut tipi seçeneklerini doldur
+$('#f_konut').innerHTML = '<option value="">Belirtilmemiş</option>' +
+  KONUT_TIPLERI.map((k) => `<option value="${esc(k)}">${esc(k)}</option>`).join('');
 
 /* ============== AUTH ============== */
 async function init() {
@@ -161,6 +166,7 @@ function renderPropList() {
 function listingSpecRows(p) {
   const rows = [
     ['Tip', p.tip === 'satilik' ? 'Satılık' : 'Kiralık'],
+    ['Konut Tipi', p.konut_tipi],
     ['Bölge', p.bolge],
     ['Oda Sayısı', p.oda_sayisi],
     ['Alan', p.metrekare ? `${p.metrekare} m²` : null],
@@ -272,6 +278,7 @@ function openProp(id) {
   $('#f_title_en').value = p?.title_en || '';
   $('#f_tip').value = p?.tip || 'kiralik';
   $('#f_bolge').value = p?.bolge || '';
+  $('#f_konut').value = p?.konut_tipi || '';
   $('#f_oda').value = p?.oda_sayisi || '';
   $('#f_m2').value = p?.metrekare ?? '';
   $('#f_fiyat').value = p?.fiyat ?? '';
@@ -400,6 +407,7 @@ $('#savePropBtn').addEventListener('click', async () => {
     baslik: $('#f_baslik').value.trim() || null,
     title_en: $('#f_title_en').value.trim() || null,
     tip: $('#f_tip').value,
+    konut_tipi: $('#f_konut').value || null,
     bolge: $('#f_bolge').value || null,
     oda_sayisi: $('#f_oda').value.trim() || null,
     metrekare: numOrNull($('#f_m2').value),
@@ -571,7 +579,7 @@ async function copy(text) {
 }
 
 /* ============== EXCEL İLE TOPLU EKLEME ============== */
-const XLS_HEADERS = ['İlan No', 'Başlık', 'Başlık (EN)', 'Tip', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', 'Açıklama (EN)', "Fotoğraf URL'leri"];
+const XLS_HEADERS = ['İlan No', 'Başlık', 'Başlık (EN)', 'Tip', 'Konut Tipi', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', 'Açıklama (EN)', "Fotoğraf URL'leri"];
 
 // Başlık normalleştirme (büyük/küçük, Türkçe karakter, boşluk farkını yok say)
 function asciiLower(s) {
@@ -586,6 +594,7 @@ const FIELD_ALIASES = {
   baslik: ['baslik', 'basliktr', 'title', 'titletr', 'ad', 'isim'],
   title_en: ['basliken', 'titleen'],
   tip: ['tip', 'tur', 'durum', 'type', 'islemtipi', 'islem'],
+  konut_tipi: ['konuttipi', 'konut', 'emlaktipi', 'gayrimenkultipi', 'propertytype', 'evtipi'],
   bolge: ['bolge', 'konum', 'region', 'location', 'sehir', 'ilce'],
   oda_sayisi: ['odasayisi', 'oda', 'odatipi', 'rooms', 'odasay'],
   fiyat: ['fiyat', 'price', 'ucret', 'tutar'],
@@ -623,7 +632,7 @@ function sigOf(o) { return asciiLower(`${o.baslik || ''}|${o.bolge || ''}|${o.od
 // Şablon indir
 $('#dlTemplateBtn').addEventListener('click', () => {
   if (!window.XLSX) { toast('Excel aracı yüklenemedi, sayfayı yenileyin', 'err'); return; }
-  const example = ['SG-001', 'Denize sıfır 2+1 lüks daire', 'Seafront luxury 2+1 apartment', 'Kiralık', 'Girne', '2+1', 750, 'GBP', 95, 1, '3. kat', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', 'Spacious sea-view balcony.', ''];
+  const example = ['SG-001', 'Denize sıfır 2+1 lüks daire', 'Seafront luxury 2+1 apartment', 'Kiralık', 'Daire', 'Girne', '2+1', 750, 'GBP', 95, 1, '3. kat', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', 'Spacious sea-view balcony.', ''];
   const ws = XLSX.utils.aoa_to_sheet([XLS_HEADERS, example]);
   ws['!cols'] = XLS_HEADERS.map(() => ({ wch: 20 }));
   const wb = XLSX.utils.book_new();
@@ -707,6 +716,7 @@ async function importXlsx(file) {
       baslik: vStr(raw.baslik),
       title_en: vStr(raw.title_en),
       tip: vTip(raw.tip),
+      konut_tipi: vStr(raw.konut_tipi),
       bolge: vStr(raw.bolge),
       oda_sayisi: vStr(raw.oda_sayisi),
       fiyat: vNum(raw.fiyat),

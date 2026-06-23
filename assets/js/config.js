@@ -36,5 +36,8 @@ export const REGION_GROUPS = {
 };
 export const REGIONS = Object.values(REGION_GROUPS).flat();
 
+// Konut tipleri (opsiyonel)
+export const KONUT_TIPLERI = ['Daire', 'Stüdyo', 'Penthouse', 'Dubleks', 'Villa', 'İkiz Villa', 'Müstakil Ev', 'Bungalov', 'Townhouse', 'Loft', 'Rezidans', 'Arsa', 'İşyeri / Dükkan'];
+
 // Para birimi simgeleri
 export const CURRENCY = { GBP: '£', EUR: '€', USD: '$', TRY: '₺' };
