@@ -1,0 +1,698 @@
+// Selected Global — Admin paneli
+import { supabase, REGIONS, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPhotosZip, slugify } from './ui.js';
+
+// Üst bardaki "Web sitesi" linki
+document.getElementById('viewSiteLink').href = ALL_LISTINGS_URL;
+
+const $ = (s) => document.querySelector(s);
+const $$ = (s) => Array.from(document.querySelectorAll(s));
+
+let props = [];
+let ports = [];
+let editId = null;
+let photos = [];           // [{url, path}]
+let selected = new Set();  // portföy seçimi
+
+// Filtre durumları
+const fProps = { tip: 'all', region: '', furn: '', sort: 'new', q: '' };
+const fSel   = { tip: 'all', region: '', furn: '', q: '' };
+
+function matchFilter(p, f) {
+  if (f.tip !== 'all' && p.tip !== f.tip) return false;
+  if (f.region && p.bolge !== f.region) return false;
+  if (f.furn !== '') { if (p.esyali == null || String(p.esyali) !== f.furn) return false; }
+  if (f.q) {
+    const q = f.q.toLowerCase();
+    const hay = `${p.baslik || ''} ${p.title_en || ''} ${p.bolge || ''} ${p.oda_sayisi || ''}`.toLowerCase();
+    if (!hay.includes(q)) return false;
+  }
+  return true;
+}
+function sortProps(list, sort) {
+  const a = [...list];
+  if (sort === 'price_asc') a.sort((x, y) => (x.fiyat ?? Infinity) - (y.fiyat ?? Infinity));
+  else if (sort === 'price_desc') a.sort((x, y) => (y.fiyat ?? -Infinity) - (x.fiyat ?? -Infinity));
+  return a; // 'new' = created_at desc (zaten sıralı)
+}
+function fillRegionSelect(id) {
+  const used = [...new Set(props.map((p) => p.bolge).filter(Boolean))];
+  const ordered = REGIONS.filter((r) => used.includes(r)).concat(used.filter((r) => !REGIONS.includes(r)));
+  const sel = $(id); if (!sel) return; const cur = sel.value;
+  sel.innerHTML = `<option value="">Tüm bölgeler</option>` + ordered.map((r) => `<option value="${r}">${r}</option>`).join('');
+  sel.value = cur;
+}
+function propTags(p) {
+  const tags = [];
+  tags.push(`<span class="tag ${p.tip === 'satilik' ? 'sale' : 'rent'}">${p.tip === 'satilik' ? 'Satılık' : 'Kiralık'}</span>`);
+  if (p.bolge) tags.push(`<span class="tag">${esc(p.bolge)}</span>`);
+  if (p.oda_sayisi) tags.push(`<span class="tag">${esc(p.oda_sayisi)}</span>`);
+  if (p.esyali != null) tags.push(`<span class="tag">${p.esyali ? 'Eşyalı' : 'Eşyasız'}</span>`);
+  const price = fmtPrice(p.fiyat, p.para_birimi, p.tip).replace(/<[^>]+>/g, '');
+  if (p.fiyat != null) tags.push(`<span class="tag price">${price}</span>`);
+  return `<div class="tags">${tags.join('')}</div>`;
+}
+
+// İkon yerleştir
+$('#plusIcon').innerHTML = ICON.plus;
+$('#plusIcon2').innerHTML = ICON.plus;
+$$('.icon-btn[data-close]').forEach((b) => (b.innerHTML = ICON.x));
+
+// Bölge seçeneklerini doldur
+$('#f_bolge').innerHTML = '<option value="">Seçiniz</option>' +
+  REGIONS.map((r) => `<option value="${r}">${r}</option>`).join('');
+
+/* ============== AUTH ============== */
+async function init() {
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session) showApp(); else showLogin();
+}
+
+function showLogin() { $('#loginScreen').classList.remove('hidden'); $('#app').classList.add('hidden'); }
+function showApp() {
+  $('#loginScreen').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  loadProps();
+  loadPorts();
+}
+
+$('#loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = 'Giriş yapılıyor…';
+  $('#loginErr').textContent = '';
+  const { error } = await supabase.auth.signInWithPassword({
+    email: $('#loginEmail').value.trim(),
+    password: $('#loginPass').value,
+  });
+  btn.disabled = false; btn.textContent = 'Giriş yap';
+  if (error) { $('#loginErr').textContent = 'Giriş başarısız: e-posta veya şifre hatalı.'; return; }
+  showApp();
+});
+
+$('#logoutBtn').addEventListener('click', async () => { await supabase.auth.signOut(); showLogin(); });
+
+/* ============== SEKMELER ============== */
+const TAB_IDS = ['props', 'ports', 'excel'];
+$$('.admin-tabs button').forEach((b) => b.addEventListener('click', () => {
+  $$('.admin-tabs button').forEach((x) => x.classList.toggle('active', x === b));
+  TAB_IDS.forEach((id) => $(`#tab-${id}`).classList.toggle('hidden', b.dataset.tab !== id));
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}));
+
+/* ============== DAİRELER ============== */
+async function loadProps() {
+  const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
+  if (error) { toast('Daireler yüklenemedi', 'err'); return; }
+  props = data || [];
+  $('#propCount').textContent = props.length;
+  fillRegionSelect('#pf_region');
+  fillRegionSelect('#sf_region');
+  renderPropList();
+}
+
+function renderPropList() {
+  const el = $('#propList');
+  if (!props.length) { el.innerHTML = `<p class="text-muted">Henüz daire eklenmemiş. “Yeni daire ekle” ile başlayın.</p>`; $('#propShown').textContent = ''; return; }
+  const list = sortProps(props.filter((p) => matchFilter(p, fProps)), fProps.sort);
+  $('#propShown').textContent = `${list.length} / ${props.length} gösteriliyor`;
+  if (!list.length) { el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; return; }
+  el.innerHTML = list.map((p) => {
+    const cover = coverUrl(p);
+    const n = (p.fotograflar || []).length;
+    return `<div class="admin-item" data-view="${p.id}" title="Fotoğrafları gör">
+      <div class="thumb-wrap">
+        ${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}
+        ${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}
+      </div>
+      <div class="meta">
+        <div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>
+        ${propTags(p)}
+      </div>
+      <div class="acts">
+        <button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button>
+        <button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  el.querySelectorAll('.admin-item').forEach((item) => item.addEventListener('click', (e) => {
+    if (e.target.closest('.acts')) return; // edit/sil butonları galeriyi açmasın
+    openGallery(item.dataset.view);
+  }));
+  el.querySelectorAll('[data-edit]').forEach((b) => b.onclick = () => openProp(b.dataset.edit));
+  el.querySelectorAll('[data-del]').forEach((b) => b.onclick = () => delProp(b.dataset.del));
+}
+
+// İlan önizleme (galeri + tüm detaylar — ilan sayfası gibi)
+function listingSpecRows(p) {
+  const rows = [
+    ['Tip', p.tip === 'satilik' ? 'Satılık' : 'Kiralık'],
+    ['Bölge', p.bolge],
+    ['Oda Sayısı', p.oda_sayisi],
+    ['Alan', p.metrekare ? `${p.metrekare} m²` : null],
+    ['Banyo', p.banyo_sayisi],
+    ['Kat', p.kat],
+    ['Eşya Durumu', p.esyali == null ? null : (p.esyali ? 'Eşyalı' : 'Eşyasız')],
+    ['İlan No', p.ref_kodu],
+  ];
+  return rows.filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('');
+}
+
+function openGallery(id) {
+  const p = props.find((x) => x.id === id); if (!p) return;
+  const photos = p.fotograflar || [];
+  const features = p.ozellikler || [];
+  const desc = pickDesc(p);
+  const isSale = p.tip === 'satilik';
+  $('#photoModalTitle').textContent = pickTitle(p) || 'İlan';
+
+  const cur = photos.length ? Math.min(p.kapak_index || 0, photos.length - 1) : 0;
+  const coverHtml = photos.length
+    ? brandedCover(p)
+    : `<div class="cover-figure"><div class="cover-photo" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}<span style="color:var(--muted);font-size:.85rem;margin-top:8px">Fotoğraf yok</span></div></div>`;
+  const selectStrip = photos.length > 1
+    ? `<div class="cover-select">
+         <div class="cover-select-label">Kapak fotoğrafını seç (tıkla):</div>
+         <div class="cover-thumbs" id="pmCoverThumbs">
+           ${photos.map((u, i) => `<div class="cthumb ${i === cur ? 'active' : ''}" data-ci="${i}"><img src="${esc(u)}" alt="" />${i === cur ? '<span class="ck">KAPAK</span>' : ''}</div>`).join('')}
+         </div>
+       </div>`
+    : '';
+
+  $('#pmBody').innerHTML = `
+    <div class="listing-preview">
+      <div class="gallery">
+        <div id="pmBranded">${coverHtml}</div>
+        ${selectStrip}
+      </div>
+      <div class="listing-info">
+        <span class="badge ${isSale ? 'sale' : ''}" style="position:static;display:inline-block;margin-bottom:10px">${isSale ? 'Satılık' : 'Kiralık'}</span>
+        ${p.bolge ? `<div class="detail-region">${esc(p.bolge)}</div>` : ''}
+        <h2 class="detail-title" style="font-size:1.7rem">${esc(pickTitle(p) || 'Başlıksız')}</h2>
+        <div class="detail-price">${fmtPrice(p.fiyat, p.para_birimi, p.tip)}</div>
+        <div class="spec-table">${listingSpecRows(p)}</div>
+        ${features.length ? `<div class="feature-chips">${features.map((f) => `<span class="chip">${esc(f)}</span>`).join('')}</div>` : ''}
+        ${desc ? `<h4 style="font-size:1rem;margin:14px 0 6px">Açıklama</h4><p class="detail-desc" style="margin:0">${esc(desc)}</p>` : ''}
+      </div>
+    </div>`;
+
+  // Kapak seçimi: tıklanan fotoğrafı kapak yap (DB'ye kaydet, anında güncelle)
+  const ct = $('#pmCoverThumbs');
+  if (ct) ct.onclick = async (e) => {
+    const tile = e.target.closest('.cthumb[data-ci]'); if (!tile) return;
+    const idx = Number(tile.dataset.ci);
+    if (idx === (p.kapak_index || 0)) return;
+    const { error } = await supabase.from('properties').update({ kapak_index: idx }).eq('id', id);
+    if (error) { toast('Kapak güncellenemedi', 'err'); return; }
+    p.kapak_index = idx;                 // yerel veriyi de güncelle
+    toast('Kapak güncellendi', 'ok');
+    openGallery(id);                     // önizlemeyi tazele (markalı kapak yeni fotoğrafla)
+    renderPropList();                    // listedeki kapak da değişsin
+  };
+
+  $('#pmEdit').onclick = () => { closeModal($('#photoModal')); openProp(id); };
+  $('#pmOpen').href = `daire.html?id=${id}`;
+  const dl = $('#pmDownload');
+  dl.classList.toggle('hidden', !photos.length);
+  dl.innerHTML = `${ICON.download}<span>Fotoğrafları indir</span>`;
+  dl.onclick = async () => {
+    const orig = dl.innerHTML; dl.disabled = true;
+    dl.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Hazırlanıyor…</span>`;
+    await downloadPhotosZip(photos, slugify(`${p.bolge || ''}-${pickTitle(p)}`), () => {});
+    dl.disabled = false; dl.innerHTML = orig;
+    toast('Fotoğraflar indirildi', 'ok');
+  };
+  openModal('#photoModal');
+}
+
+// Daireler sekmesi filtre olayları
+$('#pf_tip').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-tip]'); if (!b) return;
+  fProps.tip = b.dataset.tip;
+  $$('#pf_tip button').forEach((x) => x.classList.toggle('active', x === b));
+  renderPropList();
+});
+$('#pf_region').addEventListener('change', (e) => { fProps.region = e.target.value; renderPropList(); });
+$('#pf_furn').addEventListener('change', (e) => { fProps.furn = e.target.value; renderPropList(); });
+$('#pf_sort').addEventListener('change', (e) => { fProps.sort = e.target.value; renderPropList(); });
+$('#pf_q').addEventListener('input', (e) => { fProps.q = e.target.value.trim(); renderPropList(); });
+
+/* ---- Daire modalı ---- */
+function openModal(id) { $(id).classList.add('open'); document.body.style.overflow = 'hidden'; }
+function closeModal(el) { el.classList.remove('open'); document.body.style.overflow = ''; }
+$$('.modal-overlay').forEach((ov) => {
+  ov.addEventListener('click', (e) => { if (e.target === ov || e.target.closest('[data-close]')) closeModal(ov); });
+});
+
+$('#addPropBtn').addEventListener('click', () => openProp(null));
+
+function openProp(id) {
+  editId = id;
+  photos = [];
+  const p = id ? props.find((x) => x.id === id) : null;
+  $('#propModalTitle').textContent = id ? 'Daireyi düzenle' : 'Yeni daire';
+  $('#f_id').value = id || '';
+  $('#f_ref').value = p?.ref_kodu || '';
+  $('#f_baslik').value = p?.baslik || '';
+  $('#f_title_en').value = p?.title_en || '';
+  $('#f_tip').value = p?.tip || 'kiralik';
+  $('#f_bolge').value = p?.bolge || '';
+  $('#f_oda').value = p?.oda_sayisi || '';
+  $('#f_m2').value = p?.metrekare ?? '';
+  $('#f_fiyat').value = p?.fiyat ?? '';
+  $('#f_cur').value = p?.para_birimi || 'GBP';
+  $('#f_banyo').value = p?.banyo_sayisi ?? '';
+  $('#f_kat').value = p?.kat || '';
+  $('#f_esyali').value = p?.esyali == null ? '' : String(p.esyali);
+  $('#f_ozellikler').value = (p?.ozellikler || []).join(', ');
+  $('#f_aciklama').value = p?.aciklama || '';
+  $('#f_desc_en').value = p?.desc_en || '';
+  if (p?.fotograflar?.length) {
+    const cov = Math.min(p.kapak_index || 0, p.fotograflar.length - 1);
+    const ordered = [p.fotograflar[cov], ...p.fotograflar.filter((_, i) => i !== cov)];
+    photos = ordered.map((url) => ({ url, path: urlToPath(url) }));
+  }
+  renderPreviews();
+  openModal('#propModal');
+}
+
+function urlToPath(url) {
+  const m = url.split(`/object/public/${STORAGE_BUCKET}/`);
+  return m[1] ? decodeURIComponent(m[1]) : null;
+}
+
+function renderPreviews() {
+  const el = $('#previews');
+  el.innerHTML = photos.map((ph, i) => `
+    <div class="pv ${i === 0 ? 'cover' : ''}" data-i="${i}" draggable="true" title="${i===0?'Kapak fotoğrafı':'Kapak yapmak için tıklayın'}">
+      ${ph.uploading ? `<div class="skeleton" style="width:100%;height:100%"></div>` : `<img src="${esc(ph.url)}" alt="" />`}
+      <button type="button" class="rm" data-rm="${i}">×</button>
+    </div>`).join('');
+
+  // Tıkla = kapak yap (öne al)
+  el.querySelectorAll('.pv').forEach((pv) => {
+    pv.addEventListener('click', (e) => {
+      if (e.target.closest('[data-rm]')) return;
+      const i = Number(pv.dataset.i);
+      if (i === 0) return;
+      const [item] = photos.splice(i, 1); photos.unshift(item); renderPreviews();
+    });
+  });
+  el.querySelectorAll('[data-rm]').forEach((b) => b.onclick = (e) => {
+    e.stopPropagation();
+    photos.splice(Number(b.dataset.rm), 1); renderPreviews();
+  });
+
+  // Sürükle-bırak sıralama
+  let dragI = null;
+  el.querySelectorAll('.pv').forEach((pv) => {
+    pv.addEventListener('dragstart', () => { dragI = Number(pv.dataset.i); });
+    pv.addEventListener('dragover', (e) => e.preventDefault());
+    pv.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const to = Number(pv.dataset.i);
+      if (dragI == null || dragI === to) return;
+      const [item] = photos.splice(dragI, 1); photos.splice(to, 0, item); renderPreviews();
+    });
+  });
+
+  updateCoverPreview();
+}
+
+// Markalı kapağın canlı önizlemesi
+function updateCoverPreview() {
+  const box = document.getElementById('coverPreview');
+  if (!box) return;
+  const cover = photos[0];
+  if (!cover || cover.uploading || !cover.url) {
+    box.innerHTML = `<div class="empty-cover">Kapak fotoğrafı ekleyince önizleme burada görünür</div>`;
+    return;
+  }
+  const row = {
+    fotograflar: [cover.url],
+    kapak_index: 0,
+    tip: $('#f_tip').value,
+    bolge: $('#f_bolge').value || null,
+    oda_sayisi: $('#f_oda').value.trim() || null,
+    esyali: $('#f_esyali').value === '' ? null : $('#f_esyali').value === 'true',
+    baslik: $('#f_baslik').value,
+  };
+  box.innerHTML = brandedCover(row);
+}
+
+// Kapak bilgisi alanları değişince önizlemeyi tazele
+['#f_tip', '#f_bolge', '#f_oda', '#f_esyali'].forEach((sel) => {
+  document.querySelector(sel)?.addEventListener('input', updateCoverPreview);
+  document.querySelector(sel)?.addEventListener('change', updateCoverPreview);
+});
+
+// Foto yükleme
+const uploader = $('#uploader');
+const fileInput = $('#fileInput');
+uploader.addEventListener('click', () => fileInput.click());
+uploader.addEventListener('dragover', (e) => { e.preventDefault(); uploader.classList.add('drag'); });
+uploader.addEventListener('dragleave', () => uploader.classList.remove('drag'));
+uploader.addEventListener('drop', (e) => { e.preventDefault(); uploader.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
+fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
+
+async function handleFiles(fileList) {
+  const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
+  for (const file of files) {
+    const ph = { url: '', path: '', uploading: true };
+    photos.push(ph); renderPreviews();
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+      if (error) throw error;
+      const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
+      ph.url = data.publicUrl; ph.path = path; ph.uploading = false;
+    } catch (err) {
+      console.error(err);
+      toast('Bir fotoğraf yüklenemedi', 'err');
+      photos = photos.filter((x) => x !== ph);
+    }
+    renderPreviews();
+  }
+}
+
+$('#savePropBtn').addEventListener('click', async () => {
+  if (photos.some((p) => p.uploading)) { toast('Fotoğraflar yükleniyor, bekleyin…'); return; }
+  const btn = $('#savePropBtn'); btn.disabled = true; btn.textContent = 'Kaydediliyor…';
+
+  const payload = {
+    ref_kodu: $('#f_ref').value.trim() || null,
+    baslik: $('#f_baslik').value.trim() || null,
+    title_en: $('#f_title_en').value.trim() || null,
+    tip: $('#f_tip').value,
+    bolge: $('#f_bolge').value || null,
+    oda_sayisi: $('#f_oda').value.trim() || null,
+    metrekare: numOrNull($('#f_m2').value),
+    fiyat: numOrNull($('#f_fiyat').value),
+    para_birimi: $('#f_cur').value,
+    banyo_sayisi: numOrNull($('#f_banyo').value),
+    kat: $('#f_kat').value.trim() || null,
+    esyali: $('#f_esyali').value === '' ? null : $('#f_esyali').value === 'true',
+    ozellikler: $('#f_ozellikler').value.split(',').map((s) => s.trim()).filter(Boolean),
+    aciklama: $('#f_aciklama').value.trim() || null,
+    desc_en: $('#f_desc_en').value.trim() || null,
+    fotograflar: photos.map((p) => p.url),
+    kapak_index: 0,
+  };
+
+  let error;
+  if (editId) ({ error } = await supabase.from('properties').update(payload).eq('id', editId));
+  else ({ error } = await supabase.from('properties').insert(payload));
+
+  btn.disabled = false; btn.textContent = 'Kaydet';
+  if (error) { console.error(error); toast('Kaydedilemedi: ' + error.message, 'err'); return; }
+  closeModal($('#propModal'));
+  toast(editId ? 'Daire güncellendi' : 'Daire eklendi', 'ok');
+  loadProps();
+});
+
+async function delProp(id) {
+  const p = props.find((x) => x.id === id);
+  if (!confirm(`"${pickTitle(p) || 'Bu daire'}" silinecek. Emin misiniz?`)) return;
+  // Storage fotoğraflarını da temizle
+  const paths = (p.fotograflar || []).map(urlToPath).filter(Boolean);
+  if (paths.length) await supabase.storage.from(STORAGE_BUCKET).remove(paths).catch(() => {});
+  const { error } = await supabase.from('properties').delete().eq('id', id);
+  if (error) { toast('Silinemedi', 'err'); return; }
+  toast('Daire silindi', 'ok');
+  loadProps();
+}
+
+function numOrNull(v) { v = String(v).trim(); return v === '' ? null : Number(v); }
+
+/* ============== PORTFÖYLER ============== */
+async function loadPorts() {
+  const { data } = await supabase.from('portfolios').select('*').order('created_at', { ascending: false });
+  ports = data || [];
+  $('#portCount').textContent = ports.length;
+  renderPortList();
+}
+
+function portUrl(kod) { return new URL(`p.html?kod=${kod}`, location.href).href; }
+
+function renderPortList() {
+  const el = $('#portList');
+  if (!ports.length) { el.innerHTML = `<p class="text-muted">Henüz portföy oluşturulmamış.</p>`; return; }
+  el.innerHTML = ports.map((p) => `
+    <div class="admin-item">
+      <div class="thumb" style="display:grid;place-items:center;color:var(--navy)">${ICON.link}</div>
+      <div class="meta">
+        <div class="t">${esc(p.baslik || 'Başlıksız portföy')}</div>
+        <div class="s">${(p.property_ids || []).length} daire · ${new Date(p.created_at).toLocaleDateString('tr-TR')}</div>
+      </div>
+      <div class="acts">
+        <button class="icon-btn" data-copy="${p.kod}" title="Linki kopyala">${ICON.copy}</button>
+        <a class="icon-btn" href="${portUrl(p.kod)}" target="_blank" title="Aç">${ICON.link}</a>
+        <button class="icon-btn danger" data-delport="${p.kod}" title="Sil">${ICON.trash}</button>
+      </div>
+    </div>`).join('');
+
+  el.querySelectorAll('[data-copy]').forEach((b) => b.onclick = () => copy(portUrl(b.dataset.copy)));
+  el.querySelectorAll('[data-delport]').forEach((b) => b.onclick = () => delPort(b.dataset.delport));
+}
+
+async function delPort(kod) {
+  if (!confirm('Bu portföy linki silinecek. Link artık çalışmayacak. Emin misiniz?')) return;
+  const { error } = await supabase.from('portfolios').delete().eq('kod', kod);
+  if (error) { toast('Silinemedi', 'err'); return; }
+  toast('Portföy silindi', 'ok'); loadPorts();
+}
+
+/* ---- Portföy oluşturma modalı ---- */
+$('#addPortBtn').addEventListener('click', () => {
+  selected = new Set();
+  $('#port_title').value = '';
+  renderSelectGrid();
+  openModal('#portModal');
+});
+
+function renderSelectGrid() {
+  const el = $('#selectGrid');
+  if (!props.length) { el.innerHTML = `<p class="text-muted">Önce daire eklemelisiniz.</p>`; $('#selCount').textContent = selected.size; return; }
+  const list = props.filter((p) => matchFilter(p, fSel));
+  if (!list.length) { el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; $('#selCount').textContent = selected.size; return; }
+  el.innerHTML = list.map((p) => {
+    const cover = coverUrl(p);
+    return `<div class="select-row ${selected.has(p.id) ? 'sel' : ''}" data-id="${p.id}">
+      ${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}
+      <div class="meta">
+        <div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>
+        ${propTags(p)}
+      </div>
+      <div class="check">${ICON.check}</div>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.select-row').forEach((row) => row.onclick = () => {
+    const id = row.dataset.id;
+    if (selected.has(id)) selected.delete(id); else selected.add(id);
+    row.classList.toggle('sel');
+    $('#selCount').textContent = selected.size;
+  });
+  $('#selCount').textContent = selected.size;
+}
+
+// Portföy seçim filtresi olayları
+$('#sf_tip').addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-tip]'); if (!b) return;
+  fSel.tip = b.dataset.tip;
+  $$('#sf_tip button').forEach((x) => x.classList.toggle('active', x === b));
+  renderSelectGrid();
+});
+$('#sf_region').addEventListener('change', (e) => { fSel.region = e.target.value; renderSelectGrid(); });
+$('#sf_furn').addEventListener('change', (e) => { fSel.furn = e.target.value; renderSelectGrid(); });
+$('#sf_q').addEventListener('input', (e) => { fSel.q = e.target.value.trim(); renderSelectGrid(); });
+
+$('#savePortBtn').addEventListener('click', async () => {
+  if (!selected.size) { toast('En az bir daire seçin', 'err'); return; }
+  const btn = $('#savePortBtn'); btn.disabled = true; btn.textContent = 'Oluşturuluyor…';
+  const kod = Math.random().toString(36).slice(2, 9);
+  // seçim sırası: props listesindeki sıra
+  const ids = props.filter((p) => selected.has(p.id)).map((p) => p.id);
+  const { error } = await supabase.from('portfolios').insert({
+    kod, baslik: $('#port_title').value.trim() || null, property_ids: ids,
+  });
+  btn.disabled = false; btn.textContent = 'Link oluştur';
+  if (error) { toast('Oluşturulamadı: ' + error.message, 'err'); return; }
+  closeModal($('#portModal'));
+  showLink(kod);
+  loadPorts();
+});
+
+function showLink(kod) {
+  const url = portUrl(kod);
+  $('#linkOut').value = url;
+  $('#copyLinkBtn').onclick = () => copy(url);
+  $('#waLinkBtn').href = `https://wa.me/?text=${encodeURIComponent('Selected Global — sizin için seçtiğimiz daireler: ' + url)}`;
+  openModal('#linkModal');
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); toast('Link kopyalandı', 'ok'); }
+  catch { prompt('Linki kopyalayın:', text); }
+}
+
+/* ============== EXCEL İLE TOPLU EKLEME ============== */
+const XLS_HEADERS = ['İlan No', 'Başlık', 'Başlık (EN)', 'Tip', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', 'Açıklama (EN)', "Fotoğraf URL'leri"];
+
+// Başlık normalleştirme (büyük/küçük, Türkçe karakter, boşluk farkını yok say)
+function asciiLower(s) {
+  return String(s ?? '').toLowerCase()
+    .replace(/ı/g, 'i').replace(/ğ/g, 'g').replace(/ü/g, 'u').replace(/ş/g, 's').replace(/ö/g, 'o').replace(/ç/g, 'c').replace(/â/g, 'a');
+}
+function normHeader(h) { return asciiLower(h).replace(/[^a-z0-9]/g, ''); }
+
+// Sütun başlığı -> alan eşlemesi
+const FIELD_ALIASES = {
+  ref_kodu: ['ilanno', 'ilan', 'referans', 'refkodu', 'ref', 'kod'],
+  baslik: ['baslik', 'basliktr', 'title', 'titletr', 'ad', 'isim'],
+  title_en: ['basliken', 'titleen'],
+  tip: ['tip', 'tur', 'durum', 'type', 'islemtipi', 'islem'],
+  bolge: ['bolge', 'konum', 'region', 'location', 'sehir', 'ilce'],
+  oda_sayisi: ['odasayisi', 'oda', 'odatipi', 'rooms', 'odasay'],
+  fiyat: ['fiyat', 'price', 'ucret', 'tutar'],
+  para_birimi: ['parabirimi', 'currency', 'doviz', 'dovizcinsi', 'birim'],
+  metrekare: ['m2', 'metrekare', 'alan', 'area', 'brut', 'net', 'buyukluk'],
+  banyo_sayisi: ['banyo', 'banyosayisi', 'bath', 'bathroom', 'bathrooms'],
+  kat: ['kat', 'floor'],
+  esyali: ['esya', 'esyali', 'esyadurumu', 'furnished', 'mobilya', 'esyalimi'],
+  ozellikler: ['ozellikler', 'features', 'olanaklar', 'donanim'],
+  aciklama: ['aciklama', 'description', 'desc', 'detay', 'not', 'aciklamatr'],
+  desc_en: ['aciklamaen', 'descriptionen', 'descen'],
+  fotograflar: ['fotografurlleri', 'fotograflar', 'fotograf', 'foto', 'resim', 'resimler', 'images', 'image', 'photos', 'photo', 'url', 'urller'],
+};
+function headerToField(h) {
+  const n = normHeader(h);
+  for (const [field, aliases] of Object.entries(FIELD_ALIASES)) if (aliases.includes(n)) return field;
+  return null;
+}
+
+// Değer dönüştürücüler
+function vStr(v) { const s = String(v ?? '').trim(); return s || null; }
+function vNum(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') return v;
+  const s = String(v).replace(/[^\d.,-]/g, '').replace(/\.(?=\d{3}\b)/g, '').replace(',', '.');
+  const n = Number(s); return Number.isFinite(n) ? n : null;
+}
+function vTip(v) { const s = asciiLower(v); if (s.includes('satil') || s.includes('sale')) return 'satilik'; if (s.includes('kira') || s.includes('rent')) return 'kiralik'; return 'kiralik'; }
+function vCur(v) { const s = String(v ?? '').toUpperCase(); if (s.includes('EUR') || s.includes('€')) return 'EUR'; if (s.includes('USD') || s.includes('$')) return 'USD'; if (s.includes('TRY') || s.includes('TL') || s.includes('₺')) return 'TRY'; if (s.includes('GBP') || s.includes('£')) return 'GBP'; return 'GBP'; }
+function vEsya(v) { if (v == null || v === '') return null; const s = asciiLower(v); if (s.includes('esyasiz') || s.includes('hayir') || s === 'no' || s === 'false' || s.includes('yok')) return false; if (s.includes('esyali') || s.includes('evet') || s === 'yes' || s === 'true' || s.includes('var') || s.includes('mobilya')) return true; return null; }
+function vList(v) { if (v == null || v === '') return []; return String(v).split(/[,;\n]/).map((x) => x.trim()).filter(Boolean); }
+function vPhotos(v) { return vList(v).filter((u) => /^https?:\/\//i.test(u)); }
+function sigOf(o) { return asciiLower(`${o.baslik || ''}|${o.bolge || ''}|${o.oda_sayisi || ''}`); }
+
+// Şablon indir
+$('#dlTemplateBtn').addEventListener('click', () => {
+  if (!window.XLSX) { toast('Excel aracı yüklenemedi, sayfayı yenileyin', 'err'); return; }
+  const example = ['SG-001', 'Denize sıfır 2+1 lüks daire', 'Seafront luxury 2+1 apartment', 'Kiralık', 'Girne', '2+1', 750, 'GBP', 95, 1, '3. kat', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', 'Spacious sea-view balcony.', ''];
+  const ws = XLSX.utils.aoa_to_sheet([XLS_HEADERS, example]);
+  ws['!cols'] = XLS_HEADERS.map(() => ({ wch: 20 }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Daireler');
+  XLSX.writeFile(wb, 'selected-global-daire-sablonu.xlsx');
+});
+
+// Yükleyici olayları
+const xlsUploader = $('#xlsUploader');
+const xlsInput = $('#xlsInput');
+xlsUploader.addEventListener('click', () => xlsInput.click());
+xlsUploader.addEventListener('dragover', (e) => { e.preventDefault(); xlsUploader.classList.add('drag'); });
+xlsUploader.addEventListener('dragleave', () => xlsUploader.classList.remove('drag'));
+xlsUploader.addEventListener('drop', (e) => { e.preventDefault(); xlsUploader.classList.remove('drag'); if (e.dataTransfer.files[0]) importXlsx(e.dataTransfer.files[0]); });
+xlsInput.addEventListener('change', () => { if (xlsInput.files[0]) importXlsx(xlsInput.files[0]); xlsInput.value = ''; });
+
+async function importXlsx(file) {
+  if (!window.XLSX) { toast('Excel aracı yüklenemedi, sayfayı yenileyin', 'err'); return; }
+  const result = $('#importResult');
+  result.innerHTML = `<div class="import-summary">İşleniyor…</div>`;
+  let rows;
+  try {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array' });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    rows = XLSX.utils.sheet_to_json(ws, { header: 1, blankrows: false, defval: '' });
+  } catch (e) {
+    result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Dosya okunamadı. Geçerli bir .xlsx dosyası seçtiğinizden emin olun.</span></div>`;
+    return;
+  }
+  if (!rows || rows.length < 2) { result.innerHTML = `<div class="import-summary">Dosyada veri satırı bulunamadı. Şablonu kullanın.</div>`; return; }
+
+  // Başlık satırı -> sütun eşlemesi
+  const headerRow = rows[0];
+  const colMap = headerRow.map(headerToField); // index -> field|null
+  if (!colMap.includes('baslik') && !colMap.includes('ref_kodu')) {
+    result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Sütun başlıkları tanınmadı.</span> Lütfen indirdiğiniz <strong>şablonu</strong> kullanın (başlık satırını silmeyin).</div>`;
+    return;
+  }
+
+  // Mevcut kayıtların anahtarları (mükerrer önleme)
+  const refKeys = new Set(props.map((p) => p.ref_kodu).filter(Boolean).map((r) => r.toLowerCase()));
+  const sigKeys = new Set(props.map(sigOf));
+  const seen = new Set();
+
+  const toInsert = [];
+  let skipped = 0;
+  const errors = [];
+
+  for (let i = 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r || r.every((c) => String(c).trim() === '')) continue; // boş satır
+    const raw = {};
+    colMap.forEach((field, idx) => { if (field) raw[field] = r[idx]; });
+
+    const payload = {
+      ref_kodu: vStr(raw.ref_kodu),
+      baslik: vStr(raw.baslik),
+      title_en: vStr(raw.title_en),
+      tip: vTip(raw.tip),
+      bolge: vStr(raw.bolge),
+      oda_sayisi: vStr(raw.oda_sayisi),
+      fiyat: vNum(raw.fiyat),
+      para_birimi: vCur(raw.para_birimi),
+      metrekare: vNum(raw.metrekare),
+      banyo_sayisi: vNum(raw.banyo_sayisi),
+      kat: vStr(raw.kat),
+      esyali: vEsya(raw.esyali),
+      ozellikler: vList(raw.ozellikler),
+      aciklama: vStr(raw.aciklama),
+      desc_en: vStr(raw.desc_en),
+      fotograflar: vPhotos(raw.fotograflar),
+      kapak_index: 0,
+    };
+
+    if (!payload.baslik && !payload.ref_kodu) { errors.push(`${i + 1}. satır: Başlık boş, atlandı`); continue; }
+
+    const refL = payload.ref_kodu ? payload.ref_kodu.toLowerCase() : null;
+    const sig = sigOf(payload);
+    const dupKey = refL ? 'ref:' + refL : 'sig:' + sig;
+    const existsBefore = refL ? refKeys.has(refL) : sigKeys.has(sig);
+    if (existsBefore || seen.has(dupKey)) { skipped++; continue; }
+    seen.add(dupKey);
+    toInsert.push(payload);
+  }
+
+  if (!toInsert.length) {
+    result.innerHTML = `<div class="import-summary"><span class="warn">Eklenecek yeni daire yok.</span> ${skipped} kayıt zaten mevcuttu (atlandı).${errors.length ? `<ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}</div>`;
+    return;
+  }
+
+  result.innerHTML = `<div class="import-summary">${toInsert.length} daire ekleniyor…</div>`;
+  const { error } = await supabase.from('properties').insert(toInsert);
+  if (error) {
+    console.error(error);
+    const colMissing = /ref_kodu/.test(error.message);
+    result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Hata: ${esc(error.message)}</span>${colMissing ? '<br><strong>Çözüm:</strong> Supabase’de “ref_kodu” kolonunu eklemeniz gerekiyor (size verdiğim SQL’i çalıştırın).' : ''}</div>`;
+    return;
+  }
+  result.innerHTML = `<div class="import-summary"><span class="big">✓ ${toInsert.length} yeni daire eklendi.</span>${skipped ? ` ${skipped} kayıt zaten vardı (atlandı).` : ''}${errors.length ? `<ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}<br><span class="text-muted" style="font-size:.85rem">Fotoğraf eklemek için listeden “Düzenle” ile her daireye girip foto yükleyebilirsiniz.</span></div>`;
+  toast(`${toInsert.length} daire eklendi`, 'ok');
+  loadProps();
+}
+
+init();

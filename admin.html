@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Portföy — Selected Global</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css" />
+</head>
+<body class="admin-body">
+
+  <!-- GİRİŞ EKRANI -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="brand"><span class="mark">Selected<em>.</em>Global</span></div>
+      <h2>Portföy</h2>
+      <p class="muted">Devam etmek için giriş yapın</p>
+      <form id="loginForm">
+        <div class="field">
+          <label>E-posta</label>
+          <input type="email" id="loginEmail" required autocomplete="username" placeholder="ornek@selectedglobal.com" />
+        </div>
+        <div class="field">
+          <label>Şifre</label>
+          <input type="password" id="loginPass" required autocomplete="current-password" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Giriş yap</button>
+        <p id="loginErr" class="hint" style="color:var(--danger);text-align:center;margin-top:12px"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div id="app" class="hidden">
+    <header class="site-header admin-topbar">
+      <div class="container header-inner">
+        <div class="brand"><span class="mark">Selected<em>.</em>Global</span></div>
+        <div class="header-actions">
+          <a href="#" id="viewSiteLink" target="_blank" rel="noopener" class="link-quiet" style="color:#fff">Web sitesi ↗</a>
+          <button class="btn btn-ghost btn-sm" id="logoutBtn">Çıkış</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="admin-tabs">
+      <div class="container admin-tabs-inner">
+        <button data-tab="props" class="active">Daireler</button>
+        <button data-tab="ports">Portföyler</button>
+        <button data-tab="excel">Excel ile ekle</button>
+      </div>
+    </div>
+
+    <main class="admin-main container">
+      <!-- EXCEL İLE TOPLU EKLEME -->
+      <section id="tab-excel" class="hidden">
+        <div class="panel" id="importPanel">
+          <div class="panel-head">
+            <h3>Excel ile toplu daire ekle</h3>
+            <button class="btn btn-ghost btn-sm" id="dlTemplateBtn">⬇ Şablon indir (.xlsx)</button>
+          </div>
+          <p class="text-muted" style="margin-top:0">
+            <strong>1)</strong> Şablonu indir → <strong>2)</strong> her satıra bir daire yaz → <strong>3)</strong> dosyayı aşağıya yükle.
+            Aynı dosyayı sonra tekrar yüklersen <strong>sadece yeni daireler eklenir</strong>, mevcutlara dokunulmaz
+            (<em>İlan No</em> ile mükerrer kontrolü yapılır).
+          </p>
+          <p style="font-weight:700;color:var(--navy);margin:14px 0 8px;font-size:.9rem">Excel'iniz aşağıdaki gibi görünmeli (ilk satır başlık, her satır bir daire):</p>
+          <div class="excel-wrap">
+            <table class="excel-mock">
+              <tr class="excel-cols">
+                <td class="excel-corner"></td>
+                <td>A</td><td>B</td><td>C</td><td>D</td><td>E</td><td>F</td><td>G</td><td>H</td><td>I</td><td>J</td><td>K</td><td>L</td><td>M</td><td>N</td><td>O</td><td>P</td>
+              </tr>
+              <tr class="excel-head">
+                <td class="excel-rownum">1</td>
+                <td>İlan No</td><td>Başlık</td><td>Başlık (EN)</td><td>Tip</td><td>Bölge</td><td>Oda Sayısı</td><td>Fiyat</td><td>Para Birimi</td><td>m2</td><td>Banyo</td><td>Kat</td><td>Eşya</td><td>Özellikler</td><td>Açıklama</td><td>Açıklama (EN)</td><td>Fotoğraf URL'leri</td>
+              </tr>
+              <tr>
+                <td class="excel-rownum">2</td>
+                <td>SG-001</td><td>Denize sıfır 2+1 lüks daire</td><td>Seafront luxury 2+1</td><td>Kiralık</td><td>Girne</td><td>2+1</td><td>750</td><td>GBP</td><td>95</td><td>1</td><td>3. kat</td><td>Eşyalı</td><td>Havuz, Otopark</td><td>Geniş balkonlu, deniz manzaralı.</td><td>Spacious sea-view balcony.</td><td class="excel-empty">(boş)</td>
+              </tr>
+              <tr>
+                <td class="excel-rownum">3</td>
+                <td>SG-002</td><td>Merkezde 3+1 satılık daire</td><td>Central 3+1 for sale</td><td>Satılık</td><td>Gazimağusa</td><td>3+1</td><td>145000</td><td>GBP</td><td>130</td><td>2</td><td>5. kat</td><td>Eşyasız</td><td>Asansör, Otopark</td><td>Yatırımlık, merkezi konum.</td><td>Central investment flat.</td><td class="excel-empty">(boş)</td>
+              </tr>
+            </table>
+          </div>
+          <p class="hint" style="margin-top:8px">
+            <strong>İlan No</strong> benzersiz olmalı (mükerrer kontrolü). <strong>Tip</strong> = Kiralık/Satılık.
+            Sarı zorunlu olmayan sütunları boş bırakabilirsiniz. Fotoğrafları sonradan “Düzenle” ile yükleyin.
+          </p>
+          <div class="uploader" id="xlsUploader" style="margin-top:14px">
+            <div>📂 Excel dosyasını buraya sürükle ya da <strong>tıklayıp seç</strong> (.xlsx)
+              <br><span class="hint">Yükleyince otomatik işlenir; sonuç aşağıda gösterilir.</span></div>
+            <input type="file" id="xlsInput" accept=".xlsx,.xls" hidden />
+          </div>
+          <div id="importResult" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- DAİRELER -->
+      <section id="tab-props">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Daireler (<span id="propCount">0</span>)</h3>
+            <button class="btn btn-primary" id="addPropBtn"><span id="plusIcon"></span> Yeni daire ekle</button>
+          </div>
+          <div class="admin-filters" id="propFilters">
+            <div class="segmented" id="pf_tip">
+              <button data-tip="all" class="active">Tümü</button>
+              <button data-tip="kiralik">Kiralık</button>
+              <button data-tip="satilik">Satılık</button>
+            </div>
+            <div class="select-wrap"><select id="pf_region"><option value="">Tüm bölgeler</option></select></div>
+            <div class="select-wrap"><select id="pf_furn">
+              <option value="">Eşya: hepsi</option><option value="true">Eşyalı</option><option value="false">Eşyasız</option>
+            </select></div>
+            <div class="select-wrap"><select id="pf_sort">
+              <option value="new">En yeni</option><option value="price_asc">Fiyat (düşük→yüksek)</option><option value="price_desc">Fiyat (yüksek→düşük)</option>
+            </select></div>
+            <div class="search"><input id="pf_q" placeholder="Başlık / bölge ara…" /></div>
+            <span class="filter-count" id="propShown"></span>
+          </div>
+          <div class="admin-list" id="propList"></div>
+        </div>
+      </section>
+
+      <!-- PORTFÖYLER -->
+      <section id="tab-ports" class="hidden">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Gönderilen Portföyler (<span id="portCount">0</span>)</h3>
+            <button class="btn btn-primary" id="addPortBtn"><span id="plusIcon2"></span> Yeni portföy oluştur</button>
+          </div>
+          <div class="admin-list" id="portList"></div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- DAİRE FORM MODALI -->
+  <div class="modal-overlay" id="propModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3 id="propModalTitle">Yeni daire</h3>
+        <button class="icon-btn" data-close></button>
+      </div>
+      <div class="modal-body">
+        <form id="propForm">
+          <input type="hidden" id="f_id" />
+          <div class="field">
+            <label>İlan No <span class="text-muted">— opsiyonel, benzersiz kod (örn. SG-001)</span></label>
+            <input id="f_ref" placeholder="SG-001" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Başlık (Türkçe)</label>
+              <input id="f_baslik" placeholder="Örn. Denize sıfır 2+1 lüks daire" />
+            </div>
+            <div class="field">
+              <label>Title (English) <span class="text-muted">— opsiyonel</span></label>
+              <input id="f_title_en" placeholder="e.g. Luxury 2+1 seafront apartment" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>İlan tipi</label>
+              <select id="f_tip">
+                <option value="kiralik">Kiralık</option>
+                <option value="satilik">Satılık</option>
+              </select>
+            </div>
+            <div class="field">
+              <label>Bölge</label>
+              <select id="f_bolge"><option value="">Seçiniz</option></select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Oda sayısı</label>
+              <input id="f_oda" placeholder="Örn. 2+1, Stüdyo" />
+            </div>
+            <div class="field">
+              <label>Alan (m²)</label>
+              <input id="f_m2" type="number" inputmode="numeric" placeholder="Örn. 95" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Fiyat</label>
+              <input id="f_fiyat" type="number" inputmode="numeric" placeholder="Örn. 750" />
+            </div>
+            <div class="field">
+              <label>Para birimi</label>
+              <select id="f_cur">
+                <option value="GBP">£ GBP (Sterlin)</option>
+                <option value="EUR">€ EUR (Euro)</option>
+                <option value="USD">$ USD (Dolar)</option>
+                <option value="TRY">₺ TRY (Lira)</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Banyo sayısı <span class="text-muted">— opsiyonel</span></label>
+              <input id="f_banyo" type="number" inputmode="numeric" placeholder="Örn. 1" />
+            </div>
+            <div class="field">
+              <label>Kat <span class="text-muted">— opsiyonel</span></label>
+              <input id="f_kat" placeholder="Örn. 3. kat, Bahçe katı" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Eşya durumu</label>
+            <select id="f_esyali">
+              <option value="">Belirtilmemiş</option>
+              <option value="true">Eşyalı</option>
+              <option value="false">Eşyasız</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Özellikler <span class="text-muted">— virgülle ayırın</span></label>
+            <input id="f_ozellikler" placeholder="Havuz, Otopark, Site içi, Asansör" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Açıklama (Türkçe) <span class="text-muted">— opsiyonel</span></label>
+              <textarea id="f_aciklama" placeholder="Daire hakkında detaylar…"></textarea>
+            </div>
+            <div class="field">
+              <label>Description (English) <span class="text-muted">— opsiyonel</span></label>
+              <textarea id="f_desc_en" placeholder="Details about the property…"></textarea>
+            </div>
+          </div>
+          <div class="field-row cover-edit-row">
+            <div class="field" style="margin:0">
+              <label>Fotoğraflar</label>
+              <div class="uploader" id="uploader">
+                <div id="uploaderText">Fotoğrafları buraya sürükleyin ya da <strong>tıklayıp seçin</strong><br><span class="hint">★ işaretli olan <strong>kapak</strong> olur. Başka fotoğrafa tıklayıp “Kapak yap” diyerek değiştirebilirsiniz.</span></div>
+                <input type="file" id="fileInput" accept="image/*" multiple hidden />
+              </div>
+              <div class="upload-previews" id="previews"></div>
+            </div>
+            <div class="field" style="margin:0">
+              <label>Kapak önizleme</label>
+              <div id="coverPreview" class="cover-preview-box"></div>
+              <p class="hint">Müşteriye böyle görünecek. Konum, oda ve eşya bilgisi otomatik yazılır.</p>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" data-close>Vazgeç</button>
+        <button class="btn btn-primary" id="savePropBtn">Kaydet</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- İLAN ÖNİZLEME MODALI -->
+  <div class="modal-overlay" id="photoModal">
+    <div class="modal" style="max-width:960px">
+      <div class="modal-head">
+        <h3 id="photoModalTitle">İlan</h3>
+        <button class="icon-btn" data-close></button>
+      </div>
+      <div class="modal-body">
+        <div id="pmBody"></div>
+        <div class="pm-actions">
+          <button class="btn btn-ghost" id="pmEdit">Düzenle</button>
+          <button class="btn btn-primary" id="pmDownload">Fotoğrafları indir</button>
+          <a class="btn btn-gold" id="pmOpen" target="_blank" rel="noopener">İlan sayfası ↗</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTFÖY MODALI -->
+  <div class="modal-overlay" id="portModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>Yeni portföy</h3>
+        <button class="icon-btn" data-close></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Portföy başlığı <span class="text-muted">— müşteri bu başlığı görecek</span></label>
+          <input id="port_title" placeholder="Örn. Ahmet Bey — Girne Kiralık Seçkisi" />
+        </div>
+        <div class="field">
+          <label>Daireleri seçin (<span id="selCount">0</span> seçili)</label>
+          <div class="admin-filters" style="margin-bottom:12px">
+            <div class="segmented" id="sf_tip">
+              <button data-tip="all" class="active">Tümü</button>
+              <button data-tip="kiralik">Kiralık</button>
+              <button data-tip="satilik">Satılık</button>
+            </div>
+            <div class="select-wrap"><select id="sf_region"><option value="">Tüm bölgeler</option></select></div>
+            <div class="select-wrap"><select id="sf_furn">
+              <option value="">Eşya: hepsi</option><option value="true">Eşyalı</option><option value="false">Eşyasız</option>
+            </select></div>
+            <div class="search"><input id="sf_q" placeholder="Ara…" /></div>
+          </div>
+          <div class="select-list" id="selectGrid"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" data-close>Vazgeç</button>
+        <button class="btn btn-primary" id="savePortBtn">Link oluştur</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LİNK HAZIR MODALI -->
+  <div class="modal-overlay" id="linkModal">
+    <div class="modal" style="max-width:520px">
+      <div class="modal-head"><h3>Portföy linki hazır 🎉</h3><button class="icon-btn" data-close></button></div>
+      <div class="modal-body">
+        <p class="text-muted" style="margin-top:0">Bu linki müşterinize gönderin. Sadece seçtiğiniz daireleri görecekler.</p>
+        <div class="field">
+          <label>Paylaşılabilir link</label>
+          <input id="linkOut" readonly onclick="this.select()" />
+        </div>
+        <div class="contact-row" style="display:flex;gap:10px">
+          <button class="btn btn-ghost" id="copyLinkBtn" style="flex:1">Kopyala</button>
+          <a class="btn btn-gold" id="waLinkBtn" target="_blank" style="flex:1">WhatsApp'tan gönder</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script type="module" src="assets/js/admin.js"></script>
+</body>
+</html>
