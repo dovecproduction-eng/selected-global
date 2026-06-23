@@ -29,6 +29,7 @@ create table if not exists public.properties (
 create table if not exists public.portfolios (
   kod text primary key,
   baslik text,
+  olusturan text,
   property_ids uuid[],
   created_at timestamptz default now()
 );
@@ -45,6 +46,7 @@ create policy "write_portfolios" on public.portfolios for all to authenticated u
 -- (Mevcut tabloya sonradan eklemek için — Excel içe aktarma mükerrer kontrolü kullanır)
 alter table public.properties add column if not exists ref_kodu text;
 alter table public.properties add column if not exists konut_tipi text;
+alter table public.portfolios add column if not exists olusturan text;
 create index if not exists idx_properties_ref on public.properties(ref_kodu);
 
 -- FOTOĞRAF deposu (bucket)

@@ -52,6 +52,17 @@ function card(row, i) {
 function render() {
   document.getElementById('pTitle').textContent =
     (portfolio && portfolio.baslik) || t('portfolio_default_title');
+  // Hazırlayan satırı
+  if (portfolio && portfolio.olusturan) {
+    let cr = document.getElementById('pCreator');
+    if (!cr) {
+      cr = document.createElement('p'); cr.id = 'pCreator';
+      cr.style.cssText = 'color:var(--gold);font-size:.82rem;margin:8px 0 0;font-weight:700;letter-spacing:.04em';
+      const lead = document.getElementById('pLead');
+      lead.parentNode.insertBefore(cr, lead.nextSibling);
+    }
+    cr.textContent = (getLang() === 'tr' ? 'Hazırlayan: ' : 'Prepared by: ') + portfolio.olusturan;
+  }
   const grid = document.getElementById('grid');
   if (!items.length) {
     grid.innerHTML = `<div class="state" style="grid-column:1/-1"><h3>${t('portfolio_empty')}</h3></div>`;

@@ -145,9 +145,10 @@ function setSelectValue(selId, val) {
 }
 
 /* ============== AUTH ============== */
+let myEmail = '';
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) showApp(); else showLogin();
+  if (session) { myEmail = session.user?.email || ''; showApp(); } else showLogin();
 }
 
 function showLogin() { $('#loginScreen').classList.remove('hidden'); $('#app').classList.add('hidden'); }
@@ -168,12 +169,13 @@ $('#loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
   const btn = $('#loginBtn'); btn.disabled = true; btn.textContent = 'Giriş yapılıyor…';
   $('#loginErr').textContent = '';
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: $('#loginEmail').value.trim(),
     password: $('#loginPass').value,
   });
   btn.disabled = false; btn.textContent = 'Giriş yap';
   if (error) { $('#loginErr').textContent = 'Giriş başarısız: e-posta veya şifre hatalı.'; return; }
+  myEmail = data.user?.email || '';
   showApp();
 });
 
@@ -645,7 +647,7 @@ function renderPortList() {
         <div class="port-icon">${ICON.link}</div>
         <div class="port-meta">
           <div class="port-title">${esc(p.baslik || 'Başlıksız portföy')}</div>
-          <div class="port-sub">${count} daire · ${date}</div>
+          <div class="port-sub">${count} daire · ${date}${p.olusturan ? ' · Hazırlayan: ' + esc(p.olusturan) : ''}</div>
         </div>
         <button class="icon-btn danger" data-delport="${p.kod}" title="Portföyü sil">${ICON.trash}</button>
       </div>
@@ -677,9 +679,16 @@ async function delPort(kod) {
 }
 
 /* ---- Portföy oluşturma modalı ---- */
+function defaultCreator() {
+  const saved = localStorage.getItem('sg_creator');
+  if (saved) return saved;
+  if (myEmail) { const n = myEmail.split('@')[0].replace(/[._-]+/g, ' ').trim(); return n.charAt(0).toLocaleUpperCase('tr') + n.slice(1); }
+  return '';
+}
 $('#addPortBtn').addEventListener('click', () => {
   selected = new Set();
   $('#port_title').value = '';
+  $('#port_creator').value = defaultCreator();
   // filtreleri sıfırla
   fSel.tip = 'all'; fSel.regions = []; fSel.furn = ''; fSel.q = '';
   $$('#sf_tip button').forEach((b) => b.classList.toggle('active', b.dataset.tip === 'all'));
@@ -714,8 +723,10 @@ $('#savePortBtn').addEventListener('click', async () => {
   const kod = Math.random().toString(36).slice(2, 9);
   // seçim sırası: props listesindeki sıra
   const ids = props.filter((p) => selected.has(p.id)).map((p) => p.id);
+  const creator = $('#port_creator').value.trim() || null;
+  if (creator) localStorage.setItem('sg_creator', creator);
   const { error } = await supabase.from('portfolios').insert({
-    kod, baslik: $('#port_title').value.trim() || null, property_ids: ids,
+    kod, baslik: $('#port_title').value.trim() || null, property_ids: ids, olusturan: creator,
   });
   btn.disabled = false; btn.textContent = 'Link oluştur';
   if (error) { toast('Oluşturulamadı: ' + error.message, 'err'); return; }
