@@ -325,9 +325,9 @@
           <label>Paylaşılabilir link</label>
           <input id="linkOut" readonly onclick="this.select()" />
         </div>
-        <div class="contact-row" style="display:flex;gap:10px">
-          <button class="btn btn-ghost" id="copyLinkBtn" style="flex:1">Kopyala</button>
-          <a class="btn btn-gold" id="waLinkBtn" target="_blank" style="flex:1">WhatsApp'tan gönder</a>
+        <div class="contact-row" style="display:flex;gap:10px;flex-wrap:wrap">
+          <a class="btn btn-wa" id="waLinkBtn" target="_blank" rel="noopener" style="flex:1;min-width:160px">WhatsApp'tan gönder</a>
+          <button class="btn btn-ghost" id="copyLinkBtn" style="flex:1;min-width:120px">Kopyala</button>
         </div>
       </div>
     </div>

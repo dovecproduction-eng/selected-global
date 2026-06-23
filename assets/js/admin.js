@@ -438,22 +438,34 @@ function portUrl(kod) { return new URL(`p.html?kod=${kod}`, location.href).href;
 
 function renderPortList() {
   const el = $('#portList');
-  if (!ports.length) { el.innerHTML = `<p class="text-muted">Henüz portföy oluşturulmamış.</p>`; return; }
-  el.innerHTML = ports.map((p) => `
-    <div class="admin-item">
-      <div class="thumb" style="display:grid;place-items:center;color:var(--navy)">${ICON.link}</div>
-      <div class="meta">
-        <div class="t">${esc(p.baslik || 'Başlıksız portföy')}</div>
-        <div class="s">${(p.property_ids || []).length} daire · ${new Date(p.created_at).toLocaleDateString('tr-TR')}</div>
+  if (!ports.length) { el.innerHTML = `<p class="text-muted">Henüz portföy oluşturulmamış. “Yeni portföy oluştur” ile başlayın.</p>`; return; }
+  el.innerHTML = ports.map((p) => {
+    const url = portUrl(p.kod);
+    const count = (p.property_ids || []).length;
+    const date = new Date(p.created_at).toLocaleDateString('tr-TR');
+    const waText = encodeURIComponent(`Selected Global — sizin için seçtiğimiz daireler:\n${url}`);
+    return `
+    <div class="port-card">
+      <div class="port-card-top">
+        <div class="port-icon">${ICON.link}</div>
+        <div class="port-meta">
+          <div class="port-title">${esc(p.baslik || 'Başlıksız portföy')}</div>
+          <div class="port-sub">${count} daire · ${date}</div>
+        </div>
+        <button class="icon-btn danger" data-delport="${p.kod}" title="Portföyü sil">${ICON.trash}</button>
       </div>
-      <div class="acts">
-        <button class="icon-btn" data-copy="${p.kod}" title="Linki kopyala">${ICON.copy}</button>
-        <a class="icon-btn" href="${portUrl(p.kod)}" target="_blank" title="Aç">${ICON.link}</a>
-        <button class="icon-btn danger" data-delport="${p.kod}" title="Sil">${ICON.trash}</button>
+      <div class="port-link" data-copy="${p.kod}" title="Kopyalamak için tıkla">
+        <span class="port-link-url">${esc(url)}</span>
+        <span class="port-link-copy">${ICON.copy} Kopyala</span>
       </div>
-    </div>`).join('');
+      <div class="port-actions">
+        <a class="btn btn-wa btn-sm" href="https://wa.me/?text=${waText}" target="_blank" rel="noopener">${ICON.wa}<span>WhatsApp'tan gönder</span></a>
+        <a class="btn btn-ghost btn-sm" href="${url}" target="_blank" rel="noopener">${ICON.link}<span>Önizle</span></a>
+      </div>
+    </div>`;
+  }).join('');
 
-  el.querySelectorAll('[data-copy]').forEach((b) => b.onclick = () => copy(portUrl(b.dataset.copy)));
+  el.querySelectorAll('.port-link[data-copy]').forEach((b) => b.onclick = () => copy(portUrl(b.dataset.copy)));
   el.querySelectorAll('[data-delport]').forEach((b) => b.onclick = () => delPort(b.dataset.delport));
 }
 
@@ -527,8 +539,10 @@ $('#savePortBtn').addEventListener('click', async () => {
 function showLink(kod) {
   const url = portUrl(kod);
   $('#linkOut').value = url;
+  $('#copyLinkBtn').innerHTML = `${ICON.copy}<span>Kopyala</span>`;
   $('#copyLinkBtn').onclick = () => copy(url);
-  $('#waLinkBtn').href = `https://wa.me/?text=${encodeURIComponent('Selected Global — sizin için seçtiğimiz daireler: ' + url)}`;
+  $('#waLinkBtn').innerHTML = `${ICON.wa}<span>WhatsApp'tan gönder</span>`;
+  $('#waLinkBtn').href = `https://wa.me/?text=${encodeURIComponent('Selected Global — sizin için seçtiğimiz daireler:\n' + url)}`;
   openModal('#linkModal');
 }
 
