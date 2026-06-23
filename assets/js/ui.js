@@ -121,8 +121,7 @@ export function renderHeader() {
   <header class="site-header">
     <div class="container header-inner">
       <a href="${ALL_LISTINGS_URL}" target="_blank" rel="noopener" class="brand" aria-label="Selected Global">
-        <span class="mark">Selected<em>.</em>Global</span>
-        <span class="sub">Cyprus</span>
+        ${logoMark(false)}
       </a>
       <div class="header-actions">
         <div class="lang-switch" id="langSwitch">
@@ -139,7 +138,7 @@ export function renderFooter() {
   <footer class="site-footer">
     <div class="container footer-inner">
       <div>
-        <a href="${ALL_LISTINGS_URL}" target="_blank" rel="noopener" class="brand"><span class="mark">Selected<em>.</em>Global</span></a>
+        <a href="${ALL_LISTINGS_URL}" target="_blank" rel="noopener" class="brand">${logoMark(false)}</a>
         <p class="text-muted" style="margin:8px 0 0;font-size:.85rem" data-i18n="footer_tagline">Kuzey Kıbrıs’ta güvenilir gayrimenkul.</p>
       </div>
       <div class="footer-contact">

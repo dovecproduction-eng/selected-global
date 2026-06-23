@@ -596,6 +596,17 @@ button { font-family: inherit; cursor: pointer; }
 .logo-word i { font-style: normal; color: var(--gold); margin: 0 .12em; }
 .logo-img { height: 1.5em; width: auto; display: block; }
 
+/* Header/footer/giriş logoları */
+.brand { align-items: center; }
+.site-header .brand .logo-img { height: 34px; }
+.site-header .brand .logo-word { font-size: 1.3rem; }
+.admin-topbar .brand .logo-img { height: 30px; }
+.admin-topbar .brand .logo-word { font-size: 1.2rem; }
+.site-footer .brand .logo-img { height: 28px; }
+.login-card .brand .logo-img { height: 38px; }
+.login-card .brand .logo-word { font-size: 1.4rem; }
+@media (max-width: 560px){ .site-header .brand .logo-img { height: 28px; } }
+
 /* ---------- Markalı kapak (foto üzerine gradyenli alt geçiş) ---------- */
 .cover-figure {
   position: relative; border-radius: var(--radius); overflow: hidden;

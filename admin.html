@@ -14,7 +14,12 @@
   <!-- GİRİŞ EKRANI -->
   <div class="login-screen" id="loginScreen">
     <div class="login-card">
-      <div class="brand"><span class="mark">Selected<em>.</em>Global</span></div>
+      <div class="brand" style="justify-content:center">
+        <span class="logo-mark">
+          <img class="logo-img" src="assets/img/logo.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+          <span class="logo-word" style="display:none;color:var(--navy)">SELECTED<i>·</i>GLOBAL</span>
+        </span>
+      </div>
       <h2>Portföy</h2>
       <p class="muted">Devam etmek için giriş yapın</p>
       <form id="loginForm">
@@ -36,7 +41,12 @@
   <div id="app" class="hidden">
     <header class="site-header admin-topbar">
       <div class="container header-inner">
-        <div class="brand"><span class="mark">Selected<em>.</em>Global</span></div>
+        <div class="brand">
+          <span class="logo-mark">
+            <img class="logo-img" src="assets/img/logo-white.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+            <span class="logo-word" style="display:none;color:#fff">SELECTED<i>·</i>GLOBAL</span>
+          </span>
+        </div>
         <div class="header-actions">
           <a href="#" id="viewSiteLink" target="_blank" rel="noopener" class="link-quiet" style="color:#fff">Web sitesi ↗</a>
           <button class="btn btn-ghost btn-sm" id="logoutBtn">Çıkış</button>
