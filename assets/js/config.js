@@ -50,7 +50,7 @@ export const REGION_GROUPS = {
 export const REGIONS = Object.values(REGION_GROUPS).flat();
 
 // Konut tipleri (opsiyonel)
-export const KONUT_TIPLERI = ['Daire', 'Stüdyo', 'Penthouse', 'Dubleks', 'Villa', 'İkiz Villa', 'Müstakil Ev', 'Bungalov', 'Townhouse', 'Loft', 'Rezidans', 'Arsa', 'İşyeri / Dükkan'];
+export const KONUT_TIPLERI = ['Daire', 'Penthouse', 'Dubleks', 'Villa', 'İkiz Villa', 'Müstakil Ev', 'Loft', 'Rezidans', 'Arsa', 'İşyeri / Dükkan'];
 
 // Oda sayısı seçenekleri
 export const ODA_TIPLERI = ['Stüdyo', '1+0', '1+1', '2+1', '3+1', '3+2', '4+1', '4+2', '5+1', '6+1', '7+1'];

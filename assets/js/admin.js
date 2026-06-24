@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=4';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=4';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=5';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=5';
 
 // Üst bardaki "Web sitesi" linki
 document.getElementById('viewSiteLink').href = ALL_LISTINGS_URL;
@@ -145,7 +145,7 @@ function setSelectValue(selId, val) {
 }
 
 // Müstakil ev tiplerinde "Kat" alanını gizle (villa/ikiz villa/müstakil ev/bungalov)
-const HOUSE_TYPES = ['villa', 'ikiz villa', 'müstakil ev', 'bungalov'];
+const HOUSE_TYPES = ['villa', 'ikiz villa', 'müstakil ev'];
 function updateKatVisibility() {
   const isHouse = HOUSE_TYPES.includes(rkey($('#f_konut').value));
   $('#katField').classList.toggle('hidden', isHouse);
