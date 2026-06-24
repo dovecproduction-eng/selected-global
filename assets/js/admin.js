@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=8';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=8';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=9';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=9';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -556,15 +556,44 @@ uploader.addEventListener('dragleave', () => uploader.classList.remove('drag'));
 uploader.addEventListener('drop', (e) => { e.preventDefault(); uploader.classList.remove('drag'); handleFiles(e.dataTransfer.files); });
 fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
 
+// Fotoğrafı yüklemeden önce küçült + sıkıştır (hızlı yükleme/açılma)
+async function compressImage(file, maxDim = 1600, quality = 0.82) {
+  try {
+    // EXIF dönüşünü uygula (telefon fotoğrafları için)
+    const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
+    const scale = Math.min(1, maxDim / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * scale));
+    const h = Math.max(1, Math.round(bmp.height * scale));
+    const canvas = document.createElement('canvas'); canvas.width = w; canvas.height = h;
+    canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+    bmp.close?.();
+    // Önce WebP (daha küçük), desteklenmezse JPEG
+    let blob = await new Promise((r) => canvas.toBlob(r, 'image/webp', quality));
+    let ext = 'webp';
+    if (!blob || blob.type !== 'image/webp') {
+      blob = await new Promise((r) => canvas.toBlob(r, 'image/jpeg', quality));
+      ext = 'jpg';
+    }
+    // Sıkıştırma işe yaramadıysa (zaten küçükse) orijinali kullan
+    if (!blob || blob.size >= file.size) {
+      return { blob: file, ext: (file.name.split('.').pop() || 'jpg').toLowerCase(), contentType: file.type };
+    }
+    return { blob, ext, contentType: blob.type };
+  } catch (e) {
+    // Küçültme başarısızsa orijinali yükle
+    return { blob: file, ext: (file.name.split('.').pop() || 'jpg').toLowerCase(), contentType: file.type };
+  }
+}
+
 async function handleFiles(fileList) {
   const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
   for (const file of files) {
     const ph = { url: '', path: '', uploading: true };
     photos.push(ph); renderPreviews();
     try {
-      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase();
+      const { blob, ext, contentType } = await compressImage(file);
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
-      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, file, { contentType: file.type, upsert: false });
+      const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType, upsert: false });
       if (error) throw error;
       const { data } = supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path);
       ph.url = data.publicUrl; ph.path = path; ph.uploading = false;
