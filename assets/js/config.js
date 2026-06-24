@@ -25,19 +25,35 @@ export const BRAND = {
 // >>> Gerçek adres verilince burayı değiştir. <<<
 export const ALL_LISTINGS_URL = 'https://www.selectedglobal.com/tr';
 
-// Portföyü oluşturan kişiye göre iletişim numarası
-// keys: "Hazırlayan" alanında geçebilecek kelimeler (küçük harf). Yeni danışman eklemek için buraya ekle.
+// Danışmanlar: ada göre iletişim + giriş e-postasına göre otomatik isim
+// keys: isim eşleşmesi için kelimeler. emails: o kişinin giriş e-posta(ları) (varsa).
 export const CREATORS = [
-  { keys: ['jana', 'janna'], name: 'Jana', phone: '0533 883 45 25', phoneRaw: '905338834525' },
-  { keys: ['orçun', 'orcun', 'döveç', 'dovec'], name: 'Orçun Döveç', phone: '0548 869 05 15', phoneRaw: '905488690515' },
+  { keys: ['jana', 'janna'], emails: [], name: 'Jana', phone: '0533 883 45 25', phoneRaw: '905338834525' },
+  { keys: ['orçun', 'orcun', 'döveç', 'dovec'], emails: [], name: 'Orçun Döveç', phone: '0548 869 05 15', phoneRaw: '905488690515' },
 ];
-// olusturan metnine göre ilgili danışmanı bul; yazım farklarına (jana/janna vb.) dayanıklı; yoksa genel numara
+// İsme göre danışmanı bul (yazım farkına dayanıklı); yoksa genel numara
 export function creatorContact(olusturan) {
   const s = (olusturan || '').toLocaleLowerCase('tr').trim();
   for (const c of CREATORS) {
     if (c.keys.some((k) => s.includes(k) || (s.length >= 3 && k.includes(s)))) return c;
   }
   return { name: BRAND.name, phone: BRAND.phone, phoneRaw: BRAND.phoneRaw };
+}
+// Giriş e-postasına göre danışmanı bul (önce e-posta, sonra e-posta önekinden isim eşleşmesi)
+export function creatorByEmail(email) {
+  const e = (email || '').toLocaleLowerCase('tr').trim();
+  if (!e) return null;
+  for (const c of CREATORS) if ((c.emails || []).some((m) => e === m.toLocaleLowerCase('tr'))) return c;
+  const prefix = e.split('@')[0].replace(/[._-]+/g, ' ').trim();
+  const c = creatorContact(prefix);
+  return c.name !== BRAND.name ? c : null;
+}
+// Giriş e-postasından gösterilecek isim (tanınan danışman → düzgün ad, değilse önek)
+export function nameFromEmail(email) {
+  const c = creatorByEmail(email);
+  if (c) return c.name;
+  const prefix = (email || '').split('@')[0].replace(/[._-]+/g, ' ').trim();
+  return prefix ? prefix.charAt(0).toLocaleUpperCase('tr') + prefix.slice(1) : '';
 }
 
 // KKTC bölgeleri — ilçe + ilan yoğun popüler alt bölgeler (gruplu). Sıra: İskele, Gazimağusa, Girne...

@@ -379,6 +379,7 @@ button { font-family: inherit; cursor: pointer; }
 .admin-item .meta { flex: 1; min-width: 0; }
 .admin-item .meta .t { font-weight: 700; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .admin-item .meta .s { font-size: .8rem; color: var(--muted); margin-top: 2px; }
+.ekleyen-line { font-size: .72rem; color: var(--muted); font-weight: 600; margin-top: 5px; }
 .admin-item .meta .tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px; }
 .admin-item .meta .tag { font-size: .68rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; background: var(--bg-tint); color: var(--navy-700); letter-spacing: .02em; }
 .admin-item .meta .tag.rent { background: #E8EEF6; }

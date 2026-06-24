@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=12';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=12';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=13';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=13';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -220,12 +220,13 @@ function itemTail(p, ctx) {
   return `<div class="acts"><button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div>`;
 }
 function selCls(p, ctx) { return ctx === 'select' && selected.has(p.id) ? ' sel' : ''; }
+function ekleyenLine(p) { return p.ekleyen ? `<div class="ekleyen-line">👤 ${esc(p.ekleyen)} ekledi</div>` : ''; }
 
 function itemList(p, ctx) {
   const cover = coverUrl(p); const n = (p.fotograflar || []).length;
   return `<div class="admin-item${selCls(p, ctx)}" data-id="${p.id}">
     <div class="thumb-wrap">${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}</div>
-    <div class="meta"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}</div>
+    <div class="meta"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ekleyenLine(p)}</div>
     ${itemTail(p, ctx)}
   </div>`;
 }
@@ -233,7 +234,7 @@ function itemGrid(p, ctx) {
   const cover = coverUrl(p); const n = (p.fotograflar || []).length;
   return `<div class="prop-gcard${selCls(p, ctx)}" data-id="${p.id}">
     <div class="gcard-media">${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}${n ? `<span class="pcount">${ICON.camera}${n}</span>` : ''}${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : ''}</div>
-    <div class="gcard-body"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ctx === 'browse' ? `<div class="gcard-acts">${itemTail(p, ctx)}</div>` : ''}</div>
+    <div class="gcard-body"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ekleyenLine(p)}${ctx === 'browse' ? `<div class="gcard-acts">${itemTail(p, ctx)}</div>` : ''}</div>
   </div>`;
 }
 function itemGallery(p, ctx) {
@@ -352,6 +353,7 @@ function openGallery(id) {
         <span class="badge ${isSale ? 'sale' : ''}" style="position:static;display:inline-block;margin-bottom:10px">${isSale ? 'Satılık' : 'Kiralık'}</span>
         ${p.bolge ? `<div class="detail-region">${esc(regionDisplay(p.bolge))}</div>` : ''}
         <h2 class="detail-title" style="font-size:1.7rem">${esc(pickTitle(p) || 'Başlıksız')}</h2>
+        ${p.ekleyen ? `<div class="ekleyen-line" style="margin:4px 0 0">👤 ${esc(p.ekleyen)} ekledi</div>` : ''}
         <div class="detail-price">${fmtPrice(p.fiyat, p.para_birimi, p.tip)}</div>
         <div class="spec-table">${listingSpecRows(p)}</div>
         ${features.length ? `<div class="feature-chips">${features.map((f) => `<span class="chip">${esc(f)}</span>`).join('')}</div>` : ''}
@@ -636,6 +638,8 @@ $('#savePropBtn').addEventListener('click', async () => {
     desc_en: $('#f_desc_en').value.trim() || null,
     fotograflar: photos.map((p) => p.url),
     kapak_index: 0,
+    // Ekleyen: yeni dairede giriş yapan; düzenlemede mevcut korunur
+    ekleyen: editId ? (props.find((x) => x.id === editId)?.ekleyen || null) : (currentCreatorName() || null),
   };
 
   let error;
@@ -722,12 +726,8 @@ async function delPort(kod) {
 
 /* ---- Portföy oluşturma / düzenleme modalı ---- */
 let editPortKod = null;
-function defaultCreator() {
-  const saved = localStorage.getItem('sg_creator');
-  if (saved) return saved;
-  if (myEmail) { const n = myEmail.split('@')[0].replace(/[._-]+/g, ' ').trim(); return n.charAt(0).toLocaleUpperCase('tr') + n.slice(1); }
-  return '';
-}
+// Giriş yapan kişinin adı (otomatik) — Hazırlayan ve "daire ekleyen" için
+function currentCreatorName() { return nameFromEmail(myEmail); }
 function resetPortFilters() {
   fSel.tip = 'all'; fSel.regions = []; fSel.furn = ''; fSel.q = '';
   $$('#sf_tip button').forEach((b) => b.classList.toggle('active', b.dataset.tip === 'all'));
@@ -738,7 +738,7 @@ $('#addPortBtn').addEventListener('click', () => {
   editPortKod = null;
   selected = new Set();
   $('#port_title').value = '';
-  $('#port_creator').value = defaultCreator();
+  $('#port_creator').value = currentCreatorName();
   $('#portModalTitle').textContent = 'Yeni portföy';
   $('#savePortBtn').textContent = 'Link oluştur';
   resetPortFilters();
@@ -752,7 +752,7 @@ function openEditPort(kod) {
   editPortKod = kod;
   selected = new Set(port.property_ids || []);
   $('#port_title').value = port.baslik || '';
-  $('#port_creator').value = port.olusturan || '';
+  $('#port_creator').value = port.olusturan || currentCreatorName();
   $('#portModalTitle').textContent = 'Portföyü düzenle';
   $('#savePortBtn').textContent = 'Güncelle';
   resetPortFilters();

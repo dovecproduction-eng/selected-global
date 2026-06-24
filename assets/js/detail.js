@@ -1,16 +1,18 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY } from './config.js?v=12';
-import { t, applyI18n, getLang } from './i18n.js?v=12';
+import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=13';
+import { t, applyI18n, getLang } from './i18n.js?v=13';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
-} from './ui.js?v=12';
+} from './ui.js?v=13';
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
 
 const id = new URLSearchParams(location.search).get('id');
-const contactRaw = new URLSearchParams(location.search).get('tel') || BRAND.phoneRaw;
+const telParam = new URLSearchParams(location.search).get('tel');
+// İletişim numarası: önce dairenin ekleyeni, yoksa portföy oluşturanı (tel), yoksa genel
+let contactRaw = telParam || BRAND.phoneRaw;
 let row = null;
 let activePhoto = 0;
 
@@ -105,6 +107,7 @@ async function load() {
   const { data, error } = await supabase.from('properties').select('*').eq('id', id).single();
   if (error || !data) { notFound(); return; }
   row = data;
+  if (row.ekleyen) contactRaw = creatorContact(row.ekleyen).phoneRaw;
   document.title = `${pickTitle(row)} — Selected Global`;
   render();
 }
