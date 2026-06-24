@@ -1,10 +1,10 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY } from './config.js?v=9';
-import { t, applyI18n, getLang } from './i18n.js?v=9';
+import { supabase, BRAND, CURRENCY } from './config.js?v=10';
+import { t, applyI18n, getLang } from './i18n.js?v=10';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
-} from './ui.js?v=9';
+} from './ui.js?v=10';
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();

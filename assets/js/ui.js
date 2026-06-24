@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=9';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=9';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=10';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=10';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -176,9 +176,20 @@ export function toast(msg, type = '') {
 }
 
 // ---------- ZIP indirme (JSZip global) ----------
+// JSZip'i sadece gerektiğinde (indirme anında) yükle — sayfa açılışını yavaşlatmasın
+export function ensureJSZip() {
+  if (window.JSZip) return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+    s.onload = resolve; s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
+
 export async function downloadPhotosZip(urls, zipName, onProgress) {
-  if (!window.JSZip) { toast('İndirme aracı yüklenemedi', 'err'); return; }
   if (!urls || !urls.length) { toast('İndirilecek fotoğraf yok', 'err'); return; }
+  try { await ensureJSZip(); } catch (e) { toast('İndirme aracı yüklenemedi', 'err'); return; }
   const zip = new window.JSZip();
   let done = 0;
   for (let i = 0; i < urls.length; i++) {
@@ -301,7 +312,7 @@ export async function renderCoverImage(row) {
 
 // Daire(ler)in fotoğraflarını + markalı kapağı ZIP olarak indir
 export async function downloadPropertyPhotos(rows, zipName, onProgress) {
-  if (!window.JSZip) { toast('İndirme aracı yüklenemedi', 'err'); return; }
+  try { await ensureJSZip(); } catch (e) { toast('İndirme aracı yüklenemedi', 'err'); return; }
   rows = (Array.isArray(rows) ? rows : [rows]).filter(Boolean);
   const zip = new window.JSZip();
   const total = rows.reduce((n, r) => n + 1 + ((r.fotograflar || []).length), 0);
