@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=3';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=3';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=4';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=4';
 
 // Üst bardaki "Web sitesi" linki
 document.getElementById('viewSiteLink').href = ALL_LISTINGS_URL;
@@ -143,6 +143,15 @@ function setSelectValue(selId, val) {
   }
   el.value = val;
 }
+
+// Müstakil ev tiplerinde "Kat" alanını gizle (villa/ikiz villa/müstakil ev/bungalov)
+const HOUSE_TYPES = ['villa', 'ikiz villa', 'müstakil ev', 'bungalov'];
+function updateKatVisibility() {
+  const isHouse = HOUSE_TYPES.includes(rkey($('#f_konut').value));
+  $('#katField').classList.toggle('hidden', isHouse);
+  if (isHouse) $('#f_kat').value = '';
+}
+$('#f_konut').addEventListener('change', updateKatVisibility);
 
 /* ============== AUTH ============== */
 let myEmail = '';
@@ -451,6 +460,7 @@ function openProp(id) {
   $('#f_cur').value = p?.para_birimi || 'GBP';
   setSelectValue('#f_banyo', p?.banyo_sayisi != null ? String(p.banyo_sayisi) : '');
   $('#f_kat').value = p?.kat || '';
+  updateKatVisibility();
   $('#f_esyali').value = p?.esyali == null ? '' : String(p.esyali);
   $('#f_ozellikler').value = (p?.ozellikler || []).join(', ');
   $('#f_aciklama').value = p?.aciklama || '';

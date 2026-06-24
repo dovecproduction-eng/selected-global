@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=3" />
+  <link rel="stylesheet" href="assets/css/style.css?v=4" />
 </head>
 <body class="admin-body">
 
@@ -226,6 +226,20 @@
           </div>
           <div class="field-row">
             <div class="field">
+              <label>Konut Tipi <span class="text-muted">— opsiyonel</span></label>
+              <select id="f_konut"><option value="">Belirtilmemiş</option></select>
+            </div>
+            <div class="field">
+              <label>Eşya durumu</label>
+              <select id="f_esyali">
+                <option value="">Belirtilmemiş</option>
+                <option value="true">Eşyalı</option>
+                <option value="false">Eşyasız</option>
+              </select>
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
               <label>Banyo sayısı <span class="text-muted">— opsiyonel</span></label>
               <select id="f_banyo">
                 <option value="">Belirtilmemiş</option>
@@ -235,7 +249,7 @@
                 <option value="4">4</option>
               </select>
             </div>
-            <div class="field">
+            <div class="field" id="katField">
               <label>Kat <span class="text-muted">— seç ya da yaz</span></label>
               <input id="f_kat" list="katList" placeholder="Örn. 1, Bahçe katı" />
               <datalist id="katList">
@@ -249,20 +263,6 @@
                 <option value="5"></option>
                 <option value="Çatı katı"></option>
               </datalist>
-            </div>
-          </div>
-          <div class="field-row">
-            <div class="field">
-              <label>Konut Tipi <span class="text-muted">— opsiyonel</span></label>
-              <select id="f_konut"><option value="">Belirtilmemiş</option></select>
-            </div>
-            <div class="field">
-              <label>Eşya durumu</label>
-              <select id="f_esyali">
-                <option value="">Belirtilmemiş</option>
-                <option value="true">Eşyalı</option>
-                <option value="false">Eşyasız</option>
-              </select>
             </div>
           </div>
           <div class="field">
@@ -393,6 +393,6 @@
   </div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=3"></script>
+  <script type="module" src="assets/js/admin.js?v=4"></script>
 </body>
 </html>
