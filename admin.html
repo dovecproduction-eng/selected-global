@@ -7,7 +7,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=5" />
+  <link rel="stylesheet" href="assets/css/style.css?v=6" />
 </head>
 <body class="admin-body">
 
@@ -376,23 +376,19 @@
     </div>
   </div>
 
-  <!-- LİNK HAZIR MODALI -->
+  <!-- PORTFÖY HAZIR MODALI -->
   <div class="modal-overlay" id="linkModal">
     <div class="modal" style="max-width:520px">
-      <div class="modal-head"><h3>Portföy linki hazır 🎉</h3><button class="icon-btn" data-close></button></div>
+      <div class="modal-head"><h3>Portföy hazır 🎉</h3><button class="icon-btn" data-close></button></div>
       <div class="modal-body">
-        <p class="text-muted" style="margin-top:0">Bu linki müşterinize gönderin. Sadece seçtiğiniz daireleri görecekler.</p>
-        <a class="btn btn-wa btn-block" id="waLinkBtn" target="_blank" rel="noopener" style="font-size:1.05rem;padding:16px">WhatsApp'tan gönder</a>
-        <div class="field" style="margin-top:16px">
-          <label>Paylaşılabilir link</label>
-          <input id="linkOut" readonly onclick="this.select()" />
-        </div>
-        <button class="btn btn-ghost btn-block" id="copyLinkBtn">Kopyala</button>
+        <p class="text-muted" style="margin-top:0">Seçtiğiniz dairelerin <strong>kapak görsellerini</strong> WhatsApp'tan gönderin.</p>
+        <button class="btn btn-wa btn-block" id="waLinkBtn" style="font-size:1.05rem;padding:16px">WhatsApp'tan gönder</button>
+        <p class="hint" id="shareHint" style="text-align:center;margin-top:10px"></p>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=5"></script>
+  <script type="module" src="assets/js/admin.js?v=6"></script>
 </body>
 </html>
