@@ -1,35 +1,9 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=6';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, renderCoverImage, slugify, regionDistrict, regionDisplay } from './ui.js?v=6';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=7';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=7';
 
-// Kapak görsellerini WhatsApp'tan (veya başka uygulamadan) paylaş — link yerine fotoğraf
-async function shareCovers(rows, btn) {
-  rows = (rows || []).filter((r) => r && (r.fotograflar || []).length);
-  if (!rows.length) { toast('Kapak fotoğrafı olan daire yok', 'err'); return; }
-  const orig = btn ? btn.innerHTML : '';
-  if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Görseller hazırlanıyor…</span>`; }
-  const files = [];
-  for (const row of rows) {
-    try {
-      const blob = await renderCoverImage(row);
-      if (blob) files.push(new File([blob], slugify(`${row.bolge || ''}-${pickTitle(row)}`) + '.jpg', { type: 'image/jpeg' }));
-    } catch (e) { /* atla */ }
-  }
-  if (btn) { btn.disabled = false; btn.innerHTML = orig; }
-  if (!files.length) { toast('Kapak üretilemedi', 'err'); return; }
-
-  const text = 'Selected Global — sizin için seçtiğimiz daireler';
-  if (navigator.canShare && navigator.canShare({ files })) {
-    try { await navigator.share({ files, text }); } catch (e) { /* kullanıcı iptal etti */ }
-  } else {
-    // Masaüstü/desteklemeyen: görselleri indir, manuel ekle
-    files.forEach((f, i) => setTimeout(() => {
-      const a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name;
-      document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800);
-    }, i * 300));
-    toast('Görseller indirildi — WhatsApp\'a ekleyip gönderin', 'ok');
-  }
-}
+// WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
+const waShare = (url) => `https://wa.me/?text=${encodeURIComponent('Sizin için dairelerimiz\n' + url)}`;
 
 // Üst bardaki "Web sitesi" linki
 document.getElementById('viewSiteLink').href = ALL_LISTINGS_URL;
@@ -677,7 +651,6 @@ function renderPortList() {
     const url = portUrl(p.kod);
     const count = (p.property_ids || []).length;
     const date = new Date(p.created_at).toLocaleDateString('tr-TR');
-    const waText = encodeURIComponent(`Selected Global — sizin için seçtiğimiz daireler:\n${url}`);
     return `
     <div class="port-card" data-preview="${url}&admin=1" title="Önizlemek için tıkla">
       <div class="port-card-top">
@@ -693,7 +666,7 @@ function renderPortList() {
         <span class="port-link-copy">${ICON.copy} Kopyala</span>
       </div>
       <div class="port-actions">
-        <button class="btn btn-wa btn-sm" data-share="${p.kod}">${ICON.wa}<span>WhatsApp'tan gönder</span></button>
+        <a class="btn btn-wa btn-sm" href="${waShare(url)}" target="_blank" rel="noopener">${ICON.wa}<span>WhatsApp'tan gönder</span></a>
         <a class="btn btn-ghost btn-sm" href="${url}&admin=1" target="_blank" rel="noopener">${ICON.link}<span>Önizle</span></a>
       </div>
     </div>`;
@@ -701,12 +674,6 @@ function renderPortList() {
 
   el.querySelectorAll('.port-link[data-copy]').forEach((b) => b.onclick = () => copy(portUrl(b.dataset.copy)));
   el.querySelectorAll('[data-delport]').forEach((b) => b.onclick = () => delPort(b.dataset.delport));
-  el.querySelectorAll('[data-share]').forEach((b) => b.onclick = (e) => {
-    e.stopPropagation();
-    const port = ports.find((x) => x.kod === b.dataset.share);
-    const rows = (port?.property_ids || []).map((id) => props.find((p) => p.id === id)).filter(Boolean);
-    shareCovers(rows, b);
-  });
   // Kartın boş yerine tıklayınca önizleme aç (buton/link/sil hariç)
   el.querySelectorAll('.port-card').forEach((card) => card.addEventListener('click', (e) => {
     if (e.target.closest('.port-link, .port-actions, [data-delport]')) return;
@@ -786,16 +753,17 @@ $('#savePortBtn').addEventListener('click', async () => {
   btn.disabled = false; btn.textContent = 'Link oluştur';
   if (error) { toast('Oluşturulamadı: ' + error.message, 'err'); return; }
   closeModal($('#portModal'));
-  showLink(kod, ids);
+  showLink(kod);
   loadPorts();
 });
 
-function showLink(kod, ids) {
-  const rows = (ids || []).map((id) => props.find((p) => p.id === id)).filter(Boolean);
+function showLink(kod) {
+  const url = portUrl(kod);
   const wa = $('#waLinkBtn');
   wa.innerHTML = `${ICON.wa}<span>WhatsApp'tan gönder</span>`;
-  wa.onclick = () => shareCovers(rows, wa);
-  $('#shareHint').textContent = (navigator.canShare) ? '' : 'Bilgisayarda görseller indirilir; telefonda doğrudan WhatsApp\'tan paylaşılır.';
+  wa.onclick = () => window.open(waShare(url), '_blank');
+  $('#copyLinkBtn').innerHTML = `${ICON.copy}<span>Linki kopyala</span>`;
+  $('#copyLinkBtn').onclick = () => copy(url);
   openModal('#linkModal');
 }
 
