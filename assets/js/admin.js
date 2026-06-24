@@ -1,9 +1,9 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=7';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=7';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=8';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=8';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
-const waShare = (url) => `https://wa.me/?text=${encodeURIComponent('Sizin için dairelerimiz\n' + url)}`;
+const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
 
 // Üst bardaki "Web sitesi" linki
 document.getElementById('viewSiteLink').href = ALL_LISTINGS_URL;
@@ -642,7 +642,7 @@ async function loadPorts() {
   renderPortList();
 }
 
-function portUrl(kod) { return new URL(`p.html?kod=${kod}`, location.href).href; }
+function portUrl(kod) { return new URL(`p?kod=${kod}`, location.href).href; }
 
 function renderPortList() {
   const el = $('#portList');
