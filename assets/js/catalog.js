@@ -1,10 +1,10 @@
 // Selected Global — Tüm daireler (herkese açık vitrin)
-import { supabase, REGION_GROUPS } from './config.js?v=10';
-import { t, applyI18n, getLang } from './i18n.js?v=10';
+import { supabase, REGION_GROUPS } from './config.js?v=11';
+import { t, applyI18n, getLang } from './i18n.js?v=11';
 import {
   ICON, fmtPrice, esc, pickTitle, brandedCover, regionDistrict, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast,
-} from './ui.js?v=10';
+} from './ui.js?v=11';
 
 const state = { all: [], type: 'all', region: '', room: '' };
 
@@ -24,14 +24,14 @@ function card(row, i) {
   const title = pickTitle(row);
   return `
   <div class="pcard reveal" style="animation-delay:${Math.min(i * 0.05, 0.4)}s">
-    <a href="daire.html?id=${row.id}" style="display:block">${brandedCover(row)}</a>
+    <a href="daire?id=${row.id}" style="display:block">${brandedCover(row)}</a>
     <div class="pcard-body">
       ${title ? `<h3 class="pcard-title">${esc(title)}</h3>` : ''}
       <div class="pcard-row">
         <span class="price">${fmtPrice(row.fiyat, row.para_birimi, row.tip)}</span>
         ${row.metrekare ? `<span class="text-muted" style="font-weight:600;font-size:.88rem">${esc(row.metrekare)} m²</span>` : ''}
       </div>
-      <a class="btn btn-ghost btn-sm btn-block" href="daire.html?id=${row.id}">${ICON.camera}<span>${getLang() === 'tr' ? 'Detay & fotoğraflar' : 'Details & photos'}</span></a>
+      <a class="btn btn-ghost btn-sm btn-block" href="daire?id=${row.id}">${ICON.camera}<span>${getLang() === 'tr' ? 'Detay & fotoğraflar' : 'Details & photos'}</span></a>
     </div>
   </div>`;
 }

@@ -28,13 +28,15 @@ export const ALL_LISTINGS_URL = 'https://www.selectedglobal.com/tr';
 // Portföyü oluşturan kişiye göre iletişim numarası
 // keys: "Hazırlayan" alanında geçebilecek kelimeler (küçük harf). Yeni danışman eklemek için buraya ekle.
 export const CREATORS = [
-  { keys: ['janna'], name: 'Janna', phone: '0533 883 45 25', phoneRaw: '905338834525' },
+  { keys: ['jana', 'janna'], name: 'Jana', phone: '0533 883 45 25', phoneRaw: '905338834525' },
   { keys: ['orçun', 'orcun', 'döveç', 'dovec'], name: 'Orçun Döveç', phone: '0548 869 05 15', phoneRaw: '905488690515' },
 ];
-// olusturan metnine göre ilgili danışmanı bul; yoksa Selected Global genel numarası
+// olusturan metnine göre ilgili danışmanı bul; yazım farklarına (jana/janna vb.) dayanıklı; yoksa genel numara
 export function creatorContact(olusturan) {
-  const s = (olusturan || '').toLocaleLowerCase('tr');
-  for (const c of CREATORS) if (c.keys.some((k) => s.includes(k))) return c;
+  const s = (olusturan || '').toLocaleLowerCase('tr').trim();
+  for (const c of CREATORS) {
+    if (c.keys.some((k) => s.includes(k) || (s.length >= 3 && k.includes(s)))) return c;
+  }
   return { name: BRAND.name, phone: BRAND.phone, phoneRaw: BRAND.phoneRaw };
 }
 

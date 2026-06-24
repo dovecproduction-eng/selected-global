@@ -1,10 +1,10 @@
 // Selected Global — Portföy linki sayfası (müşteriye gönderilen seçki)
-import { supabase, ALL_LISTINGS_URL, creatorContact } from './config.js?v=10';
-import { t, applyI18n, getLang } from './i18n.js?v=10';
+import { supabase, ALL_LISTINGS_URL, creatorContact } from './config.js?v=11';
+import { t, applyI18n, getLang } from './i18n.js?v=11';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
-} from './ui.js?v=10';
+} from './ui.js?v=11';
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
@@ -36,7 +36,7 @@ function card(row, i) {
   const tel = contact ? `&tel=${contact.phoneRaw}` : '';
   return `
   <div class="pcard reveal" style="animation-delay:${Math.min(i*0.05,0.4)}s">
-    <a href="daire.html?id=${row.id}${tel}" style="display:block">${brandedCover(row)}</a>
+    <a href="daire?id=${row.id}${tel}" style="display:block">${brandedCover(row)}</a>
     <div class="pcard-body">
       ${title ? `<h3 class="pcard-title">${esc(title)}</h3>` : ''}
       <div class="pcard-row">
@@ -44,7 +44,7 @@ function card(row, i) {
         ${row.metrekare ? `<span class="text-muted" style="font-weight:600;font-size:.88rem">${esc(row.metrekare)} m²</span>` : ''}
       </div>
       <div style="display:flex;gap:8px">
-        <a class="btn btn-ghost btn-sm" href="daire.html?id=${row.id}${tel}" style="flex:1">${ICON.camera}<span data-i18n="view_photos">${t('view_photos')}</span></a>
+        <a class="btn btn-ghost btn-sm" href="daire?id=${row.id}${tel}" style="flex:1">${ICON.camera}<span data-i18n="view_photos">${t('view_photos')}</span></a>
         ${photos ? `<button class="btn btn-primary btn-sm" data-dl="${row.id}" title="${t('download_photos')}">${ICON.download}</button>` : ''}
       </div>
     </div>
