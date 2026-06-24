@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=11';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=11';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=12';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=12';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -688,6 +688,7 @@ function renderPortList() {
           <div class="port-title">${esc(p.baslik || 'Başlıksız portföy')}</div>
           <div class="port-sub">${count} daire · ${date}${p.olusturan ? ' · Hazırlayan: ' + esc(p.olusturan) : ''}</div>
         </div>
+        <button class="icon-btn" data-editport="${p.kod}" title="Düzenle">${ICON.edit}</button>
         <button class="icon-btn danger" data-delport="${p.kod}" title="Portföyü sil">${ICON.trash}</button>
       </div>
       <div class="port-link" data-copy="${p.kod}" title="Kopyalamak için tıkla">
@@ -696,16 +697,18 @@ function renderPortList() {
       </div>
       <div class="port-actions">
         <a class="btn btn-wa btn-sm" href="${waShare(url)}" target="_blank" rel="noopener">${ICON.wa}<span>WhatsApp'tan gönder</span></a>
+        <button class="btn btn-ghost btn-sm" data-editport="${p.kod}">${ICON.edit}<span>Düzenle</span></button>
         <a class="btn btn-ghost btn-sm" href="${url}&admin=1" target="_blank" rel="noopener">${ICON.link}<span>Önizle</span></a>
       </div>
     </div>`;
   }).join('');
 
   el.querySelectorAll('.port-link[data-copy]').forEach((b) => b.onclick = () => copy(portUrl(b.dataset.copy)));
-  el.querySelectorAll('[data-delport]').forEach((b) => b.onclick = () => delPort(b.dataset.delport));
+  el.querySelectorAll('[data-delport]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); delPort(b.dataset.delport); });
+  el.querySelectorAll('[data-editport]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); openEditPort(b.dataset.editport); });
   // Kartın boş yerine tıklayınca önizleme aç (buton/link/sil hariç)
   el.querySelectorAll('.port-card').forEach((card) => card.addEventListener('click', (e) => {
-    if (e.target.closest('.port-link, .port-actions, [data-delport]')) return;
+    if (e.target.closest('.port-link, .port-actions, [data-delport], [data-editport]')) return;
     window.open(card.dataset.preview, '_blank', 'noopener');
   }));
 }
@@ -717,25 +720,45 @@ async function delPort(kod) {
   toast('Portföy silindi', 'ok'); loadPorts();
 }
 
-/* ---- Portföy oluşturma modalı ---- */
+/* ---- Portföy oluşturma / düzenleme modalı ---- */
+let editPortKod = null;
 function defaultCreator() {
   const saved = localStorage.getItem('sg_creator');
   if (saved) return saved;
   if (myEmail) { const n = myEmail.split('@')[0].replace(/[._-]+/g, ' ').trim(); return n.charAt(0).toLocaleUpperCase('tr') + n.slice(1); }
   return '';
 }
-$('#addPortBtn').addEventListener('click', () => {
-  selected = new Set();
-  $('#port_title').value = '';
-  $('#port_creator').value = defaultCreator();
-  // filtreleri sıfırla
+function resetPortFilters() {
   fSel.tip = 'all'; fSel.regions = []; fSel.furn = ''; fSel.q = '';
   $$('#sf_tip button').forEach((b) => b.classList.toggle('active', b.dataset.tip === 'all'));
   $('#sf_furn').value = ''; $('#sf_q').value = '';
   renderRegionMulti('#sf_region_panel', '#sf_region_btn', fSel, renderSelectGrid);
+}
+$('#addPortBtn').addEventListener('click', () => {
+  editPortKod = null;
+  selected = new Set();
+  $('#port_title').value = '';
+  $('#port_creator').value = defaultCreator();
+  $('#portModalTitle').textContent = 'Yeni portföy';
+  $('#savePortBtn').textContent = 'Link oluştur';
+  resetPortFilters();
   renderSelectGrid();
   openModal('#portModal');
 });
+
+// Mevcut portföyü düzenle (aynı link/kod korunur)
+function openEditPort(kod) {
+  const port = ports.find((p) => p.kod === kod); if (!port) return;
+  editPortKod = kod;
+  selected = new Set(port.property_ids || []);
+  $('#port_title').value = port.baslik || '';
+  $('#port_creator').value = port.olusturan || '';
+  $('#portModalTitle').textContent = 'Portföyü düzenle';
+  $('#savePortBtn').textContent = 'Güncelle';
+  resetPortFilters();
+  renderSelectGrid();
+  openModal('#portModal');
+}
 
 function renderSelectGrid() {
   const el = $('#selectGrid');
@@ -770,19 +793,29 @@ $('#sf_q').addEventListener('input', (e) => { fSel.q = e.target.value.trim(); re
 
 $('#savePortBtn').addEventListener('click', async () => {
   if (!selected.size) { toast('En az bir daire seçin', 'err'); return; }
-  const btn = $('#savePortBtn'); btn.disabled = true; btn.textContent = 'Oluşturuluyor…';
-  const kod = Math.random().toString(36).slice(2, 9);
+  const btn = $('#savePortBtn'); const origLabel = editPortKod ? 'Güncelle' : 'Link oluştur';
+  btn.disabled = true; btn.textContent = editPortKod ? 'Güncelleniyor…' : 'Oluşturuluyor…';
   // seçim sırası: props listesindeki sıra
   const ids = props.filter((p) => selected.has(p.id)).map((p) => p.id);
   const creator = $('#port_creator').value.trim() || null;
   if (creator) localStorage.setItem('sg_creator', creator);
-  const { error } = await supabase.from('portfolios').insert({
-    kod, baslik: $('#port_title').value.trim() || null, property_ids: ids, olusturan: creator,
-  });
-  btn.disabled = false; btn.textContent = 'Link oluştur';
-  if (error) { toast('Oluşturulamadı: ' + error.message, 'err'); return; }
+  const payload = { baslik: $('#port_title').value.trim() || null, property_ids: ids, olusturan: creator };
+
+  let error, kod;
+  if (editPortKod) {
+    kod = editPortKod;
+    ({ error } = await supabase.from('portfolios').update(payload).eq('kod', kod));
+  } else {
+    kod = Math.random().toString(36).slice(2, 9);
+    ({ error } = await supabase.from('portfolios').insert({ kod, ...payload }));
+  }
+
+  btn.disabled = false; btn.textContent = origLabel;
+  if (error) { toast((editPortKod ? 'Güncellenemedi: ' : 'Oluşturulamadı: ') + error.message, 'err'); return; }
+  const wasEdit = !!editPortKod;
+  editPortKod = null;
   closeModal($('#portModal'));
-  showLink(kod);
+  if (wasEdit) { toast('Portföy güncellendi (link aynı)', 'ok'); } else { showLink(kod); }
   loadPorts();
 });
 
