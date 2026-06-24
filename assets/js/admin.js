@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=13';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=13';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=14';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=14';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -638,8 +638,8 @@ $('#savePropBtn').addEventListener('click', async () => {
     desc_en: $('#f_desc_en').value.trim() || null,
     fotograflar: photos.map((p) => p.url),
     kapak_index: 0,
-    // Ekleyen: yeni dairede giriş yapan; düzenlemede mevcut korunur
-    ekleyen: editId ? (props.find((x) => x.id === editId)?.ekleyen || null) : (currentCreatorName() || null),
+    // Ekleyen: mevcut varsa korunur, yoksa (yeni daire ya da eski boş kayıt) giriş yapan
+    ekleyen: (editId && props.find((x) => x.id === editId)?.ekleyen) || currentCreatorName() || null,
   };
 
   let error;
