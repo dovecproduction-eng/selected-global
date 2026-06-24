@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=2';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=2';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL } from './config.js?v=3';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=3';
 
 // Üst bardaki "Web sitesi" linki
 document.getElementById('viewSiteLink').href = ALL_LISTINGS_URL;
@@ -243,15 +243,16 @@ function itemCompact(p, ctx) {
   </div>`;
 }
 function viewTable(list, ctx) {
-  const head = `<tr>${ctx === 'select' ? '<th></th>' : ''}<th>İlan No</th><th>Başlık</th><th>Tip</th><th>Konut</th><th>Bölge</th><th>Oda</th><th>m²</th><th>Fiyat</th><th>Eşya</th>${ctx === 'browse' ? '<th></th>' : ''}</tr>`;
+  const head = `<tr>${ctx === 'select' ? '<th></th>' : ''}<th>Başlık</th><th>Tip</th><th>Konut</th><th>Bölge</th><th>Oda</th><th>Banyo</th><th>Kat</th><th>m²</th><th>Fiyat</th><th>Eşya</th>${ctx === 'browse' ? '<th></th>' : ''}</tr>`;
   const rows = list.map((p) => `<tr data-id="${p.id}" class="${selCls(p, ctx).trim()}">
     ${ctx === 'select' ? `<td><span class="tcheck">${ICON.check}</span></td>` : ''}
-    <td>${esc(p.ref_kodu || '—')}</td>
     <td class="td-title">${esc(pickTitle(p) || '—')}</td>
     <td>${tipBadge(p)}</td>
     <td>${esc(p.konut_tipi || '—')}</td>
     <td>${esc(regionDisplay(p.bolge) || '—')}</td>
     <td>${esc(p.oda_sayisi || '—')}</td>
+    <td>${p.banyo_sayisi != null ? esc(p.banyo_sayisi) : '—'}</td>
+    <td>${esc(p.kat || '—')}</td>
     <td>${p.metrekare != null ? esc(p.metrekare) : '—'}</td>
     <td class="price">${priceText(p)}</td>
     <td>${p.esyali == null ? '—' : (p.esyali ? 'Eşyalı' : 'Eşyasız')}</td>
@@ -303,7 +304,6 @@ function listingSpecRows(p) {
     ['Banyo', p.banyo_sayisi],
     ['Kat', p.kat],
     ['Eşya Durumu', p.esyali == null ? null : (p.esyali ? 'Eşyalı' : 'Eşyasız')],
-    ['İlan No', p.ref_kodu],
   ];
   return rows.filter(([, v]) => v != null && v !== '')
     .map(([k, v]) => `<div class="row"><span class="k">${esc(k)}</span><span class="v">${esc(v)}</span></div>`).join('');
@@ -428,7 +428,6 @@ function openProp(id) {
   const p = id ? props.find((x) => x.id === id) : null;
   $('#propModalTitle').textContent = id ? 'Daireyi düzenle' : 'Yeni daire';
   $('#f_id').value = id || '';
-  $('#f_ref').value = p?.ref_kodu || '';
   $('#f_baslik').value = p?.baslik || '';
   $('#f_title_en').value = p?.title_en || '';
   $('#f_tip').value = p?.tip || 'kiralik';
@@ -450,7 +449,7 @@ function openProp(id) {
   $('#f_m2').value = p?.metrekare ?? '';
   $('#f_fiyat').value = p?.fiyat ?? '';
   $('#f_cur').value = p?.para_birimi || 'GBP';
-  $('#f_banyo').value = p?.banyo_sayisi ?? '';
+  setSelectValue('#f_banyo', p?.banyo_sayisi != null ? String(p.banyo_sayisi) : '');
   $('#f_kat').value = p?.kat || '';
   $('#f_esyali').value = p?.esyali == null ? '' : String(p.esyali);
   $('#f_ozellikler').value = (p?.ozellikler || []).join(', ');
@@ -578,7 +577,6 @@ $('#savePropBtn').addEventListener('click', async () => {
   const btn = $('#savePropBtn'); btn.disabled = true; btn.textContent = 'Kaydediliyor…';
 
   const payload = {
-    ref_kodu: $('#f_ref').value.trim() || null,
     baslik: $('#f_baslik').value.trim() || null,
     title_en: $('#f_title_en').value.trim() || null,
     tip: $('#f_tip').value,
@@ -763,7 +761,7 @@ async function copy(text) {
 }
 
 /* ============== EXCEL İLE TOPLU EKLEME ============== */
-const XLS_HEADERS = ['İlan No', 'Başlık', 'Başlık (EN)', 'Tip', 'Konut Tipi', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', 'Açıklama (EN)', "Fotoğraf URL'leri"];
+const XLS_HEADERS = ['Başlık', 'Başlık (EN)', 'Tip', 'Konut Tipi', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', 'Açıklama (EN)', "Fotoğraf URL'leri"];
 
 // Başlık normalleştirme (büyük/küçük, Türkçe karakter, boşluk farkını yok say)
 function asciiLower(s) {
@@ -774,7 +772,6 @@ function normHeader(h) { return asciiLower(h).replace(/[^a-z0-9]/g, ''); }
 
 // Sütun başlığı -> alan eşlemesi
 const FIELD_ALIASES = {
-  ref_kodu: ['ilanno', 'ilan', 'referans', 'refkodu', 'ref', 'kod'],
   baslik: ['baslik', 'basliktr', 'title', 'titletr', 'ad', 'isim'],
   title_en: ['basliken', 'titleen'],
   tip: ['tip', 'tur', 'durum', 'type', 'islemtipi', 'islem'],
@@ -816,7 +813,7 @@ function sigOf(o) { return asciiLower(`${o.baslik || ''}|${o.bolge || ''}|${o.od
 // Şablon indir
 $('#dlTemplateBtn').addEventListener('click', () => {
   if (!window.XLSX) { toast('Excel aracı yüklenemedi, sayfayı yenileyin', 'err'); return; }
-  const example = ['SG-001', 'Denize sıfır 2+1 lüks daire', 'Seafront luxury 2+1 apartment', 'Kiralık', 'Daire', 'Girne', '2+1', 750, 'GBP', 95, 1, '3. kat', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', 'Spacious sea-view balcony.', ''];
+  const example = ['Denize sıfır 2+1 lüks daire', 'Seafront luxury 2+1 apartment', 'Kiralık', 'Daire', 'Girne', '2+1', 750, 'GBP', 95, 1, '3', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', 'Spacious sea-view balcony.', ''];
   const ws = XLSX.utils.aoa_to_sheet([XLS_HEADERS, example]);
   ws['!cols'] = XLS_HEADERS.map(() => ({ wch: 20 }));
   const wb = XLSX.utils.book_new();
@@ -875,13 +872,12 @@ async function importXlsx(file) {
   // Başlık satırı -> sütun eşlemesi
   const headerRow = rows[0];
   const colMap = headerRow.map(headerToField); // index -> field|null
-  if (!colMap.includes('baslik') && !colMap.includes('ref_kodu')) {
+  if (!colMap.includes('baslik')) {
     result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Sütun başlıkları tanınmadı.</span> Lütfen indirdiğiniz <strong>şablonu</strong> kullanın (başlık satırını silmeyin).</div>`;
     return;
   }
 
-  // Mevcut kayıtların anahtarları (mükerrer önleme)
-  const refKeys = new Set(props.map((p) => p.ref_kodu).filter(Boolean).map((r) => r.toLowerCase()));
+  // Mevcut kayıtların imzaları (Başlık+Bölge+Oda ile mükerrer önleme)
   const sigKeys = new Set(props.map(sigOf));
   const seen = new Set();
 
@@ -896,7 +892,6 @@ async function importXlsx(file) {
     colMap.forEach((field, idx) => { if (field) raw[field] = r[idx]; });
 
     const payload = {
-      ref_kodu: vStr(raw.ref_kodu),
       baslik: vStr(raw.baslik),
       title_en: vStr(raw.title_en),
       tip: vTip(raw.tip),
@@ -916,14 +911,11 @@ async function importXlsx(file) {
       kapak_index: 0,
     };
 
-    if (!payload.baslik && !payload.ref_kodu) { errors.push(`${i + 1}. satır: Başlık boş, atlandı`); continue; }
+    if (!payload.baslik) { errors.push(`${i + 1}. satır: Başlık boş, atlandı`); continue; }
 
-    const refL = payload.ref_kodu ? payload.ref_kodu.toLowerCase() : null;
     const sig = sigOf(payload);
-    const dupKey = refL ? 'ref:' + refL : 'sig:' + sig;
-    const existsBefore = refL ? refKeys.has(refL) : sigKeys.has(sig);
-    if (existsBefore || seen.has(dupKey)) { skipped++; continue; }
-    seen.add(dupKey);
+    if (sigKeys.has(sig) || seen.has(sig)) { skipped++; continue; }
+    seen.add(sig);
     toInsert.push(payload);
   }
 
@@ -936,8 +928,7 @@ async function importXlsx(file) {
   const { error } = await supabase.from('properties').insert(toInsert);
   if (error) {
     console.error(error);
-    const colMissing = /ref_kodu/.test(error.message);
-    result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Hata: ${esc(error.message)}</span>${colMissing ? '<br><strong>Çözüm:</strong> Supabase’de “ref_kodu” kolonunu eklemeniz gerekiyor (size verdiğim SQL’i çalıştırın).' : ''}</div>`;
+    result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Hata: ${esc(error.message)}</span></div>`;
     return;
   }
   result.innerHTML = `<div class="import-summary"><span class="big">✓ ${toInsert.length} yeni daire eklendi.</span>${skipped ? ` ${skipped} kayıt zaten vardı (atlandı).` : ''}${errors.length ? `<ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}<br><span class="text-muted" style="font-size:.85rem">Fotoğraf eklemek için listeden “Düzenle” ile her daireye girip foto yükleyebilirsiniz.</span></div>`;

@@ -1,10 +1,10 @@
 // Selected Global — Portföy linki sayfası (müşteriye gönderilen seçki)
-import { supabase, ALL_LISTINGS_URL, creatorContact } from './config.js?v=2';
-import { t, applyI18n, getLang } from './i18n.js?v=2';
+import { supabase, ALL_LISTINGS_URL, creatorContact } from './config.js?v=3';
+import { t, applyI18n, getLang } from './i18n.js?v=3';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
-} from './ui.js?v=2';
+} from './ui.js?v=3';
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
