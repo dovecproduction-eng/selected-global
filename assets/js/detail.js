@@ -1,10 +1,10 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=14';
-import { t, applyI18n, getLang } from './i18n.js?v=14';
+import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=15';
+import { t, applyI18n, getLang } from './i18n.js?v=15';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
-} from './ui.js?v=14';
+} from './ui.js?v=15';
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
@@ -20,6 +20,7 @@ function specRows() {
   const r = row;
   const rows = [
     [t('sp_type'), r.tip === 'satilik' ? t('badge_sale') : t('badge_rent')],
+    [getLang() === 'tr' ? 'Proje' : 'Project', r.proje],
     [t('sp_konut'), r.konut_tipi],
     [t('sp_region'), regionDisplay(r.bolge)],
     [t('sp_rooms'), r.oda_sayisi],

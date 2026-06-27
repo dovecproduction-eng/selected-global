@@ -655,6 +655,13 @@ button { font-family: inherit; cursor: pointer; }
   box-shadow: 0 2px 8px rgba(10,37,64,.2);
 }
 .cover-photo .type-tag.sale { background: var(--gold); color: #fff; }
+.cover-photo .proje-tag {
+  position: absolute; top: 14px; right: 14px; z-index: 2; max-width: 60%;
+  background: rgba(10,37,64,.9); color: #fff;
+  padding: 6px 13px; border-radius: 999px; font-size: .66rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  box-shadow: 0 2px 8px rgba(10,37,64,.25);
+}
 
 /* Gradyenli alt geçiş: logo ortada üstte, konum ve oda/eşya altta iki yanda */
 .cover-overlay {

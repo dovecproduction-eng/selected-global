@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=14';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=14';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=15';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=15';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -137,6 +137,10 @@ $('#f_konut').innerHTML = '<option value="">Belirtilmemiş</option>' +
 // Oda sayısı seçeneklerini doldur
 $('#f_oda').innerHTML = '<option value="">Seçiniz</option>' +
   ODA_TIPLERI.map((o) => `<option value="${esc(o)}">${esc(o)}</option>`).join('');
+
+// Proje seçeneklerini doldur
+$('#f_proje').innerHTML = '<option value="">Belirtilmemiş</option>' +
+  PROJELER.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
 
 // Bir select'te olmayan değeri (eski/serbest) koruyarak seç
 function setSelectValue(selId, val) {
@@ -310,6 +314,7 @@ function renderPropList() {
 function listingSpecRows(p) {
   const rows = [
     ['Tip', p.tip === 'satilik' ? 'Satılık' : 'Kiralık'],
+    ['Proje', p.proje],
     ['Konut Tipi', p.konut_tipi],
     ['Bölge', p.bolge ? regionDisplay(p.bolge) : null],
     ['Oda Sayısı', p.oda_sayisi],
@@ -460,6 +465,7 @@ function openProp(id) {
   }
   $('#f_konut').value = p?.konut_tipi || '';
   setSelectValue('#f_oda', p?.oda_sayisi);
+  setSelectValue('#f_proje', p?.proje);
   $('#f_m2').value = p?.metrekare ?? '';
   $('#f_fiyat').value = p?.fiyat ?? '';
   $('#f_cur').value = p?.para_birimi || 'GBP';
@@ -535,6 +541,7 @@ function updateCoverPreview() {
     fotograflar: [cover.url],
     kapak_index: 0,
     tip: $('#f_tip').value,
+    proje: $('#f_proje').value || null,
     bolge: $('#f_bolge').value || $('#f_il').value || null,
     oda_sayisi: $('#f_oda').value.trim() || null,
     esyali: $('#f_esyali').value === '' ? null : $('#f_esyali').value === 'true',
@@ -544,7 +551,7 @@ function updateCoverPreview() {
 }
 
 // Kapak bilgisi alanları değişince önizlemeyi tazele
-['#f_tip', '#f_bolge', '#f_oda', '#f_esyali'].forEach((sel) => {
+['#f_tip', '#f_proje', '#f_bolge', '#f_oda', '#f_esyali'].forEach((sel) => {
   document.querySelector(sel)?.addEventListener('input', updateCoverPreview);
   document.querySelector(sel)?.addEventListener('change', updateCoverPreview);
 });
@@ -625,6 +632,7 @@ $('#savePropBtn').addEventListener('click', async () => {
     title_en: $('#f_title_en').value.trim() || null,
     tip: $('#f_tip').value,
     konut_tipi: $('#f_konut').value || null,
+    proje: $('#f_proje').value || null,
     bolge: $('#f_bolge').value || $('#f_il').value || null,
     oda_sayisi: $('#f_oda').value.trim() || null,
     metrekare: numOrNull($('#f_m2').value),
@@ -835,7 +843,7 @@ async function copy(text) {
 }
 
 /* ============== EXCEL İLE TOPLU EKLEME ============== */
-const XLS_HEADERS = ['Başlık', 'Başlık (EN)', 'Tip', 'Konut Tipi', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', 'Açıklama (EN)', "Fotoğraf URL'leri"];
+const XLS_HEADERS = ['Başlık', 'Başlık (EN)', 'Tip', 'Proje', 'Konut Tipi', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', 'Açıklama (EN)', "Fotoğraf URL'leri"];
 
 // Başlık normalleştirme (büyük/küçük, Türkçe karakter, boşluk farkını yok say)
 function asciiLower(s) {
@@ -849,6 +857,7 @@ const FIELD_ALIASES = {
   baslik: ['baslik', 'basliktr', 'title', 'titletr', 'ad', 'isim'],
   title_en: ['basliken', 'titleen'],
   tip: ['tip', 'tur', 'durum', 'type', 'islemtipi', 'islem'],
+  proje: ['proje', 'project', 'site', 'sitead', 'siteadi'],
   konut_tipi: ['konuttipi', 'konut', 'emlaktipi', 'gayrimenkultipi', 'propertytype', 'evtipi'],
   bolge: ['bolge', 'konum', 'region', 'location', 'sehir', 'ilce'],
   oda_sayisi: ['odasayisi', 'oda', 'odatipi', 'rooms', 'odasay'],
@@ -887,7 +896,7 @@ function sigOf(o) { return asciiLower(`${o.baslik || ''}|${o.bolge || ''}|${o.od
 // Şablon indir
 $('#dlTemplateBtn').addEventListener('click', () => {
   if (!window.XLSX) { toast('Excel aracı yüklenemedi, sayfayı yenileyin', 'err'); return; }
-  const example = ['Denize sıfır 2+1 lüks daire', 'Seafront luxury 2+1 apartment', 'Kiralık', 'Daire', 'Girne', '2+1', 750, 'GBP', 95, 1, '3', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', 'Spacious sea-view balcony.', ''];
+  const example = ['Denize sıfır 2+1 lüks daire', 'Seafront luxury 2+1 apartment', 'Kiralık', 'Four Season 1', 'Daire', 'Girne', '2+1', 750, 'GBP', 95, 1, '3', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', 'Spacious sea-view balcony.', ''];
   const ws = XLSX.utils.aoa_to_sheet([XLS_HEADERS, example]);
   ws['!cols'] = XLS_HEADERS.map(() => ({ wch: 20 }));
   const wb = XLSX.utils.book_new();
@@ -969,6 +978,7 @@ async function importXlsx(file) {
       baslik: vStr(raw.baslik),
       title_en: vStr(raw.title_en),
       tip: vTip(raw.tip),
+      proje: vStr(raw.proje),
       konut_tipi: vStr(raw.konut_tipi),
       bolge: vStr(raw.bolge),
       oda_sayisi: vStr(raw.oda_sayisi),

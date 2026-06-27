@@ -47,6 +47,7 @@ create policy "write_portfolios" on public.portfolios for all to authenticated u
 alter table public.properties add column if not exists ref_kodu text;
 alter table public.properties add column if not exists konut_tipi text;
 alter table public.properties add column if not exists ekleyen text;
+alter table public.properties add column if not exists proje text;
 alter table public.portfolios add column if not exists olusturan text;
 create index if not exists idx_properties_ref on public.properties(ref_kodu);
 

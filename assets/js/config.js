@@ -73,5 +73,8 @@ export const KONUT_TIPLERI = ['Daire', 'Penthouse', 'Dubleks', 'Villa', 'İkiz V
 // Oda sayısı seçenekleri
 export const ODA_TIPLERI = ['Stüdyo', '1+0', '1+1', '2+1', '3+1', '3+2', '4+1', '4+2', '5+1', '6+1', '7+1'];
 
+// Projeler (opsiyonel) — yeni proje eklemek için buraya ekle
+export const PROJELER = ['Four Season 1', 'Four Season 2', 'Four Season 3', 'Courtyard Long Beach', 'Panorama', 'Sky Sakarya', 'La Isla', 'Terrace Park', 'Courtyard Platinum'];
+
 // Para birimi simgeleri
 export const CURRENCY = { GBP: '£', EUR: '€', USD: '$', TRY: '₺' };

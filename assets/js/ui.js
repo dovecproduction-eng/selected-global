@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=14';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=14';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=15';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=15';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -104,6 +104,7 @@ export function brandedCover(row) {
   <figure class="cover-figure" style="margin:0">
     <div class="cover-photo">
       <span class="type-tag ${isSale ? 'sale' : ''}">${isSale ? t('badge_sale') : t('badge_rent')}</span>
+      ${row.proje ? `<span class="proje-tag">${esc(row.proje)}</span>` : ''}
       ${cover ? `<img src="${esc(cover)}" alt="${esc(pickTitle(row))}" loading="lazy" />` : `<span class="ph">${ICON.camera}</span>`}
       <div class="cover-overlay">
         <div class="ov-logo">${logoMark(true)}</div>
