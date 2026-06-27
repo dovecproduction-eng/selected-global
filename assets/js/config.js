@@ -29,6 +29,7 @@ export const ALL_LISTINGS_URL = 'https://www.selectedglobal.com/tr';
 // keys: isim eşleşmesi için kelimeler. emails: o kişinin giriş e-posta(ları) (varsa).
 export const CREATORS = [
   { keys: ['jana', 'janna'], emails: [], name: 'Jana', phone: '0533 883 45 25', phoneRaw: '905338834525' },
+  { keys: ['berk', 'çetinkaya', 'cetinkaya'], emails: ['berk.cetinkaya@dovecgroup.com'], name: 'Berk Çetinkaya', phone: '0533 883 45 25', phoneRaw: '905338834525' },
   { keys: ['orçun', 'orcun', 'döveç', 'dovec'], emails: [], name: 'Orçun Döveç', phone: '0548 869 05 15', phoneRaw: '905488690515' },
 ];
 // İsme göre danışmanı bul (yazım farkına dayanıklı); yoksa genel numara
