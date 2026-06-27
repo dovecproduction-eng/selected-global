@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=15" />
+  <link rel="stylesheet" href="assets/css/style.css?v=16" />
 </head>
 <body class="admin-body">
 
@@ -296,7 +296,7 @@
             <div class="field" style="margin:0">
               <label>Fotoğraflar</label>
               <div class="uploader" id="uploader">
-                <div id="uploaderText">Fotoğrafları buraya sürükleyin ya da <strong>tıklayıp seçin</strong><br><span class="hint">★ işaretli olan <strong>kapak</strong> olur. Başka fotoğrafa tıklayıp “Kapak yap” diyerek değiştirebilirsiniz.</span></div>
+                <div id="uploaderText">Fotoğrafları buraya sürükleyin ya da <strong>tıklayıp seçin</strong><br><span class="hint">İlk fotoğraf <strong>kapak</strong> olur. <strong>Sürükleyerek sıralayın</strong> (telefonda basılı tutup sürükleyin); bir fotoğrafa <strong>tıklayınca kapak</strong> olur.</span></div>
                 <input type="file" id="fileInput" accept="image/*" multiple hidden />
               </div>
               <div class="upload-previews" id="previews"></div>
@@ -401,7 +401,8 @@
     </div>
   </div>
 
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=15"></script>
+  <script type="module" src="assets/js/admin.js?v=16"></script>
 </body>
 </html>

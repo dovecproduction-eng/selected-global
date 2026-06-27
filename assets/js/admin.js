@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=15';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=15';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=16';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=16';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -490,11 +490,12 @@ function urlToPath(url) {
   return m[1] ? decodeURIComponent(m[1]) : null;
 }
 
+let previewSortable = null;
 function renderPreviews() {
   const el = $('#previews');
   el.innerHTML = photos.map((ph, i) => `
-    <div class="pv ${i === 0 ? 'cover' : ''}" data-i="${i}" draggable="true" title="${i===0?'Kapak fotoğrafı':'Kapak yapmak için tıklayın'}">
-      ${ph.uploading ? `<div class="skeleton" style="width:100%;height:100%"></div>` : `<img src="${esc(ph.url)}" alt="" />`}
+    <div class="pv ${i === 0 ? 'cover' : ''}" data-i="${i}" title="${i === 0 ? 'Kapak fotoğrafı' : 'Sürükleyerek sırala · tıkla = kapak yap'}">
+      ${ph.uploading ? `<div class="skeleton" style="width:100%;height:100%"></div>` : `<img src="${esc(ph.url)}" alt="" draggable="false" />`}
       <button type="button" class="rm" data-rm="${i}">×</button>
     </div>`).join('');
 
@@ -512,18 +513,20 @@ function renderPreviews() {
     photos.splice(Number(b.dataset.rm), 1); renderPreviews();
   });
 
-  // Sürükle-bırak sıralama
-  let dragI = null;
-  el.querySelectorAll('.pv').forEach((pv) => {
-    pv.addEventListener('dragstart', () => { dragI = Number(pv.dataset.i); });
-    pv.addEventListener('dragover', (e) => e.preventDefault());
-    pv.addEventListener('drop', (e) => {
-      e.preventDefault();
-      const to = Number(pv.dataset.i);
-      if (dragI == null || dragI === to) return;
-      const [item] = photos.splice(dragI, 1); photos.splice(to, 0, item); renderPreviews();
+  // Sürükleyerek sıralama (masaüstü + dokunmatik) — SortableJS
+  if (previewSortable) { previewSortable.destroy(); previewSortable = null; }
+  if (window.Sortable) {
+    previewSortable = window.Sortable.create(el, {
+      animation: 150,
+      delay: 120, delayOnTouchOnly: true, // dokunmatikte bas-bekle ile sürükle (kaydırmayla karışmasın)
+      filter: '.rm',                       // çöp butonuna basınca sürükleme başlamasın
+      onEnd: () => {
+        const order = [...el.querySelectorAll('.pv')].map((x) => Number(x.dataset.i));
+        photos = order.map((i) => photos[i]);
+        renderPreviews();
+      },
     });
-  });
+  }
 
   updateCoverPreview();
 }

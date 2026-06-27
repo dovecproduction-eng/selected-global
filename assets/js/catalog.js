@@ -1,10 +1,10 @@
 // Selected Global — Tüm daireler (herkese açık vitrin)
-import { supabase, REGION_GROUPS } from './config.js?v=15';
-import { t, applyI18n, getLang } from './i18n.js?v=15';
+import { supabase, REGION_GROUPS } from './config.js?v=16';
+import { t, applyI18n, getLang } from './i18n.js?v=16';
 import {
   ICON, fmtPrice, esc, pickTitle, brandedCover, regionDistrict, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast,
-} from './ui.js?v=15';
+} from './ui.js?v=16';
 
 const state = { all: [], type: 'all', region: '', room: '' };
 
