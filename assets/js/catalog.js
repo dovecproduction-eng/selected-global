@@ -1,12 +1,12 @@
 // Selected Global — Tüm daireler (herkese açık vitrin)
-import { supabase, REGION_GROUPS } from './config.js?v=17';
-import { t, applyI18n, getLang } from './i18n.js?v=17';
+import { supabase, REGION_GROUPS } from './config.js?v=18';
+import { t, applyI18n, getLang } from './i18n.js?v=18';
 import {
   ICON, fmtPrice, esc, pickTitle, brandedCover, regionDistrict, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast,
-} from './ui.js?v=17';
+} from './ui.js?v=18';
 
-const state = { all: [], type: 'all', region: '', room: '' };
+const state = { all: [], type: 'all', region: '', proje: '', room: '' };
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
@@ -42,6 +42,7 @@ function applyFilters() {
   let list = state.all.slice();
   if (state.type !== 'all') list = list.filter((r) => r.tip === state.type);
   if (state.region) list = list.filter((r) => rkey(r.bolge) === rkey(state.region));
+  if (state.proje) list = list.filter((r) => rkey(r.proje) === rkey(state.proje));
   if (state.room) list = list.filter((r) => (r.oda_sayisi || '') === state.room);
   return list;
 }
@@ -74,6 +75,14 @@ function fillRegionOptions() {
   sel.innerHTML = html; sel.value = cur;
 }
 
+function fillProjeOptions() {
+  const projeler = [...new Set(state.all.map((r) => (r.proje || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'tr'));
+  const sel = document.getElementById('projeSel'); const cur = sel.value;
+  sel.innerHTML = `<option value="">Tüm Projeler</option>` + projeler.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  sel.value = cur;
+}
+
 function fillRoomOptions() {
   const rooms = [...new Set(state.all.map((r) => r.oda_sayisi).filter(Boolean))].sort();
   const sel = document.getElementById('roomSel'); const cur = sel.value;
@@ -89,7 +98,7 @@ async function load() {
     toast('Daireler yüklenemedi', 'err'); return;
   }
   state.all = data || [];
-  fillRegionOptions(); fillRoomOptions(); render();
+  fillRegionOptions(); fillProjeOptions(); fillRoomOptions(); render();
 }
 
 document.getElementById('typeSeg').addEventListener('click', (e) => {
@@ -99,8 +108,9 @@ document.getElementById('typeSeg').addEventListener('click', (e) => {
   render();
 });
 document.getElementById('regionSel').addEventListener('change', (e) => { state.region = e.target.value; render(); });
+document.getElementById('projeSel').addEventListener('change', (e) => { state.proje = e.target.value; render(); });
 document.getElementById('roomSel').addEventListener('change', (e) => { state.room = e.target.value; render(); });
 
-wireLangSwitch(() => { fillRegionOptions(); fillRoomOptions(); render(); });
+wireLangSwitch(() => { fillRegionOptions(); fillProjeOptions(); fillRoomOptions(); render(); });
 applyI18n(document);
 load();

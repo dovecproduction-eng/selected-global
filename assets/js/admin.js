@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=17';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=17';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=18';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=18';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -18,7 +18,7 @@ let photos = [];           // [{url, path}]
 let selected = new Set();  // portföy seçimi
 
 // Filtre durumları (regions = çoklu seçim dizisi)
-const fProps = { tip: 'all', regions: [], furn: '', sort: 'new', q: '' };
+const fProps = { tip: 'all', regions: [], proje: '', furn: '', sort: 'new', q: '' };
 const fSel   = { tip: 'all', regions: [], furn: '', q: '' };
 
 function matchFilter(p, f) {
@@ -29,6 +29,7 @@ function matchFilter(p, f) {
     const ok = f.regions.some((r) => r.startsWith('__il__') ? kk(pd) === kk(r.slice(6)) : kk(p.bolge) === kk(r));
     if (!ok) return false;
   }
+  if (f.proje) { if ((p.proje || '').trim().toLocaleLowerCase('tr') !== f.proje.trim().toLocaleLowerCase('tr')) return false; }
   if (f.furn !== '') { if (p.esyali == null || String(p.esyali) !== f.furn) return false; }
   if (f.q) {
     const q = f.q.toLowerCase();
@@ -206,11 +207,24 @@ $$('.admin-tabs button').forEach((b) => b.addEventListener('click', () => {
 }));
 
 /* ============== DAİRELER ============== */
+// Daireler filtresindeki proje seçeneklerini (kullanımdakiler) doldur
+function fillPropProjeOptions() {
+  const sel = $('#pf_proje'); if (!sel) return;
+  const cur = sel.value;
+  const projeler = [...new Set(props.map((p) => (p.proje || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'tr'));
+  sel.innerHTML = '<option value="">Proje: hepsi</option>' +
+    projeler.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  sel.value = projeler.includes(cur) ? cur : '';
+  fProps.proje = sel.value;
+}
+
 async function loadProps() {
   const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
   if (error) { toast('Daireler yüklenemedi', 'err'); return; }
   props = data || [];
   $('#propCount').textContent = props.length;
+  fillPropProjeOptions();
   renderRegionMulti('#pf_region_panel', '#pf_region_btn', fProps, renderPropList);
   renderRegionMulti('#sf_region_panel', '#sf_region_btn', fSel, renderSelectGrid);
   renderPropList();
@@ -402,6 +416,7 @@ $('#pf_tip').addEventListener('click', (e) => {
   $$('#pf_tip button').forEach((x) => x.classList.toggle('active', x === b));
   renderPropList();
 });
+$('#pf_proje').addEventListener('change', (e) => { fProps.proje = e.target.value; renderPropList(); });
 $('#pf_furn').addEventListener('change', (e) => { fProps.furn = e.target.value; renderPropList(); });
 $('#pf_sort').addEventListener('change', (e) => { fProps.sort = e.target.value; renderPropList(); });
 $('#pf_q').addEventListener('input', (e) => { fProps.q = e.target.value.trim(); renderPropList(); });
