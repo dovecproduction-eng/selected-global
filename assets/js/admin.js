@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=29';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=29';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=30';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=30';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -872,19 +872,20 @@ function renderSelectGrid() {
   $('#selCount').textContent = selected.size;
   if (!props.length) { el.className = ''; el.innerHTML = `<p class="text-muted">Önce daire eklemelisiniz.</p>`; return; }
   const list = props.filter((p) => matchFilter(p, fSel));
-  // "Tümünü seç" buton metni
-  const allSel = list.length && list.every((p) => selected.has(p.id));
-  $('#selAllBtn').textContent = allSel ? 'Seçimi kaldır' : 'Tümünü seç';
+  // "Tümünü seç" butonu: TÜM daireleri (filtreden bağımsız) seçer/kaldırır
+  const allSel = props.length && props.every((p) => selected.has(p.id));
+  $('#selAllBtn').innerHTML = allSel
+    ? `${ICON.x}<span>Seçimi kaldır</span>`
+    : `${ICON.check}<span>Tümünü seç (${props.length})</span>`;
   if (!list.length) { el.className = ''; el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; return; }
   renderView(el, list, selView, 'select');
 }
 
-// Tümünü seç / kaldır (filtreye göre görünenler)
+// Tümünü seç / kaldır — filtreden bağımsız, bütün daireler
 $('#selAllBtn').addEventListener('click', () => {
-  const list = props.filter((p) => matchFilter(p, fSel));
-  const allSel = list.length && list.every((p) => selected.has(p.id));
-  if (allSel) list.forEach((p) => selected.delete(p.id));
-  else list.forEach((p) => selected.add(p.id));
+  const allSel = props.length && props.every((p) => selected.has(p.id));
+  if (allSel) selected.clear();
+  else props.forEach((p) => selected.add(p.id));
   renderSelectGrid();
 });
 
