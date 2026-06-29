@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=30';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=30';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=31';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=31';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -44,7 +44,8 @@ export const ICON = {
 
 // ---------- Formatlama ----------
 export function fmtPrice(p, cur, tip) {
-  if (p == null || p === '') return t('not_specified');
+  // Fiyat girilmemişse "Belirtilmemiş" yerine müşteriyi aramaya yönlendir
+  if (p == null || p === '') return getLang() === 'tr' ? 'Fiyat için arayınız' : 'Call for price';
   const sym = CURRENCY[cur] || '';
   const n = Number(p).toLocaleString(getLang() === 'tr' ? 'tr-TR' : 'en-GB');
   const suffix = tip === 'kiralik' ? `<small> ${t('per_month')}</small>` : '';
