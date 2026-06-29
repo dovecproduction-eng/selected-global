@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=28';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=28';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=29';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=29';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -174,16 +174,13 @@ const PROJECT_AMENITIES = {
   'Four Season 2': ['Açık Havuz', 'Kapalı Havuz', 'Aquapark', 'Fitness', 'Spa & Masaj', 'Güzellik Merkezi', 'Tenis Kortu', 'Basketbol Sahası', 'Voleybol Sahası', 'Restoran', 'Café & Bar', 'Roof Teras', 'Beach Bar', 'Çocuk Kulübü', 'Bisiklet & Yürüyüş Yolu', '7/24 Güvenlik', 'Otopark'],
   'Four Season 3': ['Açık Havuz', 'Kapalı Havuz', 'Aquapark', 'Fitness', 'Spa & Masaj', 'Güzellik Merkezi', 'Tenis Kortu', 'Basketbol Sahası', 'Restoran', 'Café & Bar', 'Roof Teras', 'Beach Bar', 'Çocuk Kulübü', 'Bisiklet & Yürüyüş Yolu', '7/24 Güvenlik', 'Otopark'],
 };
-let lastAutoOzellikler = '';
 let lastAutoAciklama = '';
 function applyProjectAmenities(proje) {
   const list = PROJECT_AMENITIES[proje];
   if (!list) return;
-  const ozStr = list.join(', ');
   const acStr = `${proje} projesinde; ${list.join(', ')} gibi zengin sosyal olanaklar bulunmaktadır.`;
-  const ozEl = $('#f_ozellikler'), acEl = $('#f_aciklama');
+  const acEl = $('#f_aciklama');
   // Boşsa ya da önceki otomatik metinse doldur/değiştir; elle yazılmışsa dokunma
-  if (!ozEl.value.trim() || ozEl.value.trim() === lastAutoOzellikler) { ozEl.value = ozStr; lastAutoOzellikler = ozStr; }
   if (!acEl.value.trim() || acEl.value.trim() === lastAutoAciklama) { acEl.value = acStr; lastAutoAciklama = acStr; }
   updateCoverPreview();
 }
@@ -545,10 +542,9 @@ function openProp(id) {
   $('#f_kat').value = p?.kat || '';
   updateKatVisibility();
   $('#f_esyali').value = p?.esyali == null ? '' : String(p.esyali);
-  $('#f_ozellikler').value = (p?.ozellikler || []).join(', ');
   $('#f_aciklama').value = p?.aciklama || '';
-  // Otomatik dolum izleyicilerini sıfırla (mevcut değerler korunsun, üzerine yazılmasın)
-  lastAutoOzellikler = ''; lastAutoAciklama = '';
+  // Otomatik dolum izleyicisini sıfırla (mevcut değer korunsun, üzerine yazılmasın)
+  lastAutoAciklama = '';
   if (p?.fotograflar?.length) {
     const cov = Math.min(p.kapak_index || 0, p.fotograflar.length - 1);
     const ordered = [p.fotograflar[cov], ...p.fotograflar.filter((_, i) => i !== cov)];
@@ -717,7 +713,6 @@ $('#savePropBtn').addEventListener('click', async () => {
     banyo_sayisi: numOrNull($('#f_banyo').value),
     kat: $('#f_kat').value.trim() || null,
     esyali: $('#f_esyali').value === '' ? null : $('#f_esyali').value === 'true',
-    ozellikler: $('#f_ozellikler').value.split(',').map((s) => s.trim()).filter(Boolean),
     aciklama: $('#f_aciklama').value.trim() || null,
     fotograflar: photos.map((p) => p.url),
     kapak_index: 0,
