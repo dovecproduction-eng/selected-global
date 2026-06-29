@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=22';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=22';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=23';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=23';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -495,7 +495,6 @@ function openProp(id) {
   $('#propModalTitle').textContent = id ? 'Daireyi düzenle' : 'Yeni daire';
   $('#f_id').value = id || '';
   $('#f_baslik').value = p?.baslik || '';
-  $('#f_title_en').value = p?.title_en || '';
   $('#f_tip').value = p?.tip || 'kiralik';
   // İl / ilçe (kademeli)
   const district = regionDistrict(p?.bolge);
@@ -680,7 +679,6 @@ $('#savePropBtn').addEventListener('click', async () => {
 
   const payload = {
     baslik: $('#f_baslik').value.trim() || null,
-    title_en: $('#f_title_en').value.trim() || null,
     tip: $('#f_tip').value,
     konut_tipi: $('#f_konut').value || null,
     proje: $('#f_proje').value || null,
