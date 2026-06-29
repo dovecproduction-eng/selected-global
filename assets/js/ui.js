@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=20';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=20';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=21';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=21';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -174,6 +174,72 @@ export function toast(msg, type = '') {
   el.querySelector('svg')?.style.setProperty('width', '18px');
   wrap.appendChild(el);
   setTimeout(() => { el.style.opacity = '0'; el.style.transition = '.3s'; setTimeout(() => el.remove(), 320); }, 2600);
+}
+
+// ---------- Tam ekran galeri (lightbox) ----------
+// photos: url dizisi, startIndex: açılışta gösterilecek foto. Ok tuşları, ←/→ butonları,
+// dokunmatik kaydırma, ESC ve dışına tıkla ile kapanma destekler.
+export function openLightbox(photos, startIndex = 0) {
+  photos = (photos || []).filter(Boolean);
+  if (!photos.length) return;
+  let idx = Math.max(0, Math.min(startIndex, photos.length - 1));
+  const single = photos.length < 2;
+
+  const chevL = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>';
+  const chevR = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'lightbox';
+  overlay.innerHTML = `
+    <button class="lb-close" type="button" aria-label="Kapat">${ICON.x}</button>
+    ${single ? '' : `<button class="lb-nav lb-prev" type="button" aria-label="Önceki">${chevL}</button>`}
+    <div class="lb-stage"><img class="lb-img" src="" alt="" draggable="false" /></div>
+    ${single ? '' : `<button class="lb-nav lb-next" type="button" aria-label="Sonraki">${chevR}</button>`}
+    ${single ? '' : '<div class="lb-counter"></div>'}`;
+  document.body.appendChild(overlay);
+  document.body.style.overflow = 'hidden';
+  requestAnimationFrame(() => overlay.classList.add('open'));
+
+  const imgEl = overlay.querySelector('.lb-img');
+  const counter = overlay.querySelector('.lb-counter');
+
+  function preload(i) { const im = new Image(); im.src = photos[(i + photos.length) % photos.length]; }
+  function show(i) {
+    idx = (i + photos.length) % photos.length;
+    imgEl.src = photos[idx];
+    if (counter) counter.textContent = `${idx + 1} / ${photos.length}`;
+    if (!single) { preload(idx + 1); preload(idx - 1); } // komşuları önceden yükle
+  }
+  const next = () => show(idx + 1);
+  const prev = () => show(idx - 1);
+  function close() {
+    document.removeEventListener('keydown', onKey);
+    document.body.style.overflow = '';
+    overlay.classList.remove('open');
+    setTimeout(() => overlay.remove(), 200);
+  }
+  function onKey(e) {
+    if (e.key === 'Escape') close();
+    else if (e.key === 'ArrowRight') next();
+    else if (e.key === 'ArrowLeft') prev();
+  }
+
+  overlay.querySelector('.lb-close').addEventListener('click', close);
+  overlay.querySelector('.lb-next')?.addEventListener('click', (e) => { e.stopPropagation(); next(); });
+  overlay.querySelector('.lb-prev')?.addEventListener('click', (e) => { e.stopPropagation(); prev(); });
+  // Fotoğrafın dışına (boş alana) tıklayınca kapan
+  overlay.addEventListener('click', (e) => { if (e.target === overlay || e.target.classList.contains('lb-stage')) close(); });
+  document.addEventListener('keydown', onKey);
+
+  // Dokunmatik kaydırma
+  let sx = 0, sy = 0;
+  overlay.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  overlay.addEventListener('touchend', (e) => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (Math.abs(dx) > 45 && Math.abs(dx) > Math.abs(dy)) { dx < 0 ? next() : prev(); }
+  });
+
+  show(idx);
 }
 
 // ---------- ZIP indirme (JSZip global) ----------

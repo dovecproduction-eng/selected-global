@@ -1,10 +1,10 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=20';
-import { t, applyI18n, getLang } from './i18n.js?v=20';
+import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=21';
+import { t, applyI18n, getLang } from './i18n.js?v=21';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
-  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
-} from './ui.js?v=20';
+  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox,
+} from './ui.js?v=21';
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
@@ -42,7 +42,7 @@ function gallery() {
     return `<div class="main-img" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`;
   }
   return `
-    <div class="main-img"><img id="mainImg" src="${esc(photos[activePhoto])}" alt="${esc(pickTitle(row))}" /></div>
+    <div class="main-img zoomable" id="mainImgWrap"><img id="mainImg" src="${esc(photos[activePhoto])}" alt="${esc(pickTitle(row))}" /><span class="zoom-hint">${ICON.camera}</span></div>
     ${photos.length > 1 ? `<div class="thumbs" id="thumbs">
       ${photos.map((p, i) => `<img src="${esc(p)}" class="${i===activePhoto?'active':''}" data-i="${i}" alt="" />`).join('')}
     </div>` : ''}`;
@@ -84,6 +84,12 @@ function render() {
       document.getElementById('mainImg').src = (row.fotograflar || [])[activePhoto];
       thumbs.querySelectorAll('img').forEach((x) => x.classList.toggle('active', x === im));
     });
+  }
+
+  // Ana görsele tıkla → tam ekran galeri (ok tuşları/butonları ile gezin)
+  const mainWrap = document.getElementById('mainImgWrap');
+  if (mainWrap && (row.fotograflar || []).length) {
+    mainWrap.addEventListener('click', () => openLightbox(row.fotograflar, activePhoto));
   }
 
   // İndirme

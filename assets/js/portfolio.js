@@ -1,10 +1,10 @@
 // Selected Global — Portföy linki sayfası (müşteriye gönderilen seçki)
-import { supabase, ALL_LISTINGS_URL, creatorContact } from './config.js?v=20';
-import { t, applyI18n, getLang } from './i18n.js?v=20';
+import { supabase, ALL_LISTINGS_URL, creatorContact } from './config.js?v=21';
+import { t, applyI18n, getLang } from './i18n.js?v=21';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
-  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos,
-} from './ui.js?v=20';
+  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox,
+} from './ui.js?v=21';
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
@@ -34,9 +34,12 @@ function card(row, i) {
   const photos = (row.fotograflar || []).length;
   const title = pickTitle(row);
   const tel = contact ? `&tel=${contact.phoneRaw}` : '';
+  const hasPhotos = (row.fotograflar || []).length;
   return `
   <div class="pcard reveal" style="animation-delay:${Math.min(i*0.05,0.4)}s">
-    <a href="daire?id=${row.id}${tel}" style="display:block">${brandedCover(row)}</a>
+    ${hasPhotos
+      ? `<div class="pcard-cover zoomable" data-lb="${row.id}">${brandedCover(row)}<span class="zoom-hint">${ICON.camera}</span></div>`
+      : `<a href="daire?id=${row.id}${tel}" style="display:block">${brandedCover(row)}</a>`}
     <div class="pcard-body">
       ${title ? `<h3 class="pcard-title">${esc(title)}</h3>` : ''}
       <div class="pcard-row">
@@ -91,6 +94,14 @@ function render() {
         </div>
       </div>`;
   }
+
+  // Kapağa tıkla → o dairenin fotoğraflarını tam ekran galeride aç
+  grid.querySelectorAll('.pcard-cover[data-lb]').forEach((el) => {
+    el.addEventListener('click', () => {
+      const row = items.find((x) => x.id === el.dataset.lb);
+      if (row) openLightbox(row.fotograflar, row.kapak_index || 0);
+    });
+  });
 
   // Tek tek indirme (markalı kapak dahil)
   grid.querySelectorAll('button[data-dl]').forEach((btn) => {
