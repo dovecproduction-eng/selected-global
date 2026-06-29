@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=21';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=21';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=22';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=22';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -143,6 +143,32 @@ $('#f_oda').innerHTML = '<option value="">Seçiniz</option>' +
 $('#f_proje').innerHTML = '<option value="">Belirtilmemiş</option>' +
   PROJELER.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
 
+// Proje → il/ilçe ön ayarı (seçilince otomatik doldurur)
+const PROJECT_PRESET = {
+  'Courtyard Long Beach': { il: 'İskele', bolge: 'Long Beach' },
+  'Four Season 1':        { il: 'İskele', bolge: 'Boğaz' },
+  'Four Season 2':        { il: 'İskele', bolge: 'Boğaz' },
+  'Four Season 3':        { il: 'İskele', bolge: 'Boğaz' },
+  'La Isla':              { il: 'İskele', bolge: 'Yeniboğaziçi' },
+  'Panorama':             { il: 'İskele', bolge: 'Long Beach' },
+};
+function applyProjectPreset(proje) {
+  const pre = PROJECT_PRESET[proje];
+  if (!pre) return;
+  $('#f_il').value = pre.il;
+  fillIlceOptions(pre.il, '');
+  const bsel = $('#f_bolge');
+  // Bölge il listesinde yoksa seçeneği ekle (örn. Yeniboğaziçi)
+  if (pre.bolge && !Array.from(bsel.options).some((o) => o.value === pre.bolge)) {
+    bsel.insertAdjacentHTML('beforeend', `<option value="${esc(pre.bolge)}">${esc(pre.bolge)}</option>`);
+  }
+  bsel.value = pre.bolge || '';
+  $('#f_il').style.borderColor = '';
+  updateCoverPreview();
+}
+// Kullanıcı projeyi değiştirince il/ilçe otomatik atılır (kayıt yüklerken tetiklenmez)
+$('#f_proje').addEventListener('change', () => applyProjectPreset($('#f_proje').value));
+
 // Bir select'te olmayan değeri (eski/serbest) koruyarak seç
 function setSelectValue(selId, val) {
   const el = $(selId); val = val || '';
@@ -238,7 +264,11 @@ function itemTail(p, ctx) {
   return `<div class="acts"><button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div>`;
 }
 function selCls(p, ctx) { return ctx === 'select' && selected.has(p.id) ? ' sel' : ''; }
-function ekleyenLine(p) { return p.ekleyen ? `<div class="ekleyen-line">👤 ${esc(p.ekleyen)} ekledi</div>` : ''; }
+function ekleyenLine(p) {
+  const bd = [p.blok ? `Blok ${esc(p.blok)}` : '', p.daire_no ? `No ${esc(p.daire_no)}` : ''].filter(Boolean).join(' · ');
+  const bdLine = bd ? `<div class="ekleyen-line" style="color:var(--navy)">🏠 ${bd}</div>` : '';
+  return bdLine + (p.ekleyen ? `<div class="ekleyen-line">👤 ${esc(p.ekleyen)} ekledi</div>` : '');
+}
 
 function itemList(p, ctx) {
   const cover = coverUrl(p); const n = (p.fotograflar || []).length;
@@ -329,6 +359,8 @@ function listingSpecRows(p) {
   const rows = [
     ['Tip', p.tip === 'satilik' ? 'Satılık' : 'Kiralık'],
     ['Proje', p.proje],
+    ['Blok', p.blok],
+    ['Daire No', p.daire_no],
     ['Konut Tipi', p.konut_tipi],
     ['Bölge', p.bolge ? regionDisplay(p.bolge) : null],
     ['Oda Sayısı', p.oda_sayisi],
@@ -481,6 +513,8 @@ function openProp(id) {
   $('#f_konut').value = p?.konut_tipi || '';
   setSelectValue('#f_oda', p?.oda_sayisi);
   setSelectValue('#f_proje', p?.proje);
+  $('#f_blok').value = p?.blok || '';
+  $('#f_daire_no').value = p?.daire_no || '';
   $('#f_m2').value = p?.metrekare ?? '';
   $('#f_fiyat').value = p?.fiyat ?? '';
   $('#f_cur').value = p?.para_birimi || 'GBP';
@@ -643,7 +677,6 @@ $('#savePropBtn').addEventListener('click', async () => {
     return;
   }
   $('#f_il').style.borderColor = '';
-  const btn = $('#savePropBtn'); btn.disabled = true; btn.textContent = 'Kaydediliyor…';
 
   const payload = {
     baslik: $('#f_baslik').value.trim() || null,
@@ -651,6 +684,8 @@ $('#savePropBtn').addEventListener('click', async () => {
     tip: $('#f_tip').value,
     konut_tipi: $('#f_konut').value || null,
     proje: $('#f_proje').value || null,
+    blok: $('#f_blok').value.trim() || null,
+    daire_no: $('#f_daire_no').value.trim() || null,
     bolge: $('#f_bolge').value || $('#f_il').value || null,
     oda_sayisi: $('#f_oda').value.trim() || null,
     metrekare: numOrNull($('#f_m2').value),
@@ -668,9 +703,17 @@ $('#savePropBtn').addEventListener('click', async () => {
     ekleyen: (editId && props.find((x) => x.id === editId)?.ekleyen) || currentCreatorName() || null,
   };
 
-  let error;
-  if (editId) ({ error } = await supabase.from('properties').update(payload).eq('id', editId));
-  else ({ error } = await supabase.from('properties').insert(payload));
+  // Mükerrer uyarısı (sadece yeni daire eklerken)
+  if (!editId) {
+    const dup = props.find((p) => dupKey(p) === dupKey(payload));
+    if (dup) {
+      const ad = pickTitle(dup) || (dup.blok || dup.daire_no ? `Blok ${dup.blok || '?'} No ${dup.daire_no || '?'}` : 'Bu daire');
+      if (!confirm(`⚠️ Bu daire daha önce eklenmiş görünüyor:\n"${ad}" — ${regionDisplay(dup.bolge) || ''}\n\nYine de tekrar eklensin mi?`)) return;
+    }
+  }
+
+  const btn = $('#savePropBtn'); btn.disabled = true; btn.textContent = 'Kaydediliyor…';
+  const error = await savePropPayload(payload);
 
   btn.disabled = false; btn.textContent = 'Kaydet';
   if (error) { console.error(error); toast('Kaydedilemedi: ' + error.message, 'err'); return; }
@@ -678,6 +721,27 @@ $('#savePropBtn').addEventListener('click', async () => {
   toast(editId ? 'Daire güncellendi' : 'Daire eklendi', 'ok');
   loadProps();
 });
+
+// İki dairenin "aynı" sayılması için imza: blok+daire no (+proje) varsa onu, yoksa başlık+bölge+oda
+function dupKey(o) {
+  const n = (s) => asciiLower(String(s ?? '')).replace(/\s+/g, ' ').trim();
+  if (o.blok && o.daire_no) return `u|${n(o.proje)}|${n(o.blok)}|${n(o.daire_no)}`;
+  return `t|${n(o.baslik)}|${n(o.bolge)}|${n(o.oda_sayisi)}`;
+}
+
+// Kaydet; blok/daire_no sütunları henüz eklenmemişse onlarsız tekrar dener (SQL çalıştırılana kadar çökmesin)
+async function savePropPayload(payload) {
+  const run = (pl) => editId
+    ? supabase.from('properties').update(pl).eq('id', editId)
+    : supabase.from('properties').insert(pl);
+  let { error } = await run(payload);
+  if (error && /blok|daire_no|schema cache|column/i.test(error.message || '')) {
+    const { blok, daire_no, ...rest } = payload;
+    ({ error } = await run(rest));
+    if (!error) toast('Kaydedildi, fakat Blok/Daire No için önce SQL’i çalıştırın', 'err');
+  }
+  return error;
+}
 
 async function delProp(id) {
   const p = props.find((x) => x.id === id);

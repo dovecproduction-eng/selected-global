@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=21" />
+  <link rel="stylesheet" href="assets/css/style.css?v=22" />
 </head>
 <body class="admin-body">
 
@@ -184,6 +184,20 @@
       <div class="modal-body">
         <form id="propForm">
           <input type="hidden" id="f_id" />
+          <div class="field">
+            <label>Proje <span class="text-muted">— seçince il/ilçe otomatik dolar</span></label>
+            <select id="f_proje"><option value="">Belirtilmemiş</option></select>
+          </div>
+          <div class="field-row admin-only-row">
+            <div class="field">
+              <label>Blok <span class="text-muted">— sadece yönetim görür</span></label>
+              <input id="f_blok" placeholder="Örn. A, B2" />
+            </div>
+            <div class="field">
+              <label>Daire No <span class="text-muted">— sadece yönetim görür</span></label>
+              <input id="f_daire_no" placeholder="Örn. 12, 3-4" />
+            </div>
+          </div>
           <div class="field-row">
             <div class="field">
               <label>Başlık (Türkçe)</label>
@@ -290,10 +304,6 @@
               <label>Description (English) <span class="text-muted">— opsiyonel</span></label>
               <textarea id="f_desc_en" placeholder="Details about the property…"></textarea>
             </div>
-          </div>
-          <div class="field">
-            <label>Proje <span class="text-muted">— opsiyonel (kapakta sağ üstte görünür)</span></label>
-            <select id="f_proje"><option value="">Belirtilmemiş</option></select>
           </div>
           <div class="field-row cover-edit-row">
             <div class="field" style="margin:0">
@@ -406,6 +416,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=21"></script>
+  <script type="module" src="assets/js/admin.js?v=22"></script>
 </body>
 </html>
