@@ -25,6 +25,11 @@ export const BRAND = {
 // >>> Gerçek adres verilince burayı değiştir. <<<
 export const ALL_LISTINGS_URL = 'https://www.selectedglobal.com/tr';
 
+// MÜŞTERİYE GÖSTERİLEN TEK YETKİLİ KİŞİ
+// Daireyi/portföyü kim oluşturursa oluştursun (Orçun dahil), müşteri tarafında
+// iletişim hep bu kişiye gider. Tek muhatap. Değiştirmek için aşağıyı düzenle.
+export const PUBLIC_CONTACT = { name: 'Janna', phone: '0533 883 45 25', phoneRaw: '905338834525' };
+
 // Danışmanlar: ada göre iletişim + giriş e-postasına göre otomatik isim
 // keys: isim eşleşmesi için kelimeler. emails: o kişinin giriş e-posta(ları) (varsa).
 export const CREATORS = [
