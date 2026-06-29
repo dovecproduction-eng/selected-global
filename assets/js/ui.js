@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=31';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=31';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=32';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=32';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -44,8 +44,11 @@ export const ICON = {
 
 // ---------- Formatlama ----------
 export function fmtPrice(p, cur, tip) {
-  // Fiyat girilmemişse "Belirtilmemiş" yerine müşteriyi aramaya yönlendir
-  if (p == null || p === '') return getLang() === 'tr' ? 'Fiyat için arayınız' : 'Call for price';
+  // Fiyat girilmemişse "Belirtilmemiş" yerine, tıklayınca iletişim bölümüne kaydıran metin
+  if (p == null || p === '') {
+    const txt = getLang() === 'tr' ? 'Fiyat için arayınız' : 'Call for price';
+    return `<span class="call-price" role="button" tabindex="0" title="${txt}">${txt}</span>`;
+  }
   const sym = CURRENCY[cur] || '';
   const n = Number(p).toLocaleString(getLang() === 'tr' ? 'tr-TR' : 'en-GB');
   const suffix = tip === 'kiralik' ? `<small> ${t('per_month')}</small>` : '';
@@ -149,6 +152,24 @@ export function renderFooter() {
       </div>
     </div>
   </footer>`;
+}
+
+// "Fiyat için arayınız"a tıklayınca iletişim bölümüne kaydır (getTarget: o bölümü döndüren fn)
+export function wireCallPrice(getTarget) {
+  const go = (el) => {
+    const target = getTarget && getTarget(el);
+    if (!target) return;
+    target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    target.classList.add('contact-flash');
+    setTimeout(() => target.classList.remove('contact-flash'), 1600);
+  };
+  document.addEventListener('click', (e) => {
+    const el = e.target.closest('.call-price'); if (!el) return;
+    e.preventDefault(); go(el);
+  });
+  document.addEventListener('keydown', (e) => {
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.classList?.contains('call-price')) { e.preventDefault(); go(e.target); }
+  });
 }
 
 // Dil değiştiriciyi bağlar; değişince callback çağırır

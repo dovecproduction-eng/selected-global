@@ -1,15 +1,22 @@
 // Selected Global — Tüm daireler (herkese açık vitrin)
-import { supabase, REGION_GROUPS } from './config.js?v=31';
-import { t, applyI18n, getLang } from './i18n.js?v=31';
+import { supabase, REGION_GROUPS } from './config.js?v=32';
+import { t, applyI18n, getLang } from './i18n.js?v=32';
 import {
   ICON, fmtPrice, esc, pickTitle, brandedCover, regionDistrict, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast,
-} from './ui.js?v=31';
+} from './ui.js?v=32';
 
 const state = { all: [], type: 'all', region: '', proje: '', room: '' };
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
+
+// "Fiyat için arayınız" → o dairenin detay sayfasına git (iletişim orada)
+document.addEventListener('click', (e) => {
+  const el = e.target.closest('.call-price'); if (!el) return;
+  const link = el.closest('.pcard')?.querySelector('a[href^="daire"]');
+  if (link) location.href = link.getAttribute('href');
+});
 
 function skeletons(n = 6) {
   return Array.from({ length: n }).map(() => `

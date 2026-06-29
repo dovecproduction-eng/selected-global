@@ -1,10 +1,13 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=31';
-import { t, applyI18n, getLang } from './i18n.js?v=31';
+import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=32';
+import { t, applyI18n, getLang } from './i18n.js?v=32';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
-  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, logoMark,
-} from './ui.js?v=31';
+  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, logoMark, wireCallPrice,
+} from './ui.js?v=32';
+
+// "Fiyat için arayınız" → Ara/WhatsApp butonlarına kaydır
+wireCallPrice(() => document.querySelector('.detail-cta') || document.querySelector('.contact-row'));
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
