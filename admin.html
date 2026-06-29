@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=27" />
+  <link rel="stylesheet" href="assets/css/style.css?v=28" />
 </head>
 <body class="admin-body">
 
@@ -286,18 +286,12 @@
             </div>
           </div>
           <div class="field">
-            <label>Özellikler <span class="text-muted">— virgülle ayırın</span></label>
+            <label>Özellikler <span class="text-muted">— proje seçince otomatik dolar; virgülle ekle/çıkar</span></label>
             <input id="f_ozellikler" placeholder="Havuz, Otopark, Site içi, Asansör" />
           </div>
-          <div class="field-row">
-            <div class="field">
-              <label>Açıklama (Türkçe) <span class="text-muted">— opsiyonel</span></label>
-              <textarea id="f_aciklama" placeholder="Daire hakkında detaylar…"></textarea>
-            </div>
-            <div class="field">
-              <label>Description (English) <span class="text-muted">— opsiyonel</span></label>
-              <textarea id="f_desc_en" placeholder="Details about the property…"></textarea>
-            </div>
+          <div class="field">
+            <label>Açıklama <span class="text-muted">— proje seçince site olanakları otomatik yazılır; istersen İngilizce de yazabilirsin</span></label>
+            <textarea id="f_aciklama" placeholder="Daire hakkında detaylar…"></textarea>
           </div>
           <div class="field-row cover-edit-row">
             <div class="field" style="margin:0">
@@ -410,6 +404,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=27"></script>
+  <script type="module" src="assets/js/admin.js?v=28"></script>
 </body>
 </html>

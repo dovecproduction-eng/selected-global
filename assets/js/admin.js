@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=27';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=27';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=28';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=28';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -166,8 +166,32 @@ function applyProjectPreset(proje) {
   $('#f_il').style.borderColor = '';
   updateCoverPreview();
 }
-// Kullanıcı projeyi değiştirince il/ilçe otomatik atılır (kayıt yüklerken tetiklenmez)
-$('#f_proje').addEventListener('change', () => applyProjectPreset($('#f_proje').value));
+// Proje → site olanakları (Özellikler + Açıklama otomatik dolar)
+const PROJECT_AMENITIES = {
+  'Courtyard Long Beach': ['Açık Havuz', 'Kapalı Havuz', 'Aquapark / Su Kaydırağı', 'Spa', 'Hamam', 'Sauna', 'Fitness / Spor Salonu', 'Güzellik Merkezi', 'Restaurant', 'Bar', 'Market', 'Çocuk Kulübü', 'Çocuk Oyun Alanı', 'Mini Golf', '7/24 Güvenlik', 'Otopark'],
+  'Panorama': ['Deniz Manzarası', 'Açık Havuz', 'Çocuk Havuzu', 'Çatı (Infinity) Havuz', 'Roof Bar & Restoran', 'Café & Bar', 'Gym / Fitness', 'Spa', 'Yoga Salonu', 'Cep Sineması', 'Oyun Odası', 'Mini Golf', 'Masa Tenisi', 'Bilardo', 'Çocuk Oyun Alanı', '7/24 Güvenlik', 'Resepsiyon & Concierge'],
+  'Four Season 1': ['Açık Havuz', 'Çocuk Havuzu', 'Aquapark', 'Fitness', 'Spa', 'Restoran', 'Pool Bar', 'Beach Bar', 'Su Sporları', 'Yürüyüş & Bisiklet Yolu', 'Çocuk Oyun Alanı', 'Otopark', '7/24 Güvenlik'],
+  'Four Season 2': ['Açık Havuz', 'Kapalı Havuz', 'Aquapark', 'Fitness', 'Spa & Masaj', 'Güzellik Merkezi', 'Tenis Kortu', 'Basketbol Sahası', 'Voleybol Sahası', 'Restoran', 'Café & Bar', 'Roof Teras', 'Beach Bar', 'Çocuk Kulübü', 'Bisiklet & Yürüyüş Yolu', '7/24 Güvenlik', 'Otopark'],
+  'Four Season 3': ['Açık Havuz', 'Kapalı Havuz', 'Aquapark', 'Fitness', 'Spa & Masaj', 'Güzellik Merkezi', 'Tenis Kortu', 'Basketbol Sahası', 'Restoran', 'Café & Bar', 'Roof Teras', 'Beach Bar', 'Çocuk Kulübü', 'Bisiklet & Yürüyüş Yolu', '7/24 Güvenlik', 'Otopark'],
+};
+let lastAutoOzellikler = '';
+let lastAutoAciklama = '';
+function applyProjectAmenities(proje) {
+  const list = PROJECT_AMENITIES[proje];
+  if (!list) return;
+  const ozStr = list.join(', ');
+  const acStr = `${proje} projesinde; ${list.join(', ')} gibi zengin sosyal olanaklar bulunmaktadır.`;
+  const ozEl = $('#f_ozellikler'), acEl = $('#f_aciklama');
+  // Boşsa ya da önceki otomatik metinse doldur/değiştir; elle yazılmışsa dokunma
+  if (!ozEl.value.trim() || ozEl.value.trim() === lastAutoOzellikler) { ozEl.value = ozStr; lastAutoOzellikler = ozStr; }
+  if (!acEl.value.trim() || acEl.value.trim() === lastAutoAciklama) { acEl.value = acStr; lastAutoAciklama = acStr; }
+  updateCoverPreview();
+}
+// Kullanıcı projeyi değiştirince il/ilçe + olanaklar otomatik dolar (kayıt yüklerken tetiklenmez)
+$('#f_proje').addEventListener('change', () => {
+  applyProjectPreset($('#f_proje').value);
+  applyProjectAmenities($('#f_proje').value);
+});
 
 // Bir select'te olmayan değeri (eski/serbest) koruyarak seç
 function setSelectValue(selId, val) {
@@ -523,7 +547,8 @@ function openProp(id) {
   $('#f_esyali').value = p?.esyali == null ? '' : String(p.esyali);
   $('#f_ozellikler').value = (p?.ozellikler || []).join(', ');
   $('#f_aciklama').value = p?.aciklama || '';
-  $('#f_desc_en').value = p?.desc_en || '';
+  // Otomatik dolum izleyicilerini sıfırla (mevcut değerler korunsun, üzerine yazılmasın)
+  lastAutoOzellikler = ''; lastAutoAciklama = '';
   if (p?.fotograflar?.length) {
     const cov = Math.min(p.kapak_index || 0, p.fotograflar.length - 1);
     const ordered = [p.fotograflar[cov], ...p.fotograflar.filter((_, i) => i !== cov)];
@@ -694,7 +719,6 @@ $('#savePropBtn').addEventListener('click', async () => {
     esyali: $('#f_esyali').value === '' ? null : $('#f_esyali').value === 'true',
     ozellikler: $('#f_ozellikler').value.split(',').map((s) => s.trim()).filter(Boolean),
     aciklama: $('#f_aciklama').value.trim() || null,
-    desc_en: $('#f_desc_en').value.trim() || null,
     fotograflar: photos.map((p) => p.url),
     kapak_index: 0,
     // Ekleyen: mevcut varsa korunur, yoksa (yeni daire ya da eski boş kayıt) giriş yapan
