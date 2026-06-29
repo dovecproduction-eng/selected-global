@@ -344,7 +344,21 @@ button { font-family: inherit; cursor: pointer; }
 .gtile img { width: 100%; height: 100%; object-fit: cover; transition: transform .4s var(--ease); }
 .gtile:hover img { transform: scale(1.06); }
 .gtile .ph { position: absolute; inset: 0; display: grid; place-items: center; color: #B6C2D0; }
-.gtile-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 22px 10px 8px; background: linear-gradient(to top, rgba(10,37,64,.9), transparent); color: #fff; font-size: .76rem; font-weight: 700; line-height: 1.2; }
+.gtile-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 34px 10px 8px; background: linear-gradient(to top, rgba(10,37,64,.92) 12%, rgba(10,37,64,.5) 55%, transparent); color: #fff; font-size: .76rem; font-weight: 700; line-height: 1.2; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
+.gtile-overlay .gt-logo .logo-img { height: 15px; width: auto; filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
+.gtile-overlay .gt-logo .logo-word { font-size: .7rem; color: #fff; }
+.gtile-overlay .gt-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+
+/* Liste görünümü: küçük foto üzerinde gradyen + logo */
+.admin-item .thumb-wrap { overflow: hidden; border-radius: 10px; }
+.admin-item .thumb-wrap .thumb-brand {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1;
+  padding: 16px 6px 5px; display: flex; justify-content: center;
+  background: linear-gradient(to top, rgba(10,37,64,.9), transparent);
+  pointer-events: none;
+}
+.admin-item .thumb-wrap .thumb-brand .logo-img { height: 11px; width: auto; filter: drop-shadow(0 1px 2px rgba(0,0,0,.4)); }
+.admin-item .thumb-wrap .thumb-brand .logo-word { font-size: .5rem; color: #fff; }
 .gtile .gt-del { position: absolute; top: 6px; right: 6px; width: 30px; height: 30px; background: rgba(255,255,255,.92); opacity: 0; transition: .15s; }
 .gtile:hover .gt-del { opacity: 1; }
 @media (max-width: 560px){ .gtile .gt-del { opacity: 1; } }
@@ -392,7 +406,7 @@ button { font-family: inherit; cursor: pointer; }
 .admin-item:hover { box-shadow: var(--shadow); border-color: var(--navy-500); }
 .admin-item .thumb-wrap { position: relative; flex-shrink: 0; }
 .admin-item .thumb { width: 104px; height: 80px; border-radius: 10px; object-fit: cover; background: var(--bg-tint); display: block; }
-.admin-item .thumb-wrap .thumb-count { position: absolute; bottom: 5px; right: 5px; background: rgba(20,32,46,.78); color: #fff; padding: 2px 7px; border-radius: 999px; font-size: .66rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; }
+.admin-item .thumb-wrap .thumb-count { position: absolute; bottom: 5px; right: 5px; z-index: 2; background: rgba(20,32,46,.78); color: #fff; padding: 2px 7px; border-radius: 999px; font-size: .66rem; font-weight: 700; display: inline-flex; align-items: center; gap: 3px; }
 .admin-item .thumb-wrap .thumb-count svg { width: 11px; height: 11px; }
 .admin-item .meta { flex: 1; min-width: 0; }
 .admin-item .meta .t { font-weight: 700; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=26';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=26';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=27';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=27';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -273,7 +273,7 @@ function ekleyenLine(p) {
 function itemList(p, ctx) {
   const cover = coverUrl(p); const n = (p.fotograflar || []).length;
   return `<div class="admin-item${selCls(p, ctx)}" data-id="${p.id}">
-    <div class="thumb-wrap">${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}</div>
+    <div class="thumb-wrap">${cover ? `<img class="thumb" src="${esc(cover)}" alt="" /><span class="thumb-brand">${logoMark(true)}</span>` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}</div>
     <div class="meta"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ekleyenLine(p)}</div>
     ${itemTail(p, ctx)}
   </div>`;
@@ -289,7 +289,7 @@ function itemGallery(p, ctx) {
   const cover = coverUrl(p);
   return `<div class="gtile${selCls(p, ctx)}" data-id="${p.id}">
     ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
-    <div class="gtile-overlay">${esc(pickTitle(p) || 'Başlıksız')}</div>
+    <div class="gtile-overlay"><span class="gt-logo">${logoMark(true)}</span><span class="gt-title">${esc(pickTitle(p) || 'Başlıksız')}</span></div>
     ${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : `<button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>`}
   </div>`;
 }
