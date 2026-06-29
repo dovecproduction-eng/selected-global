@@ -1,10 +1,10 @@
 // Selected Global — Portföy linki sayfası (müşteriye gönderilen seçki)
-import { supabase, ALL_LISTINGS_URL, PUBLIC_CONTACT } from './config.js?v=33';
-import { t, applyI18n, getLang } from './i18n.js?v=33';
+import { supabase, ALL_LISTINGS_URL, PUBLIC_CONTACT, creatorContact } from './config.js?v=34';
+import { t, applyI18n, getLang } from './i18n.js?v=34';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, wireCallPrice,
-} from './ui.js?v=33';
+} from './ui.js?v=34';
 
 // "Fiyat için arayınız" → alttaki iletişim kartına kaydır
 wireCallPrice(() => document.getElementById('pContact'));
@@ -69,7 +69,7 @@ function render() {
       const lead = document.getElementById('pLead');
       lead.parentNode.insertBefore(cr, lead.nextSibling);
     }
-    cr.textContent = (getLang() === 'tr' ? 'Hazırlayan: ' : 'Prepared by: ') + PUBLIC_CONTACT.name;
+    cr.textContent = (getLang() === 'tr' ? 'Hazırlayan: ' : 'Prepared by: ') + portfolio.olusturan;
   }
   const grid = document.getElementById('grid');
   if (!items.length) {
@@ -145,7 +145,9 @@ async function load() {
   const { data: p, error } = await supabase.from('portfolios').select('*').eq('kod', kod).single();
   if (error || !p) { fail(); return; }
   portfolio = p;
-  contact = PUBLIC_CONTACT; // Kim oluşturursa oluştursun müşteriye Janna görünür
+  // İsim = portföyü hazırlayan gerçek kişi; telefon = her zaman Janna'ya yönlenir
+  const creator = creatorContact(p.olusturan);
+  contact = { name: creator.name, phone: PUBLIC_CONTACT.phone, phoneRaw: PUBLIC_CONTACT.phoneRaw };
   const ids = p.property_ids || [];
   if (ids.length) {
     const { data: props } = await supabase.from('properties').select('*').in('id', ids);
