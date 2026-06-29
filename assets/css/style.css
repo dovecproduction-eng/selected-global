@@ -323,6 +323,11 @@ button { font-family: inherit; cursor: pointer; }
 .gcard-acts .acts { display: flex; gap: 6px; flex: 1; }
 .gcard-acts .acts .icon-btn { flex: 1; }
 
+/* Admin Sütun görünümünde markalı kapak (gradyen + logo) */
+.prop-gcard .gcard-media.branded { aspect-ratio: auto; background: transparent; position: relative; }
+.prop-gcard .gcard-media.branded .cover-figure { border-radius: 0; box-shadow: none; }
+.prop-gcard .gcard-media.branded .pcount { top: 46px; left: 14px; right: auto; bottom: auto; z-index: 3; }
+
 /* Galeri görünümü (görsel ızgara) */
 .prop-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
 .gtile { position: relative; aspect-ratio: 1; border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-tint); cursor: pointer; }
