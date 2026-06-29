@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=18';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=18';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=20';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay } from './ui.js?v=20';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -584,7 +584,7 @@ uploader.addEventListener('drop', (e) => { e.preventDefault(); uploader.classLis
 fileInput.addEventListener('change', () => { handleFiles(fileInput.files); fileInput.value = ''; });
 
 // Fotoğrafı yüklemeden önce küçült + sıkıştır (hızlı yükleme/açılma)
-async function compressImage(file, maxDim = 1600, quality = 0.82) {
+async function compressImage(file, maxDim = 1600, quality = 0.50) {
   try {
     // EXIF dönüşünü uygula (telefon fotoğrafları için)
     const bmp = await createImageBitmap(file, { imageOrientation: 'from-image' });
