@@ -180,8 +180,18 @@ button { font-family: inherit; cursor: pointer; }
 .detail-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 48px; align-items: start; }
 @media (max-width: 900px){ .detail-grid { grid-template-columns: 1fr; gap: 30px; } }
 
-.gallery .main-img { aspect-ratio: 16/11; border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-tint); box-shadow: var(--shadow); }
+.gallery .main-img { position: relative; aspect-ratio: 16/11; border-radius: var(--radius-lg); overflow: hidden; background: var(--bg-tint); box-shadow: var(--shadow); }
 .gallery .main-img img { width: 100%; height: 100%; object-fit: cover; }
+/* Detay ana görselde markalı kapak (gradyen + logo + tip etiketi) */
+.gallery .main-img .type-tag {
+  position: absolute; top: 14px; left: 14px; z-index: 3;
+  background: rgba(255,255,255,.94); color: var(--navy);
+  padding: 6px 13px; border-radius: 999px; font-size: .66rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase;
+  box-shadow: 0 2px 8px rgba(10,37,64,.2);
+}
+.gallery .main-img .type-tag.sale { background: var(--gold); color: #fff; }
+.gallery .main-img .detail-overlay { padding: 54px 16px 16px; }
+.gallery .main-img .detail-overlay .ov-logo .logo-img { height: 22px; }
 .thumbs { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .thumbs img { width: 78px; height: 60px; object-fit: cover; border-radius: 8px; cursor: pointer; border: 2px solid transparent; opacity: .7; transition: .2s; }
 .thumbs img.active, .thumbs img:hover { opacity: 1; border-color: var(--navy); }

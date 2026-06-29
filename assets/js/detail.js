@@ -1,10 +1,10 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=25';
-import { t, applyI18n, getLang } from './i18n.js?v=25';
+import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=26';
+import { t, applyI18n, getLang } from './i18n.js?v=26';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
-  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox,
-} from './ui.js?v=25';
+  renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, logoMark,
+} from './ui.js?v=26';
 
 document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
@@ -42,7 +42,12 @@ function gallery() {
     return `<div class="main-img" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`;
   }
   return `
-    <div class="main-img zoomable" id="mainImgWrap"><img id="mainImg" src="${esc(photos[activePhoto])}" alt="${esc(pickTitle(row))}" /><span class="zoom-hint">${ICON.camera}</span></div>
+    <div class="main-img zoomable" id="mainImgWrap">
+      <span class="type-tag ${row.tip === 'satilik' ? 'sale' : ''}">${row.tip === 'satilik' ? t('badge_sale') : t('badge_rent')}</span>
+      <img id="mainImg" src="${esc(photos[activePhoto])}" alt="${esc(pickTitle(row))}" />
+      <div class="cover-overlay detail-overlay"><div class="ov-logo">${logoMark(true)}</div></div>
+      <span class="zoom-hint">${ICON.camera}</span>
+    </div>
     ${photos.length > 1 ? `<div class="thumbs" id="thumbs">
       ${photos.map((p, i) => `<img src="${esc(p)}" class="${i===activePhoto?'active':''}" data-i="${i}" alt="" />`).join('')}
     </div>` : ''}`;
