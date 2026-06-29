@@ -319,6 +319,9 @@ button { font-family: inherit; cursor: pointer; }
 .gcard-body { padding: 12px 13px 13px; display: flex; flex-direction: column; gap: 8px; flex: 1; }
 .gcard-body .t { font-weight: 700; font-size: .92rem; color: var(--navy); line-height: 1.25; }
 .gcard-acts { display: flex; gap: 6px; margin-top: auto; padding-top: 6px; }
+/* Sütun görünümünde Düzenle/Sil yan yana (alt alta değil) */
+.gcard-acts .acts { display: flex; gap: 6px; flex: 1; }
+.gcard-acts .acts .icon-btn { flex: 1; }
 
 /* Galeri görünümü (görsel ızgara) */
 .prop-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
