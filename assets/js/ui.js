@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=37';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=37';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=38';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=38';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -70,11 +70,18 @@ export function pickDesc(row) {
   if (lang === 'en') return row.desc_en || row.aciklama || '';
   return row.aciklama || row.desc_en || '';
 }
+// Otomatik gelen "proje ortak alan" fotoğrafı mı? (_ortak/ yolunda saklanır)
+export function isCommonPhoto(url) { return !!url && url.includes('/_ortak/'); }
+
+// Kapak = SADECE dairenin kendi (yüklediği) fotoğrafı. Sadece otomatik ortak foto varsa kapak yok.
 export function coverUrl(row) {
   const arr = row.fotograflar || [];
   if (!arr.length) return null;
+  const own = arr.filter((u) => !isCommonPhoto(u));
+  if (!own.length) return null; // kendi fotoğrafı yok → "Görsel eklenmedi"
   const i = Math.min(row.kapak_index || 0, arr.length - 1);
-  return arr[i];
+  const chosen = arr[i];
+  return isCommonPhoto(chosen) ? own[0] : chosen;
 }
 export function slugify(s) {
   return String(s || 'daire')
@@ -109,7 +116,7 @@ export function brandedCover(row) {
     <div class="cover-photo">
       <span class="type-tag ${isSale ? 'sale' : ''}">${isSale ? t('badge_sale') : t('badge_rent')}</span>
       ${row.proje ? `<span class="proje-tag">${esc(row.proje)}</span>` : ''}
-      ${cover ? `<img src="${esc(cover)}" alt="${esc(pickTitle(row))}" loading="lazy" />` : `<span class="ph">${ICON.camera}</span>`}
+      ${cover ? `<img src="${esc(cover)}" alt="${esc(pickTitle(row))}" loading="lazy" />` : `<span class="ph ph-empty">${ICON.camera}<span>${getLang() === 'tr' ? 'Görsel eklenmedi' : 'No image added'}</span></span>`}
       <div class="cover-overlay">
         <div class="ov-logo">${logoMark(true)}</div>
         ${(leftHtml || rightHtml) ? `<div class="ov-info${(leftHtml && rightHtml) ? '' : ' single'}">${leftHtml}${rightHtml ? `<span class="info">${rightHtml}</span>` : ''}</div>` : ''}

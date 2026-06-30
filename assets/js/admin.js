@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=37';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=37';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=38';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=38';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -200,8 +200,7 @@ const FS_COMMON_PHOTOS = [
 ];
 const PROJECT_COMMON_PHOTOS = {
   'Four Season 1': FS_COMMON_PHOTOS,
-  'Four Season 2': FS_COMMON_PHOTOS,
-  'Four Season 3': FS_COMMON_PHOTOS,
+  // 'Four Season 2': FS2_COMMON_PHOTOS,  // görseller birazdan eklenecek
 };
 // Proje değişince: önceki ortak fotoğrafları çıkar, yeni projeninkileri sona ekle (dairenin kendi
 // fotoğrafları başta kalır → kapak dairenin kendi fotoğrafı olur).
@@ -649,9 +648,10 @@ function renderPreviews() {
 function updateCoverPreview() {
   const box = document.getElementById('coverPreview');
   if (!box) return;
-  const cover = photos[0];
+  // Kapak = dairenin kendi (yüklediği) ilk fotoğrafı; otomatik ortak fotoğraflar kapak olmaz
+  const cover = photos.find((p) => !p.common);
   if (!cover || cover.uploading || !cover.url) {
-    box.innerHTML = `<div class="empty-cover">Kapak fotoğrafı ekleyince önizleme burada görünür</div>`;
+    box.innerHTML = `<div class="empty-cover">Kendi fotoğrafını ekleyince kapak burada görünür. (Otomatik ortak alan fotoğrafları galeride olur, kapak olmaz.)</div>`;
     return;
   }
   const row = {

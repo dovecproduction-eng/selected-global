@@ -768,6 +768,11 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .zoom-hint svg { width: 19px; height: 19px; }
 @media (hover: none) { .zoom-hint { opacity: .85; transform: none; } }
 
+/* Kapakta kendi fotoğrafı yoksa "Görsel eklenmedi" */
+.cover-photo .ph-empty { display: flex; flex-direction: column; gap: 8px; }
+.cover-photo .ph-empty > span { font-size: .8rem; font-weight: 700; color: #9fb0c2; letter-spacing: .02em; }
+.cover-photo .ph-empty svg { width: 40px; height: 40px; }
+
 /* ---------- Portföy seçiminde proje filtresi (en üstte, belirgin) ---------- */
 .sf-proje-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 12px; background: var(--bg-tint); border: 1px solid var(--line); border-radius: var(--radius-sm); flex-wrap: wrap; }
 .sf-proje-label { font-weight: 800; color: var(--navy); font-size: .9rem; white-space: nowrap; }
