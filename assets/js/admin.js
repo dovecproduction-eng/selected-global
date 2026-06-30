@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=35';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=35';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=36';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=36';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -19,7 +19,7 @@ let selected = new Set();  // portföy seçimi
 
 // Filtre durumları (regions = çoklu seçim dizisi)
 const fProps = { tip: 'all', regions: [], proje: '', furn: '', sort: 'new', q: '' };
-const fSel   = { tip: 'all', regions: [], furn: '', q: '' };
+const fSel   = { tip: 'all', regions: [], proje: '', furn: '', q: '' };
 
 function matchFilter(p, f) {
   if (f.tip !== 'all' && p.tip !== f.tip) return false;
@@ -266,12 +266,25 @@ function fillPropProjeOptions() {
   fProps.proje = sel.value;
 }
 
+// Portföy seçimindeki proje filtresi seçeneklerini doldur
+function fillSelProjeOptions() {
+  const sel = $('#sf_proje'); if (!sel) return;
+  const cur = sel.value;
+  const projeler = [...new Set(props.map((p) => (p.proje || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'tr'));
+  sel.innerHTML = '<option value="">Tüm Projeler</option>' +
+    projeler.map((p) => `<option value="${esc(p)}">${esc(p)}</option>`).join('');
+  sel.value = projeler.includes(cur) ? cur : '';
+  fSel.proje = sel.value;
+}
+
 async function loadProps() {
   const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
   if (error) { toast('Daireler yüklenemedi', 'err'); return; }
   props = data || [];
   $('#propCount').textContent = props.length;
   fillPropProjeOptions();
+  fillSelProjeOptions();
   renderRegionMulti('#pf_region_panel', '#pf_region_btn', fProps, renderPropList);
   renderRegionMulti('#sf_region_panel', '#sf_region_btn', fSel, renderSelectGrid);
   renderPropList();
@@ -836,9 +849,9 @@ let editPortKod = null;
 // Giriş yapan kişinin adı (otomatik) — Hazırlayan ve "daire ekleyen" için
 function currentCreatorName() { return nameFromEmail(myEmail); }
 function resetPortFilters() {
-  fSel.tip = 'all'; fSel.regions = []; fSel.furn = ''; fSel.q = '';
+  fSel.tip = 'all'; fSel.regions = []; fSel.proje = ''; fSel.furn = ''; fSel.q = '';
   $$('#sf_tip button').forEach((b) => b.classList.toggle('active', b.dataset.tip === 'all'));
-  $('#sf_furn').value = ''; $('#sf_q').value = '';
+  $('#sf_proje').value = ''; $('#sf_furn').value = ''; $('#sf_q').value = '';
   renderRegionMulti('#sf_region_panel', '#sf_region_btn', fSel, renderSelectGrid);
 }
 $('#addPortBtn').addEventListener('click', () => {
@@ -872,20 +885,21 @@ function renderSelectGrid() {
   $('#selCount').textContent = selected.size;
   if (!props.length) { el.className = ''; el.innerHTML = `<p class="text-muted">Önce daire eklemelisiniz.</p>`; return; }
   const list = props.filter((p) => matchFilter(p, fSel));
-  // "Tümünü seç" butonu: TÜM daireleri (filtreden bağımsız) seçer/kaldırır
-  const allSel = props.length && props.every((p) => selected.has(p.id));
+  // "Tümünü seç": ekranda görüneni (filtre/projeye uyanları) seçer/kaldırır
+  const allSel = list.length && list.every((p) => selected.has(p.id));
   $('#selAllBtn').innerHTML = allSel
     ? `${ICON.x}<span>Seçimi kaldır</span>`
-    : `${ICON.check}<span>Tümünü seç (${props.length})</span>`;
+    : `${ICON.check}<span>Tümünü seç (${list.length})</span>`;
   if (!list.length) { el.className = ''; el.innerHTML = `<p class="text-muted">Bu filtreye uygun daire yok.</p>`; return; }
   renderView(el, list, selView, 'select');
 }
 
-// Tümünü seç / kaldır — filtreden bağımsız, bütün daireler
+// Tümünü seç / kaldır — ekranda görünen (filtreye/projeye uyan) daireler
 $('#selAllBtn').addEventListener('click', () => {
-  const allSel = props.length && props.every((p) => selected.has(p.id));
-  if (allSel) selected.clear();
-  else props.forEach((p) => selected.add(p.id));
+  const list = props.filter((p) => matchFilter(p, fSel));
+  const allSel = list.length && list.every((p) => selected.has(p.id));
+  if (allSel) list.forEach((p) => selected.delete(p.id));
+  else list.forEach((p) => selected.add(p.id));
   renderSelectGrid();
 });
 
@@ -896,6 +910,7 @@ $('#sf_tip').addEventListener('click', (e) => {
   $$('#sf_tip button').forEach((x) => x.classList.toggle('active', x === b));
   renderSelectGrid();
 });
+$('#sf_proje').addEventListener('change', (e) => { fSel.proje = e.target.value; renderSelectGrid(); });
 $('#sf_furn').addEventListener('change', (e) => { fSel.furn = e.target.value; renderSelectGrid(); });
 $('#sf_q').addEventListener('input', (e) => { fSel.q = e.target.value.trim(); renderSelectGrid(); });
 

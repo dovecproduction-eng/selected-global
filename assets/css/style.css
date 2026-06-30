@@ -768,6 +768,12 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .zoom-hint svg { width: 19px; height: 19px; }
 @media (hover: none) { .zoom-hint { opacity: .85; transform: none; } }
 
+/* ---------- Portföy seçiminde proje filtresi (en üstte, belirgin) ---------- */
+.sf-proje-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; padding: 10px 12px; background: var(--bg-tint); border: 1px solid var(--line); border-radius: var(--radius-sm); flex-wrap: wrap; }
+.sf-proje-label { font-weight: 800; color: var(--navy); font-size: .9rem; white-space: nowrap; }
+.sf-proje-row .select-wrap { flex: 1; min-width: 180px; }
+.sf-proje-row .select-wrap select { width: 100%; font-weight: 700; }
+
 /* ---------- "Fiyat için arayınız" (tıkla → iletişime kaydır) ---------- */
 .call-price { cursor: pointer; color: var(--gold); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1.5px; font-weight: 700; }
 .call-price:hover { opacity: .82; }
