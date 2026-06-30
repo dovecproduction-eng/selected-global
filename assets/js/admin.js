@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=36';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=36';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=37';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=37';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -184,10 +184,42 @@ function applyProjectAmenities(proje) {
   if (!acEl.value.trim() || acEl.value.trim() === lastAutoAciklama) { acEl.value = acStr; lastAutoAciklama = acStr; }
   updateCoverPreview();
 }
-// Kullanıcı projeyi değiştirince il/ilçe + olanaklar otomatik dolar (kayıt yüklerken tetiklenmez)
+// Proje ORTAK ALAN fotoğrafları — proje seçilince galeriye otomatik eklenir.
+// Yeni proje görselleri eklemek için: Supabase'e yükle, URL'leri buraya ekle.
+const FS_COMMON_PHOTOS = [
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-1.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-2.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-3.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-4.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-5.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-6.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-7.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-8.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-9.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/four-season/fsl1-10.webp',
+];
+const PROJECT_COMMON_PHOTOS = {
+  'Four Season 1': FS_COMMON_PHOTOS,
+  'Four Season 2': FS_COMMON_PHOTOS,
+  'Four Season 3': FS_COMMON_PHOTOS,
+};
+// Proje değişince: önceki ortak fotoğrafları çıkar, yeni projeninkileri sona ekle (dairenin kendi
+// fotoğrafları başta kalır → kapak dairenin kendi fotoğrafı olur).
+function applyProjectPhotos(proje) {
+  photos = photos.filter((ph) => !ph.common);
+  const commons = PROJECT_COMMON_PHOTOS[proje];
+  if (commons && commons.length) {
+    const have = new Set(photos.map((p) => p.url));
+    commons.forEach((url) => { if (!have.has(url)) photos.push({ url, path: urlToPath(url), common: true }); });
+  }
+  renderPreviews();
+}
+
+// Kullanıcı projeyi değiştirince il/ilçe + olanaklar + ortak fotoğraflar otomatik dolar (kayıt yüklerken tetiklenmez)
 $('#f_proje').addEventListener('change', () => {
   applyProjectPreset($('#f_proje').value);
   applyProjectAmenities($('#f_proje').value);
+  applyProjectPhotos($('#f_proje').value);
 });
 
 // Bir select'te olmayan değeri (eski/serbest) koruyarak seç
@@ -683,7 +715,10 @@ async function handleFiles(fileList) {
   const files = Array.from(fileList).filter((f) => f.type.startsWith('image/'));
   for (const file of files) {
     const ph = { url: '', path: '', uploading: true };
-    photos.push(ph); renderPreviews();
+    // Yüklenen fotoğraf, otomatik ortak fotoğrafların ÖNÜNE girsin (kapak dairenin kendi fotoğrafı olsun)
+    const ins = photos.findIndex((p) => p.common);
+    if (ins === -1) photos.push(ph); else photos.splice(ins, 0, ph);
+    renderPreviews();
     try {
       const { blob, ext, contentType } = await compressImage(file);
       const path = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
@@ -776,8 +811,8 @@ async function savePropPayload(payload) {
 async function delProp(id) {
   const p = props.find((x) => x.id === id);
   if (!confirm(`"${pickTitle(p) || 'Bu daire'}" silinecek. Emin misiniz?`)) return;
-  // Storage fotoğraflarını da temizle
-  const paths = (p.fotograflar || []).map(urlToPath).filter(Boolean);
+  // Storage fotoğraflarını da temizle — ORTAK (_ortak/) fotoğraflar paylaşımlı, onları SİLME
+  const paths = (p.fotograflar || []).map(urlToPath).filter(Boolean).filter((path) => !path.startsWith('_ortak/'));
   if (paths.length) await supabase.storage.from(STORAGE_BUCKET).remove(paths).catch(() => {});
   const { error } = await supabase.from('properties').delete().eq('id', id);
   if (error) { toast('Silinemedi', 'err'); return; }
