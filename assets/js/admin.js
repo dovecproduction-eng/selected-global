@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=40';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=40';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=41';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=41';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -217,10 +217,22 @@ const CLB_COMMON_PHOTOS = [
   'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/courtyard/clb-8.webp',
   'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/courtyard/clb-9.webp',
 ];
+const LAISLA_COMMON_PHOTOS = [
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-1.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-2.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-3.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-4.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-5.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-6.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-7.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-8.webp',
+  'https://kimwdxymgdnkvivbvmtk.supabase.co/storage/v1/object/public/property-images/_ortak/la-isla/laisla-9.webp',
+];
 const PROJECT_COMMON_PHOTOS = {
   'Four Season 1': FS_COMMON_PHOTOS,
   'Four Season 2': FS2_COMMON_PHOTOS,
   'Courtyard Long Beach': CLB_COMMON_PHOTOS,
+  'La Isla': LAISLA_COMMON_PHOTOS,
 };
 // Proje değişince: önceki ortak fotoğrafları çıkar, yeni projeninkileri sona ekle (dairenin kendi
 // fotoğrafları başta kalır → kapak dairenin kendi fotoğrafı olur).
