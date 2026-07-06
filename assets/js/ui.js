@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=50';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=50';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=51';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=51';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -517,13 +517,13 @@ export async function makeReel(row, opts = {}, onProgress) {
       drawLogo(W - 195, 78, 270);
       ctx.globalAlpha = Math.max(0, Math.min(1, (p * sc.dur) / 0.5));
       let y = H * 0.50;
-      // İlan başlığı — fiyatın üstünde, tasarımsal (el yazısı)
+      // İlan başlığı — fiyatın üstünde, okunur lüks serif
       const title = pickTitle(row) || '';
       if (title) {
         ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 12;
-        const tf = "700 68px 'Dancing Script', cursive"; const tl = wrapLines(title, tf, W - 120, 2);
-        ctx.font = tf; tl.forEach((l) => { ctx.fillText(l, 60, y); y += 78; });
-        ctx.shadowBlur = 0; y += 8;
+        const tf = "600 58px Fraunces, Georgia, serif"; const tl = wrapLines(title, tf, W - 120, 2);
+        ctx.font = tf; tl.forEach((l) => { ctx.fillText(l, 60, y); y += 68; });
+        ctx.shadowBlur = 0; y += 10;
       }
       if (regionUp) { ctx.font = '800 38px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 60, y); y += 86; }
       const pf = fitFont(priceText(), '800', 92, W - 120); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(priceText(), 60, y);
@@ -531,22 +531,23 @@ export async function makeReel(row, opts = {}, onProgress) {
       if (meta) { y += 56; ctx.font = '600 36px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
-      botGrad(0.52);
-      // Logo ortada — daha büyük
-      drawLogo(W / 2, H - 480, 580);
-      // Logonun altında: ilan açıklaması (sabit, el yazısı)
+      botGrad(0.56);
+      // Logo ortada — büyük
+      drawLogo(W / 2, H - 560, 560);
+      // Logonun altında: ilan açıklaması (lüks serif)
       const acik = (row.aciklama || '').trim();
       if (acik) {
         ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 12;
-        const font = "500 46px Fraunces, Georgia, serif"; const lines = wrapLines(acik, font, W - 150, 2);
-        let ty = H - 300; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 60; });
+        const font = "500 44px Fraunces, Georgia, serif"; const lines = wrapLines(acik, font, W - 150, 2);
+        let ty = H - 360; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 58; });
         ctx.shadowBlur = 0;
       }
-      // Altta: solda lokasyon, sağda oda · m²
-      const infoY = H - 110;
-      if (regionUp) { ctx.font = `700 ${fitFont(regionUp, '700', 32, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 70, infoY); }
-      const right = [row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
-      if (right) { ctx.font = `700 ${fitFont(right, '700', 32, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(right, W - 70, infoY); }
+      // Altta ortada: proje + (daire no · eşya · oda · m²)
+      ctx.textAlign = 'center';
+      let by = H - 168;
+      if (row.proje) { const f = fitFont(row.proje.toLocaleUpperCase('tr'), '800', 44, W - 140); ctx.font = `800 ${f}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.fillText(row.proje.toLocaleUpperCase('tr'), W / 2, by); by += 60; }
+      const specs = [row.daire_no ? `Daire ${row.daire_no}` : null, row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız'), row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
+      if (specs) { const f = fitFont(specs, '700', 36, W - 120); ctx.font = `700 ${f}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.fillText(specs, W / 2, by); }
     } else if (sc.type === 'specs') drawSpecs();
     else if (sc.type === 'outro') drawOutro();
   }
