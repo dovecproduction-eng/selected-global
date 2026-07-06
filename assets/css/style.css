@@ -706,6 +706,14 @@ button { font-family: inherit; cursor: pointer; }
   display: flex; flex-direction: column; align-items: center; gap: 9px;
   color: #fff;
 }
+/* Kapak ortasında satış fiyatı — altı çizili */
+.cover-overlay .ov-price {
+  text-align: center; color: #fff; font-weight: 800; font-size: 1.16rem; letter-spacing: .01em;
+  text-decoration: underline; text-underline-offset: 5px; text-decoration-thickness: 2px; text-decoration-color: var(--gold);
+  text-shadow: 0 1px 6px rgba(0,0,0,.5); margin-bottom: 6px;
+}
+.cover-overlay .ov-price small { font-size: .68em; font-weight: 700; opacity: .9; }
+.cover-overlay .ov-price .call-price { color: #fff; text-decoration-color: var(--gold); font-weight: 800; }
 .cover-overlay .ov-logo { display: flex; justify-content: center; }
 .cover-overlay .ov-logo .logo-img { height: 20px; width: auto; filter: drop-shadow(0 1px 4px rgba(0,0,0,.35)); }
 .cover-overlay .ov-logo .logo-word { font-size: .95rem; color: #fff; }

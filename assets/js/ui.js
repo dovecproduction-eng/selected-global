@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=58';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=58';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=59';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=59';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -118,6 +118,7 @@ export function brandedCover(row) {
       ${row.proje ? `<span class="proje-tag">${esc(row.proje)}</span>` : ''}
       ${cover ? `<img src="${esc(cover)}" alt="${esc(pickTitle(row))}" loading="lazy" />` : `<span class="ph ph-empty">${ICON.camera}<span>${getLang() === 'tr' ? 'Görsel eklenmedi' : 'No image added'}</span></span>`}
       <div class="cover-overlay">
+        <div class="ov-price">${fmtPrice(row.fiyat, row.para_birimi, row.tip)}</div>
         <div class="ov-logo">${logoMark(true)}</div>
         ${(leftHtml || rightHtml) ? `<div class="ov-info${(leftHtml && rightHtml) ? '' : ' single'}">${leftHtml}${rightHtml ? `<span class="info">${rightHtml}</span>` : ''}</div>` : ''}
       </div>
@@ -372,6 +373,17 @@ export async function renderCoverImage(row) {
   ctx.fillStyle = isSale ? '#ffffff' : '#0A2540';
   ctx.textBaseline = 'middle'; ctx.textAlign = 'left';
   ctx.fillText(tag, tagX + padX, tagY + tagH / 2 + 2);
+
+  // Satış fiyatı — ortada, altı çizili (altın)
+  {
+    const priceStr = row.fiyat != null ? `${CURRENCY[row.para_birimi] || ''}${Number(row.fiyat).toLocaleString('tr-TR')}${row.tip === 'kiralik' ? ' /ay' : ''}` : 'Fiyat için arayınız';
+    ctx.font = '800 46px Manrope, system-ui, sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'center';
+    const py = H - 300;
+    ctx.fillText(priceStr, W / 2, py);
+    const pw = ctx.measureText(priceStr).width;
+    ctx.strokeStyle = '#D9B26A'; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(W / 2 - pw / 2, py + 15); ctx.lineTo(W / 2 + pw / 2, py + 15); ctx.stroke();
+  }
 
   // Logo (ortada, alt bölümde)
   try {
