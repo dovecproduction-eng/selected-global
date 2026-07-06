@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=51';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=51';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=52';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=52';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -445,7 +445,7 @@ export async function makeReel(row, opts = {}, onProgress) {
   const isSale = row.tip === 'satilik';
   const region = regionDisplay(row.bolge) || '';
   const regionUp = region.toLocaleUpperCase('tr');
-  try { await document.fonts.load("700 60px 'Dancing Script'"); } catch (e) {}
+  try { await document.fonts.load('600 60px Fraunces'); await document.fonts.load('500 44px Fraunces'); } catch (e) {}
   try { await document.fonts.ready; } catch (e) {}
 
   let logo = null; try { logo = (await loadImage(BRAND.logoLight)).img; } catch (e) {}
@@ -477,6 +477,23 @@ export async function makeReel(row, opts = {}, onProgress) {
     return lines;
   };
   const drawLogo = (cx, top, w) => { if (!logo) return; const h = w * (logo.height / logo.width || 0.166); ctx.drawImage(logo, cx - w / 2, top, w, h); };
+  // Konum pini (damla + iç nokta) — cy: pin başının merkezi
+  const drawPin = (cx, cy, r, color) => {
+    ctx.fillStyle = color; ctx.beginPath();
+    ctx.arc(cx, cy, r, Math.PI * 0.15, Math.PI * 0.85, true);
+    ctx.lineTo(cx, cy + r * 2.0); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = navy; ctx.beginPath(); ctx.arc(cx, cy, r * 0.42, 0, Math.PI * 2); ctx.fill();
+  };
+  // "📍 Konum" — verilen baseline y'de ortalanmış (pin + metin)
+  const drawLocation = (text, y, size) => {
+    ctx.font = `700 ${size}px Manrope, sans-serif`;
+    const tw = ctx.measureText(text).width; const r = size * 0.34; const gap = size * 0.5;
+    const totalW = r * 2 + gap + tw; const startX = W / 2 - totalW / 2;
+    ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 10;
+    drawPin(startX + r, y - size * 0.32, r, goldL);
+    ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(text, startX + r * 2 + gap, y);
+    ctx.shadowBlur = 0;
+  };
 
   function drawSpecs() {
     ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
@@ -509,23 +526,24 @@ export async function makeReel(row, opts = {}, onProgress) {
     ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
     if (sc.img) drawCover(sc.img, 1.02 + 0.08 * p, (sc.pan || 0) * p);
     if (sc.type === 'hero') {
-      botGrad(0.44);
-      // Satılık/Kiralık — daha büyük
+      topGrad(0.30); botGrad(0.42);
+      // Satılık/Kiralık — büyük (sol üst)
       ctx.font = '800 40px Manrope, sans-serif'; const tag = isSale ? 'SATILIK' : 'KİRALIK'; const tw = ctx.measureText(tag).width;
       roundRect(ctx, 54, 74, tw + 72, 78, 39); ctx.fillStyle = isSale ? gold : '#fff'; ctx.fill();
       ctx.fillStyle = isSale ? '#fff' : navy; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(tag, 90, 114); ctx.textBaseline = 'alphabetic';
       drawLogo(W - 195, 78, 270);
       ctx.globalAlpha = Math.max(0, Math.min(1, (p * sc.dur) / 0.5));
-      let y = H * 0.50;
-      // İlan başlığı — fiyatın üstünde, okunur lüks serif
+      // Lokasyon — yukarı ortada, pin ikonlu
+      if (regionUp) drawLocation(regionUp, 290, 46);
+      // Alt sol: başlık (okunur lüks serif) → fiyat → oda·m²
+      let y = H * 0.60;
       const title = pickTitle(row) || '';
       if (title) {
         ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 12;
-        const tf = "600 58px Fraunces, Georgia, serif"; const tl = wrapLines(title, tf, W - 120, 2);
+        const tf = '600 58px Fraunces, Georgia, serif'; const tl = wrapLines(title, tf, W - 120, 2);
         ctx.font = tf; tl.forEach((l) => { ctx.fillText(l, 60, y); y += 68; });
-        ctx.shadowBlur = 0; y += 10;
+        ctx.shadowBlur = 0; y += 14;
       }
-      if (regionUp) { ctx.font = '800 38px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 60, y); y += 86; }
       const pf = fitFont(priceText(), '800', 92, W - 120); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(priceText(), 60, y);
       const meta = [row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null, row.konut_tipi].filter(Boolean).join('   ·   ');
       if (meta) { y += 56; ctx.font = '600 36px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
