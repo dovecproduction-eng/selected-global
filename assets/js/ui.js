@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=49';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=49';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=50';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=50';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -509,26 +509,26 @@ export async function makeReel(row, opts = {}, onProgress) {
     ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
     if (sc.img) drawCover(sc.img, 1.02 + 0.08 * p, (sc.pan || 0) * p);
     if (sc.type === 'hero') {
-      topGrad(0.34); botGrad(0.40);
+      botGrad(0.44);
       // Satılık/Kiralık — daha büyük
       ctx.font = '800 40px Manrope, sans-serif'; const tag = isSale ? 'SATILIK' : 'KİRALIK'; const tw = ctx.measureText(tag).width;
       roundRect(ctx, 54, 74, tw + 72, 78, 39); ctx.fillStyle = isSale ? gold : '#fff'; ctx.fill();
       ctx.fillStyle = isSale ? '#fff' : navy; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(tag, 90, 114); ctx.textBaseline = 'alphabetic';
-      // İlan açıklaması — üstte ortada, el yazısı (script)
-      const acik = (row.aciklama || '').trim();
-      if (acik) {
-        const a = Math.max(0, Math.min(1, (p * sc.dur) / 0.6)); ctx.globalAlpha = a;
-        ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 14;
-        const font = "700 60px 'Dancing Script', cursive"; const lines = wrapLines(acik, font, W - 150, 3);
-        let ty = 200; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 74; });
-        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
-      }
+      drawLogo(W - 195, 78, 270);
       ctx.globalAlpha = Math.max(0, Math.min(1, (p * sc.dur) / 0.5));
-      let y = H * 0.60;
-      if (regionUp) { ctx.font = '800 40px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 60, y); }
-      y += 96; const pf = fitFont(priceText(), '800', 94, W - 120); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(priceText(), 60, y);
+      let y = H * 0.50;
+      // İlan başlığı — fiyatın üstünde, tasarımsal (el yazısı)
+      const title = pickTitle(row) || '';
+      if (title) {
+        ctx.textAlign = 'left'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 12;
+        const tf = "700 68px 'Dancing Script', cursive"; const tl = wrapLines(title, tf, W - 120, 2);
+        ctx.font = tf; tl.forEach((l) => { ctx.fillText(l, 60, y); y += 78; });
+        ctx.shadowBlur = 0; y += 8;
+      }
+      if (regionUp) { ctx.font = '800 38px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 60, y); y += 86; }
+      const pf = fitFont(priceText(), '800', 92, W - 120); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(priceText(), 60, y);
       const meta = [row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null, row.konut_tipi].filter(Boolean).join('   ·   ');
-      if (meta) { y += 58; ctx.font = '600 38px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
+      if (meta) { y += 56; ctx.font = '600 36px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
       botGrad(0.52);
@@ -538,8 +538,8 @@ export async function makeReel(row, opts = {}, onProgress) {
       const acik = (row.aciklama || '').trim();
       if (acik) {
         ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 12;
-        const font = "700 52px 'Dancing Script', cursive"; const lines = wrapLines(acik, font, W - 150, 2);
-        let ty = H - 300; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 64; });
+        const font = "500 46px Fraunces, Georgia, serif"; const lines = wrapLines(acik, font, W - 150, 2);
+        let ty = H - 300; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 60; });
         ctx.shadowBlur = 0;
       }
       // Altta: solda lokasyon, sağda oda · m²
