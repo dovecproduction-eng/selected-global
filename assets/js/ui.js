@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=57';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=57';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=58';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=58';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -551,23 +551,24 @@ export async function makeReel(row, opts = {}, onProgress) {
       drawLogo(W / 2, H - 180, 330);
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
-      botGrad(0.56);
+      botGrad(0.58);
       // Logo ortada — büyük
-      drawLogo(W / 2, H - 560, 560);
+      drawLogo(W / 2, H - 590, 560);
       // Logonun altında: ilan açıklaması (lüks serif)
       const acik = (row.aciklama || '').trim();
       if (acik) {
         ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 12;
         const font = "500 44px Fraunces, Georgia, serif"; const lines = wrapLines(acik, font, W - 150, 2);
-        let ty = H - 360; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 58; });
+        let ty = H - 400; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 58; });
         ctx.shadowBlur = 0;
       }
-      // Altta ortada: proje + (daire no · eşya · oda · m²)
+      // Altta ortada: proje → FİYAT → (daire no · eşya · oda · m²)
       ctx.textAlign = 'center';
-      let by = H - 168;
-      if (row.proje) { const f = fitFont(row.proje.toLocaleUpperCase('tr'), '800', 44, W - 140); ctx.font = `800 ${f}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.fillText(row.proje.toLocaleUpperCase('tr'), W / 2, by); by += 60; }
+      let by = H - 230;
+      if (row.proje) { const f = fitFont(row.proje.toLocaleUpperCase('tr'), '700', 38, W - 140); ctx.font = `700 ${f}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.fillText(row.proje.toLocaleUpperCase('tr'), W / 2, by); by += 66; }
+      const pf = fitFont(priceText(), '800', 58, W - 140); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 8; ctx.fillText(priceText(), W / 2, by); ctx.shadowBlur = 0; by += 56;
       const specs = [row.daire_no ? `Daire ${row.daire_no}` : null, row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız'), row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
-      if (specs) { const f = fitFont(specs, '700', 36, W - 120); ctx.font = `700 ${f}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.fillText(specs, W / 2, by); }
+      if (specs) { const f = fitFont(specs, '600', 34, W - 120); ctx.font = `600 ${f}px Manrope, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(specs, W / 2, by); }
     } else if (sc.type === 'specs') drawSpecs();
     else if (sc.type === 'outro') drawOutro();
   }

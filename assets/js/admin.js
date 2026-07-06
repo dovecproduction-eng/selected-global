@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=57';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=57';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=58';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=58';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -643,8 +643,8 @@ function openProp(id) {
   $('#f_blok').value = p?.blok || '';
   $('#f_daire_no').value = p?.daire_no || '';
   $('#f_m2').value = p?.metrekare ?? '';
-  $('#f_fiyat').value = p?.fiyat ?? '';
-  $('#f_musteri_fiyat').value = p?.musteri_fiyat ?? '';
+  $('#f_fiyat').value = p?.fiyat != null ? Number(p.fiyat).toLocaleString('tr-TR') : '';
+  $('#f_musteri_fiyat').value = p?.musteri_fiyat != null ? Number(p.musteri_fiyat).toLocaleString('tr-TR') : '';
   $('#f_cur').value = p?.para_birimi || 'GBP';
   setSelectValue('#f_banyo', p?.banyo_sayisi != null ? String(p.banyo_sayisi) : '');
   $('#f_kat').value = p?.kat || '';
@@ -820,8 +820,8 @@ $('#savePropBtn').addEventListener('click', async () => {
     bolge: $('#f_bolge').value || $('#f_il').value || null,
     oda_sayisi: $('#f_oda').value.trim() || null,
     metrekare: numOrNull($('#f_m2').value),
-    fiyat: numOrNull($('#f_fiyat').value),
-    musteri_fiyat: numOrNull($('#f_musteri_fiyat').value),
+    fiyat: vNum($('#f_fiyat').value),
+    musteri_fiyat: vNum($('#f_musteri_fiyat').value),
     para_birimi: $('#f_cur').value,
     banyo_sayisi: numOrNull($('#f_banyo').value),
     kat: $('#f_kat').value.trim() || null,
