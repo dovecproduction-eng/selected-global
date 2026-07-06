@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=48';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=48';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=49';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=49';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -531,16 +531,22 @@ export async function makeReel(row, opts = {}, onProgress) {
       if (meta) { y += 58; ctx.font = '600 38px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
-      botGrad(0.58);
+      botGrad(0.52);
       // Logo ortada — daha büyük
-      drawLogo(W / 2, H - 360, 480);
-      // Proje adı sabit ortada (logonun altında)
-      if (row.proje) { ctx.font = `800 ${fitFont(row.proje.toLocaleUpperCase('tr'), '800', 46, W - 160)}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.textAlign = 'center'; ctx.fillText(row.proje.toLocaleUpperCase('tr'), W / 2, H - 210); }
+      drawLogo(W / 2, H - 480, 580);
+      // Logonun altında: ilan açıklaması (sabit, el yazısı)
+      const acik = (row.aciklama || '').trim();
+      if (acik) {
+        ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 12;
+        const font = "700 52px 'Dancing Script', cursive"; const lines = wrapLines(acik, font, W - 150, 2);
+        let ty = H - 300; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 64; });
+        ctx.shadowBlur = 0;
+      }
       // Altta: solda lokasyon, sağda oda · m²
-      const infoY = H - 120;
-      if (regionUp) { ctx.font = `700 ${fitFont(regionUp, '700', 34, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(regionUp, 70, infoY); }
+      const infoY = H - 110;
+      if (regionUp) { ctx.font = `700 ${fitFont(regionUp, '700', 32, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 70, infoY); }
       const right = [row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
-      if (right) { ctx.font = `700 ${fitFont(right, '700', 34, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(right, W - 70, infoY); }
+      if (right) { ctx.font = `700 ${fitFont(right, '700', 32, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(right, W - 70, infoY); }
     } else if (sc.type === 'specs') drawSpecs();
     else if (sc.type === 'outro') drawOutro();
   }
