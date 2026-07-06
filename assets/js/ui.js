@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=52';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=52';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=53';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=53';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -526,16 +526,16 @@ export async function makeReel(row, opts = {}, onProgress) {
     ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
     if (sc.img) drawCover(sc.img, 1.02 + 0.08 * p, (sc.pan || 0) * p);
     if (sc.type === 'hero') {
-      topGrad(0.30); botGrad(0.42);
-      // Satılık/Kiralık — büyük (sol üst)
-      ctx.font = '800 40px Manrope, sans-serif'; const tag = isSale ? 'SATILIK' : 'KİRALIK'; const tw = ctx.measureText(tag).width;
-      roundRect(ctx, 54, 74, tw + 72, 78, 39); ctx.fillStyle = isSale ? gold : '#fff'; ctx.fill();
-      ctx.fillStyle = isSale ? '#fff' : navy; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(tag, 90, 114); ctx.textBaseline = 'alphabetic';
-      drawLogo(W - 195, 78, 270);
+      topGrad(0.38); botGrad(0.42);
       ctx.globalAlpha = Math.max(0, Math.min(1, (p * sc.dur) / 0.5));
       // Lokasyon — yukarı ortada, pin ikonlu
-      if (regionUp) drawLocation(regionUp, 290, 46);
-      // Alt sol: başlık (okunur lüks serif) → fiyat → oda·m²
+      if (regionUp) drawLocation(regionUp, 250, 46);
+      // Satılık/Kiralık — lokasyonun altında, ortada
+      ctx.font = '800 40px Manrope, sans-serif'; const tag = isSale ? 'SATILIK' : 'KİRALIK'; const tw = ctx.measureText(tag).width;
+      const pillW = tw + 76, pillX = W / 2 - pillW / 2, pillY = 300;
+      roundRect(ctx, pillX, pillY, pillW, 76, 38); ctx.fillStyle = isSale ? gold : '#fff'; ctx.fill();
+      ctx.fillStyle = isSale ? '#fff' : navy; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(tag, W / 2, pillY + 40); ctx.textBaseline = 'alphabetic';
+      // Alt sol: başlık (serif) → fiyat (altın + bold) → oda·m²
       let y = H * 0.60;
       const title = pickTitle(row) || '';
       if (title) {
@@ -544,9 +544,11 @@ export async function makeReel(row, opts = {}, onProgress) {
         ctx.font = tf; tl.forEach((l) => { ctx.fillText(l, 60, y); y += 68; });
         ctx.shadowBlur = 0; y += 14;
       }
-      const pf = fitFont(priceText(), '800', 92, W - 120); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(priceText(), 60, y);
+      const pf = fitFont(priceText(), '800', 92, W - 120); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.shadowColor = 'rgba(0,0,0,.45)'; ctx.shadowBlur = 8; ctx.textAlign = 'left'; ctx.fillText(priceText(), 60, y); ctx.shadowBlur = 0;
       const meta = [row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null, row.konut_tipi].filter(Boolean).join('   ·   ');
       if (meta) { y += 56; ctx.font = '600 36px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
+      // Logo — sayfanın altında ortada (dipten pay bırakılmış)
+      drawLogo(W / 2, H - 180, 330);
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
       botGrad(0.56);
