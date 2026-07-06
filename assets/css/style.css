@@ -768,6 +768,9 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .zoom-hint svg { width: 19px; height: 19px; }
 @media (hover: none) { .zoom-hint { opacity: .85; transform: none; } }
 
+/* Blok / Daire no eksik uyarısı (admin liste) */
+.ekleyen-line .miss { color: var(--danger); font-weight: 800; }
+
 /* Kapakta kendi fotoğrafı yoksa "Görsel eklenmedi" */
 .cover-photo .ph-empty { display: flex; flex-direction: column; gap: 8px; }
 .cover-photo .ph-empty > span { font-size: .8rem; font-weight: 700; color: #9fb0c2; letter-spacing: .02em; }

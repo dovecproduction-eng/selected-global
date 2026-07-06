@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=42';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=42';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=43';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=43';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -362,8 +362,11 @@ function itemTail(p, ctx) {
 }
 function selCls(p, ctx) { return ctx === 'select' && selected.has(p.id) ? ' sel' : ''; }
 function ekleyenLine(p) {
-  const bd = [p.blok ? `Blok ${esc(p.blok)}` : '', p.daire_no ? `No ${esc(p.daire_no)}` : ''].filter(Boolean).join(' · ');
-  const bdLine = bd ? `<div class="ekleyen-line" style="color:var(--navy)">🏠 ${bd}</div>` : '';
+  const parts = [
+    p.blok ? `Blok ${esc(p.blok)}` : `<span class="miss">⚠ Blok eklenmeli</span>`,
+    p.daire_no ? `No ${esc(p.daire_no)}` : `<span class="miss">⚠ Daire no eklenmeli</span>`,
+  ];
+  const bdLine = `<div class="ekleyen-line" style="color:var(--navy)">🏠 ${parts.join(' · ')}</div>`;
   return bdLine + (p.ekleyen ? `<div class="ekleyen-line">👤 ${esc(p.ekleyen)} ekledi</div>` : '');
 }
 
@@ -1025,7 +1028,18 @@ async function copy(text) {
 }
 
 /* ============== EXCEL İLE TOPLU EKLEME ============== */
-const XLS_HEADERS = ['Başlık', 'Başlık (EN)', 'Tip', 'Proje', 'Konut Tipi', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', 'Açıklama (EN)', "Fotoğraf URL'leri"];
+// Not: 'id (değiştirmeyin)' sütunu güncelleme için kimliktir — dışa aktarınca dolu gelir, dokunma.
+const XLS_HEADERS = ['id (değiştirmeyin)', 'Başlık', 'Tip', 'Proje', 'Blok', 'Daire No', 'Konut Tipi', 'Bölge', 'Oda Sayısı', 'Fiyat', 'Para Birimi', 'm2', 'Banyo', 'Kat', 'Eşya', 'Özellikler', 'Açıklama', "Fotoğraf URL'leri"];
+// Bir daireyi Excel satırına çevir (dışa aktarma + şablon aynı sütun sırası)
+function propToRow(p) {
+  return [
+    p.id || '', p.baslik || '', p.tip === 'satilik' ? 'Satılık' : 'Kiralık', p.proje || '',
+    p.blok || '', p.daire_no || '', p.konut_tipi || '', p.bolge || '', p.oda_sayisi || '',
+    p.fiyat ?? '', p.para_birimi || '', p.metrekare ?? '', p.banyo_sayisi ?? '', p.kat || '',
+    p.esyali == null ? '' : (p.esyali ? 'Eşyalı' : 'Eşyasız'),
+    (p.ozellikler || []).join(', '), p.aciklama || '', (p.fotograflar || []).join(', '),
+  ];
+}
 
 // Başlık normalleştirme (büyük/küçük, Türkçe karakter, boşluk farkını yok say)
 function asciiLower(s) {
@@ -1036,6 +1050,9 @@ function normHeader(h) { return asciiLower(h).replace(/[^a-z0-9]/g, ''); }
 
 // Sütun başlığı -> alan eşlemesi
 const FIELD_ALIASES = {
+  id: ['id', 'iddegistirmeyin', 'uuid', 'kayitid'],
+  blok: ['blok', 'block'],
+  daire_no: ['daireno', 'dairenumarasi', 'apartmentno', 'unitno', 'dairenmarasi'],
   baslik: ['baslik', 'basliktr', 'title', 'titletr', 'ad', 'isim'],
   title_en: ['basliken', 'titleen'],
   tip: ['tip', 'tur', 'durum', 'type', 'islemtipi', 'islem'],
@@ -1075,15 +1092,29 @@ function vList(v) { if (v == null || v === '') return []; return String(v).split
 function vPhotos(v) { return vList(v).filter((u) => /^https?:\/\//i.test(u)); }
 function sigOf(o) { return asciiLower(`${o.baslik || ''}|${o.bolge || ''}|${o.oda_sayisi || ''}`); }
 
-// Şablon indir
+function colWidths() { return XLS_HEADERS.map((h) => ({ wch: h === "Fotoğraf URL'leri" || h === 'Açıklama' ? 40 : (h.startsWith('id') ? 24 : 18) })); }
+
+// Şablon indir (yeni daireler için — id boş bırakılır)
 $('#dlTemplateBtn').addEventListener('click', () => {
   if (!window.XLSX) { toast('Excel aracı yüklenemedi, sayfayı yenileyin', 'err'); return; }
-  const example = ['Denize sıfır 2+1 lüks daire', 'Seafront luxury 2+1 apartment', 'Kiralık', 'Four Season 1', 'Daire', 'Girne', '2+1', 750, 'GBP', 95, 1, '3', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', 'Spacious sea-view balcony.', ''];
+  const example = ['', 'Denize sıfır 2+1 lüks daire', 'Kiralık', 'Four Season 1', 'A', '12', 'Daire', 'Girne', '2+1', 750, 'GBP', 95, 1, '3', 'Eşyalı', 'Havuz, Otopark, Asansör', 'Geniş balkonlu, deniz manzaralı.', ''];
   const ws = XLSX.utils.aoa_to_sheet([XLS_HEADERS, example]);
-  ws['!cols'] = XLS_HEADERS.map(() => ({ wch: 20 }));
+  ws['!cols'] = colWidths();
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Daireler');
   XLSX.writeFile(wb, 'selected-global-daire-sablonu.xlsx');
+});
+
+// Dışa aktar — tüm daireleri Excel olarak indir (id dahil → düzenleyip geri yükleyince güncellenir)
+$('#exportBtn')?.addEventListener('click', () => {
+  if (!window.XLSX) { toast('Excel aracı yüklenemedi, sayfayı yenileyin', 'err'); return; }
+  if (!props.length) { toast('Aktarılacak daire yok', 'err'); return; }
+  const ws = XLSX.utils.aoa_to_sheet([XLS_HEADERS, ...props.map(propToRow)]);
+  ws['!cols'] = colWidths();
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Daireler');
+  XLSX.writeFile(wb, `selected-global-daireler-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  toast(`${props.length} daire dışa aktarıldı`, 'ok');
 });
 
 // Yükleyici olayları
@@ -1142,11 +1173,14 @@ async function importXlsx(file) {
     return;
   }
 
-  // Mevcut kayıtların imzaları (Başlık+Bölge+Oda ile mükerrer önleme)
-  const sigKeys = new Set(props.map(sigOf));
+  // Sadece Excel'de bulunan sütunlar güncellenir (Excel'de olmayan alan silinmez)
+  const presentFields = new Set(colMap.filter(Boolean));
+  const existingIds = new Set(props.map((p) => p.id));
+  const sigKeys = new Set(props.map(sigOf)); // id'siz yeni satırlarda mükerrer önleme
   const seen = new Set();
 
-  const toInsert = [];
+  const toInsert = [];   // yeni daireler
+  const toUpdate = [];   // mevcut daireler { id, upd }
   let skipped = 0;
   const errors = [];
 
@@ -1156,49 +1190,60 @@ async function importXlsx(file) {
     const raw = {};
     colMap.forEach((field, idx) => { if (field) raw[field] = r[idx]; });
 
-    const payload = {
-      baslik: vStr(raw.baslik),
-      title_en: vStr(raw.title_en),
-      tip: vTip(raw.tip),
-      proje: vStr(raw.proje),
-      konut_tipi: vStr(raw.konut_tipi),
-      bolge: vStr(raw.bolge),
-      oda_sayisi: vStr(raw.oda_sayisi),
-      fiyat: vNum(raw.fiyat),
-      para_birimi: vCur(raw.para_birimi),
-      metrekare: vNum(raw.metrekare),
-      banyo_sayisi: vNum(raw.banyo_sayisi),
-      kat: vStr(raw.kat),
-      esyali: vEsya(raw.esyali),
-      ozellikler: vList(raw.ozellikler),
-      aciklama: vStr(raw.aciklama),
-      desc_en: vStr(raw.desc_en),
-      fotograflar: vPhotos(raw.fotograflar),
-      kapak_index: 0,
+    const full = {
+      baslik: vStr(raw.baslik), title_en: vStr(raw.title_en), tip: vTip(raw.tip), proje: vStr(raw.proje),
+      blok: vStr(raw.blok), daire_no: vStr(raw.daire_no), konut_tipi: vStr(raw.konut_tipi), bolge: vStr(raw.bolge),
+      oda_sayisi: vStr(raw.oda_sayisi), fiyat: vNum(raw.fiyat), para_birimi: vCur(raw.para_birimi),
+      metrekare: vNum(raw.metrekare), banyo_sayisi: vNum(raw.banyo_sayisi), kat: vStr(raw.kat),
+      esyali: vEsya(raw.esyali), ozellikler: vList(raw.ozellikler), aciklama: vStr(raw.aciklama),
+      desc_en: vStr(raw.desc_en), fotograflar: vPhotos(raw.fotograflar),
     };
 
-    if (!payload.baslik) { errors.push(`${i + 1}. satır: Başlık boş, atlandı`); continue; }
-
-    const sig = sigOf(payload);
+    const id = vStr(raw.id);
+    if (id && existingIds.has(id)) {
+      // GÜNCELLE — sadece Excel'de bulunan sütunları değiştir
+      const upd = {};
+      Object.keys(full).forEach((f) => { if (presentFields.has(f)) upd[f] = full[f]; });
+      if (Object.keys(upd).length) toUpdate.push({ id, upd });
+      continue;
+    }
+    // YENİ daire — başlık zorunlu, mükerrer atla
+    if (!full.baslik) { errors.push(`${i + 1}. satır: Başlık boş, atlandı`); continue; }
+    const sig = sigOf(full);
     if (sigKeys.has(sig) || seen.has(sig)) { skipped++; continue; }
     seen.add(sig);
-    toInsert.push(payload);
+    toInsert.push({ ...full, kapak_index: 0 });
   }
 
-  if (!toInsert.length) {
-    result.innerHTML = `<div class="import-summary"><span class="warn">Eklenecek yeni daire yok.</span> ${skipped} kayıt zaten mevcuttu (atlandı).${errors.length ? `<ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}</div>`;
+  if (!toInsert.length && !toUpdate.length) {
+    result.innerHTML = `<div class="import-summary"><span class="warn">Değişiklik yok.</span> ${skipped} kayıt zaten mevcuttu (atlandı).${errors.length ? `<ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}</div>`;
     return;
   }
 
-  result.innerHTML = `<div class="import-summary">${toInsert.length} daire ekleniyor…</div>`;
-  const { error } = await supabase.from('properties').insert(toInsert);
-  if (error) {
-    console.error(error);
-    result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Hata: ${esc(error.message)}</span></div>`;
+  result.innerHTML = `<div class="import-summary">İşleniyor… (${toUpdate.length} güncelleme, ${toInsert.length} yeni)</div>`;
+
+  let updOk = 0; const updErrs = [];
+  for (const u of toUpdate) {
+    const { error } = await supabase.from('properties').update(u.upd).eq('id', u.id);
+    if (error) updErrs.push(error.message); else updOk++;
+  }
+  let insOk = 0; let insErr = null;
+  if (toInsert.length) {
+    const { error } = await supabase.from('properties').insert(toInsert);
+    if (error) insErr = error.message; else insOk = toInsert.length;
+  }
+
+  if (insErr && !insOk && !updOk) {
+    result.innerHTML = `<div class="import-summary"><span style="color:var(--danger)">Hata: ${esc(insErr)}</span></div>`;
     return;
   }
-  result.innerHTML = `<div class="import-summary"><span class="big">✓ ${toInsert.length} yeni daire eklendi.</span>${skipped ? ` ${skipped} kayıt zaten vardı (atlandı).` : ''}${errors.length ? `<ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}<br><span class="text-muted" style="font-size:.85rem">Fotoğraf eklemek için listeden “Düzenle” ile her daireye girip foto yükleyebilirsiniz.</span></div>`;
-  toast(`${toInsert.length} daire eklendi`, 'ok');
+  const bits = [];
+  if (updOk) bits.push(`${updOk} daire güncellendi`);
+  if (insOk) bits.push(`${insOk} yeni daire eklendi`);
+  if (skipped) bits.push(`${skipped} zaten vardı (atlandı)`);
+  const errNote = (updErrs.length || insErr) ? `<br><span style="color:var(--danger);font-size:.85rem">Bazı satırlar hata verdi: ${esc((insErr || updErrs[0]) || '')}</span>` : '';
+  result.innerHTML = `<div class="import-summary"><span class="big">✓ ${bits.join(', ')}.</span>${errNote}${errors.length ? `<ul>${errors.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>` : ''}</div>`;
+  toast(bits.join(', ') || 'Tamamlandı', 'ok');
   loadProps();
 }
 

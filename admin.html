@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=42" />
+  <link rel="stylesheet" href="assets/css/style.css?v=43" />
 </head>
 <body class="admin-body">
 
@@ -76,8 +76,15 @@
       <section id="tab-excel" class="hidden">
         <div class="panel" id="importPanel">
           <div class="panel-head">
-            <h3>Excel ile toplu daire ekle</h3>
-            <button class="btn btn-ghost btn-sm" id="dlTemplateBtn">⬇ Şablon indir (.xlsx)</button>
+            <h3>Excel ile toplu ekle / düzenle</h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" id="exportBtn">⤓ Tüm daireleri dışa aktar</button>
+              <button class="btn btn-ghost btn-sm" id="dlTemplateBtn">⬇ Boş şablon indir</button>
+            </div>
+          </div>
+          <div class="csv-tip" style="margin-bottom:14px">
+            🔄 <strong>Düzenlemek için:</strong> "Tüm daireleri dışa aktar" ile indir → Excel'de değiştir (Blok, Daire No, fiyat vb.) →
+            aynı dosyayı aşağıya yükle. <strong>id sütununu silme/değiştirme</strong> — güncelleme onunla eşleşir.
           </div>
           <p class="text-muted" style="margin-top:0">
             <strong>1)</strong> Şablonu indir → <strong>2)</strong> her satıra bir daire yaz → <strong>3)</strong> dosyayı aşağıya yükle.
@@ -404,6 +411,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=42"></script>
+  <script type="module" src="assets/js/admin.js?v=43"></script>
 </body>
 </html>
