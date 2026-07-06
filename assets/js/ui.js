@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=46';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=46';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=47';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=47';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -514,10 +514,14 @@ export async function makeReel(row, opts = {}, onProgress) {
       if (meta) { y += 58; ctx.font = '600 38px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
-      botGrad(0.74);
-      drawLogo(170, H - 158, 250);
-      if (regionUp) { ctx.font = '700 32px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.textAlign = 'center'; ctx.fillText(regionUp, W / 2, H - 126); }
-      ctx.font = '700 32px Manrope, sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(`${sc.idx + 1}/${imgs.length}`, W - 64, H - 126);
+      botGrad(0.60);
+      // Logo ortada
+      drawLogo(W / 2, H - 250, 320);
+      // Altta: solda lokasyon, sağda proje · oda · m²
+      const infoY = H - 132;
+      if (regionUp) { ctx.font = `800 ${fitFont(regionUp, '800', 36, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 70, infoY); }
+      const right = [row.proje, row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
+      if (right) { ctx.font = `700 ${fitFont(right, '700', 34, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(right, W - 70, infoY); }
     } else if (sc.type === 'specs') drawSpecs();
     else if (sc.type === 'outro') drawOutro();
   }
