@@ -9,6 +9,10 @@ export const STORAGE_BUCKET = 'property-images';
 
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Müşteri (public) tarafında çekilecek sütunlar — YÖNETİME ÖZEL alanlar (musteri_fiyat, blok, daire_no)
+// bilerek dışarıda bırakıldı; ayrıca Supabase'de bu sütunlar anon rolünden REVOKE edildi (bkz. supabase-setup.sql).
+export const PUBLIC_PROPERTY_COLS = 'id,ref_kodu,konut_tipi,baslik,title_en,tip,oda_sayisi,fiyat,para_birimi,metrekare,bolge,banyo_sayisi,kat,esyali,ozellikler,aciklama,desc_en,fotograflar,kapak_index,created_at,ekleyen,proje';
+
 // Marka / iletişim sabitleri
 export const BRAND = {
   name: 'Selected Global',

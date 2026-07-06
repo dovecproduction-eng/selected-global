@@ -1,10 +1,10 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=54';
-import { t, applyI18n, getLang } from './i18n.js?v=54';
+import { supabase, BRAND, CURRENCY, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=55';
+import { t, applyI18n, getLang } from './i18n.js?v=55';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, logoMark, wireCallPrice,
-} from './ui.js?v=54';
+} from './ui.js?v=55';
 
 // "Fiyat için arayınız" → Ara/WhatsApp butonlarına kaydır
 wireCallPrice(() => document.querySelector('.detail-cta') || document.querySelector('.contact-row'));
@@ -119,7 +119,7 @@ function render() {
 
 async function load() {
   if (!id) { notFound(); return; }
-  const { data, error } = await supabase.from('properties').select('*').eq('id', id).single();
+  const { data, error } = await supabase.from('properties').select(PUBLIC_PROPERTY_COLS).eq('id', id).single();
   if (error || !data) { notFound(); return; }
   row = data;
   if (!telParam && row.ekleyen) contactRaw = creatorContact(row.ekleyen).phoneRaw;

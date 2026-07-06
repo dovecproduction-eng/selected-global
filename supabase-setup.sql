@@ -53,6 +53,10 @@ alter table public.properties add column if not exists blok text;
 alter table public.properties add column if not exists daire_no text;
 alter table public.properties add column if not exists musteri_fiyat numeric; -- müşterinin (mal sahibinin) istediği fiyat — yalnız yönetim
 alter table public.portfolios add column if not exists olusturan text;
+
+-- GİZLİLİK: yönetime özel sütunları dışarıdaki (anon) kullanıcıdan tamamen gizle.
+-- Bu sütunlar artık müşteri tarafında ağ trafiğinde bile görünmez; sadece giriş yapan admin (authenticated) okur.
+revoke select (musteri_fiyat, blok, daire_no) on public.properties from anon;
 create index if not exists idx_properties_ref on public.properties(ref_kodu);
 
 -- FOTOĞRAF deposu (bucket)
