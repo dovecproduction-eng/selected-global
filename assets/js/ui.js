@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=45';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=45';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=46';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=46';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -435,6 +435,139 @@ export async function downloadPropertyPhotos(rows, zipName, onProgress) {
   }
   const content = await zip.generateAsync({ type: 'blob' });
   triggerDownload(content, `${zipName}.zip`);
+}
+
+// ---------- Instagram Reels videosu (9:16, markalı, sessiz — müzik IG'de eklenir) ----------
+// Kurumsal akış: hook (fiyat+konum) → fotoğraflar (Ken Burns + geçiş) → özellikler kartı → iletişim kartı
+export async function makeReel(row, opts = {}, onProgress) {
+  const W = 1080, H = 1920, FPS = 30;
+  const navy = '#0A2540', gold = '#C9A24B', goldL = '#D9B26A';
+  const isSale = row.tip === 'satilik';
+  const region = regionDisplay(row.bolge) || '';
+  const regionUp = region.toLocaleUpperCase('tr');
+  try { await document.fonts.ready; } catch (e) {}
+
+  let logo = null; try { logo = (await loadImage(BRAND.logoLight)).img; } catch (e) {}
+  const urls = (row.fotograflar || []).slice(0, 8);
+  const imgs = [];
+  for (const u of urls) { try { const { img } = await loadImage(u); imgs.push(img); } catch (e) {} }
+  if (!imgs.length) throw new Error('Fotoğraf yok');
+
+  const contact = opts.contact || { name: BRAND.name, phone: BRAND.phone };
+  const priceText = () => { if (row.fiyat == null || row.fiyat === '') return 'Fiyat için arayınız'; const sym = CURRENCY[row.para_birimi] || ''; return `${sym}${Number(row.fiyat).toLocaleString('tr-TR')}${row.tip === 'kiralik' ? ' /ay' : ''}`; };
+
+  const canvas = document.createElement('canvas'); canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  const fitFont = (text, weight, maxSize, maxW, fam = 'Manrope, sans-serif') => {
+    let s = maxSize; do { ctx.font = `${weight} ${s}px ${fam}`; if (ctx.measureText(text).width <= maxW) break; s -= 4; } while (s > 22); return s;
+  };
+  const drawCover = (img, zoom, panx) => {
+    const s = Math.max(W / img.width, H / img.height) * zoom;
+    const dw = img.width * s, dh = img.height * s;
+    ctx.drawImage(img, (W - dw) / 2 + panx * W, (H - dh) / 2, dw, dh);
+  };
+  const botGrad = (from) => { const g = ctx.createLinearGradient(0, H * from, 0, H); g.addColorStop(0, 'rgba(10,37,64,0)'); g.addColorStop(.55, 'rgba(10,37,64,.6)'); g.addColorStop(1, 'rgba(10,37,64,.97)'); ctx.fillStyle = g; ctx.fillRect(0, H * from, W, H * (1 - from)); };
+  const drawLogo = (cx, top, w) => { if (!logo) return; const h = w * (logo.height / logo.width || 0.166); ctx.drawImage(logo, cx - w / 2, top, w, h); };
+
+  function drawSpecs() {
+    ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(201,162,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(46, 60, W - 92, H - 120);
+    drawLogo(W / 2, 140, 360);
+    ctx.textAlign = 'center'; ctx.font = '800 42px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.fillText('DAİRE ÖZELLİKLERİ', W / 2, 400);
+    const rows = [['Bölge', region], ['Proje', row.proje], ['Konut Tipi', row.konut_tipi], ['Oda Sayısı', row.oda_sayisi], ['Alan', row.metrekare ? `${row.metrekare} m²` : null], ['Banyo', row.banyo_sayisi != null ? String(row.banyo_sayisi) : null], ['Kat', row.kat], ['Eşya', row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız')]].filter(([, v]) => v != null && v !== '').slice(0, 7);
+    let y = 520; const x0 = 100, x1 = W - 100;
+    rows.forEach(([k, v]) => {
+      ctx.textAlign = 'left'; ctx.font = '600 36px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillText(k, x0, y);
+      ctx.textAlign = 'right'; ctx.font = '700 40px Manrope, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(String(v), x1, y);
+      ctx.strokeStyle = 'rgba(255,255,255,.12)'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(x0, y + 28); ctx.lineTo(x1, y + 28); ctx.stroke();
+      y += 92;
+    });
+    ctx.textAlign = 'center'; ctx.font = '800 36px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.fillText(isSale ? 'SATIŞ FİYATI' : 'AYLIK KİRA', W / 2, y + 50);
+    const pf = fitFont(priceText(), '800', 88, W - 160); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.fillText(priceText(), W / 2, y + 145);
+  }
+  function drawOutro() {
+    ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
+    ctx.strokeStyle = 'rgba(201,162,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(46, 60, W - 92, H - 120);
+    drawLogo(W / 2, H / 2 - 380, 540);
+    ctx.textAlign = 'center';
+    ctx.font = '800 40px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.fillText('BİLGİ VE RANDEVU İÇİN', W / 2, H / 2 - 30);
+    const nf = fitFont(contact.name || BRAND.name, '700', 58, W - 200, 'Fraunces, Georgia, serif'); ctx.font = `700 ${nf}px Fraunces, Georgia, serif`; ctx.fillStyle = '#fff'; ctx.fillText(contact.name || BRAND.name, W / 2, H / 2 + 70);
+    ctx.font = '800 78px Manrope, sans-serif'; ctx.fillStyle = '#fff'; ctx.fillText(contact.phone || BRAND.phone, W / 2, H / 2 + 180);
+    ctx.font = '600 36px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.7)'; ctx.fillText(BRAND.site.replace(/^https?:\/\//, ''), W / 2, H / 2 + 260);
+    ctx.font = '500 30px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.5)'; ctx.fillText('Kuzey Kıbrıs’ta güvenilir gayrimenkul', W / 2, H - 120);
+  }
+  function drawScene(sc, p) {
+    ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
+    if (sc.img) drawCover(sc.img, 1.02 + 0.08 * p, (sc.pan || 0) * p);
+    if (sc.type === 'hero') {
+      botGrad(0.40);
+      ctx.font = '800 32px Manrope, sans-serif'; const tag = isSale ? 'SATILIK' : 'KİRALIK'; const tw = ctx.measureText(tag).width;
+      roundRect(ctx, 54, 74, tw + 58, 64, 32); ctx.fillStyle = isSale ? gold : '#fff'; ctx.fill();
+      ctx.fillStyle = isSale ? '#fff' : navy; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(tag, 84, 107); ctx.textBaseline = 'alphabetic';
+      drawLogo(W - 195, 78, 270);
+      ctx.globalAlpha = Math.max(0, Math.min(1, (p * sc.dur) / 0.5));
+      let y = H * 0.58;
+      if (regionUp) { ctx.font = '800 40px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 60, y); }
+      y += 96; const pf = fitFont(priceText(), '800', 94, W - 120); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(priceText(), 60, y);
+      const meta = [row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null, row.konut_tipi].filter(Boolean).join('   ·   ');
+      if (meta) { y += 58; ctx.font = '600 38px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
+      ctx.globalAlpha = 1;
+    } else if (sc.type === 'photo') {
+      botGrad(0.74);
+      drawLogo(170, H - 158, 250);
+      if (regionUp) { ctx.font = '700 32px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.textAlign = 'center'; ctx.fillText(regionUp, W / 2, H - 126); }
+      ctx.font = '700 32px Manrope, sans-serif'; ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(`${sc.idx + 1}/${imgs.length}`, W - 64, H - 126);
+    } else if (sc.type === 'specs') drawSpecs();
+    else if (sc.type === 'outro') drawOutro();
+  }
+
+  const scenes = [{ type: 'hero', img: imgs[0], dur: 3.2, pan: 0 }];
+  for (let i = 1; i < imgs.length; i++) scenes.push({ type: 'photo', img: imgs[i], idx: i, dur: 2.3, pan: (i % 2 ? 0.03 : -0.03) });
+  scenes.push({ type: 'specs', dur: 3.4 });
+  scenes.push({ type: 'outro', dur: 3.6 });
+  const total = scenes.reduce((s, x) => s + x.dur, 0);
+  const TR = 0.45;
+
+  const mimeTypes = ['video/mp4;codecs=h264', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  const mimeType = (window.MediaRecorder ? mimeTypes.find((m) => MediaRecorder.isTypeSupported(m)) : '') || '';
+  if (!window.MediaRecorder) throw new Error('Bu tarayıcı video kaydını desteklemiyor');
+  const stream = canvas.captureStream(FPS);
+  const rec = new MediaRecorder(stream, mimeType ? { mimeType, videoBitsPerSecond: 9000000 } : { videoBitsPerSecond: 9000000 });
+  const chunks = [];
+  rec.ondataavailable = (e) => { if (e.data && e.data.size) chunks.push(e.data); };
+
+  return await new Promise((resolve, reject) => {
+    let start = 0, raf = 0;
+    rec.onstop = () => resolve({ blob: new Blob(chunks, { type: mimeType || 'video/webm' }), ext: mimeType.includes('mp4') ? 'mp4' : 'webm' });
+    rec.onerror = (e) => reject(e.error || new Error('Kayıt hatası'));
+    function frame(now) {
+      if (!start) start = now;
+      const t = (now - start) / 1000;
+      if (onProgress) onProgress(Math.min(1, t / total));
+      if (t >= total) { cancelAnimationFrame(raf); if (rec.state !== 'inactive') rec.stop(); return; }
+      let acc = 0, i = 0;
+      for (; i < scenes.length; i++) { if (t < acc + scenes[i].dur) break; acc += scenes[i].dur; }
+      if (i >= scenes.length) i = scenes.length - 1;
+      const local = t - acc;
+      drawScene(scenes[i], Math.min(1, local / scenes[i].dur));
+      if (scenes[i + 1] && local > scenes[i].dur - TR) {
+        ctx.globalAlpha = Math.max(0, Math.min(1, (local - (scenes[i].dur - TR)) / TR));
+        drawScene(scenes[i + 1], 0);
+        ctx.globalAlpha = 1;
+      }
+      raf = requestAnimationFrame(frame);
+    }
+    try { rec.start(); } catch (e) { reject(e); return; }
+    raf = requestAnimationFrame(frame);
+  });
+}
+
+// Reels videosunu üret + indir
+export async function downloadReel(row, opts = {}, onProgress) {
+  const { blob, ext } = await makeReel(row, opts, onProgress);
+  triggerDownload(blob, `${opts.fileName || 'selected-global-reels'}.${ext}`);
+  return ext;
 }
 
 export { getLang, setLang, t, applyI18n };
