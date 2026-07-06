@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=56';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=56';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=57';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=57';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -449,7 +449,7 @@ export async function makeReel(row, opts = {}, onProgress) {
   try { await document.fonts.ready; } catch (e) {}
 
   let logo = null; try { logo = (await loadImage(BRAND.logoLight)).img; } catch (e) {}
-  const urls = (row.fotograflar || []); // tüm fotoğraflar
+  const urls = (row.fotograflar || []).slice(0, 15); // en fazla 15 fotoğraf
   const imgs = [];
   for (const u of urls) { try { const { img } = await loadImage(u); imgs.push(img); } catch (e) {} }
   if (!imgs.length) throw new Error('Fotoğraf yok');
@@ -572,10 +572,15 @@ export async function makeReel(row, opts = {}, onProgress) {
     else if (sc.type === 'outro') drawOutro();
   }
 
-  const scenes = [{ type: 'hero', img: imgs[0], dur: 3.2, pan: 0 }];
-  for (let i = 1; i < imgs.length; i++) scenes.push({ type: 'photo', img: imgs[i], idx: i, dur: 2.3, pan: (i % 2 ? 0.03 : -0.03) });
-  scenes.push({ type: 'specs', dur: 3.4 });
-  scenes.push({ type: 'outro', dur: 3.6 });
+  // Fotoğraf başına süre: az fotoğrafta uzun, çok fotoğrafta kısa (toplam makul kalsın)
+  const n = imgs.length;
+  const photoDur = n <= 6 ? 2.6 : n <= 10 ? 2.2 : 1.9;
+  const heroDur = n <= 6 ? 3.4 : 3.0;
+  const scenes = [{ type: 'hero', img: imgs[0], dur: heroDur, pan: 0 }];
+  for (let i = 1; i < imgs.length; i++) scenes.push({ type: 'photo', img: imgs[i], idx: i, dur: photoDur, pan: (i % 2 ? 0.03 : -0.03) });
+  // Son kareler HER videoda: daire özellikleri + iletişim (logo + telefon)
+  scenes.push({ type: 'specs', dur: 3.6 });
+  scenes.push({ type: 'outro', dur: 4.0 });
   const total = scenes.reduce((s, x) => s + x.dur, 0);
   const TR = 0.45;
 
@@ -595,7 +600,12 @@ export async function makeReel(row, opts = {}, onProgress) {
       if (!start) start = now;
       const t = (now - start) / 1000;
       if (onProgress) onProgress(Math.min(1, t / total));
-      if (t >= total) { cancelAnimationFrame(raf); if (rec.state !== 'inactive') rec.stop(); return; }
+      if (t >= total) {
+        cancelAnimationFrame(raf);
+        drawScene(scenes[scenes.length - 1], 1); // son kare (iletişim) tam çizilsin
+        setTimeout(() => { if (rec.state !== 'inactive') rec.stop(); }, 300); // kaydın sonu kesilmesin
+        return;
+      }
       let acc = 0, i = 0;
       for (; i < scenes.length; i++) { if (t < acc + scenes[i].dur) break; acc += scenes[i].dur; }
       if (i >= scenes.length) i = scenes.length - 1;
