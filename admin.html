@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=53" />
+  <link rel="stylesheet" href="assets/css/style.css?v=54" />
 </head>
 <body class="admin-body">
 
@@ -238,7 +238,7 @@
           </div>
           <div class="field-row">
             <div class="field">
-              <label>Fiyat</label>
+              <label>Satış fiyatı <span class="text-muted">— müşteriye görünür</span></label>
               <input id="f_fiyat" type="number" inputmode="numeric" placeholder="Örn. 750" />
             </div>
             <div class="field">
@@ -249,6 +249,12 @@
                 <option value="USD">$ USD (Dolar)</option>
                 <option value="TRY">₺ TRY (Lira)</option>
               </select>
+            </div>
+          </div>
+          <div class="field-row admin-only-row">
+            <div class="field">
+              <label>Müşterinin istediği <span class="text-muted">— sadece yönetim görür, müşteriye gösterilmez</span></label>
+              <input id="f_musteri_fiyat" type="number" inputmode="numeric" placeholder="Örn. 700" />
             </div>
           </div>
           <div class="field-row">
@@ -412,6 +418,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=53"></script>
+  <script type="module" src="assets/js/admin.js?v=54"></script>
 </body>
 </html>

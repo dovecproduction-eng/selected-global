@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=53';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=53';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=54';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=54';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -367,7 +367,14 @@ function ekleyenLine(p) {
     p.daire_no ? `No ${esc(p.daire_no)}` : `<span class="miss">⚠ Daire no eklenmeli</span>`,
   ];
   const bdLine = `<div class="ekleyen-line" style="color:var(--navy)">🏠 ${parts.join(' · ')}</div>`;
-  return bdLine + (p.ekleyen ? `<div class="ekleyen-line">👤 ${esc(p.ekleyen)} ekledi</div>` : '');
+  // İki fiyat (yalnız yönetim panelinde görünür): Satış + Müşterinin istediği
+  const money = (v) => `${CURRENCY[p.para_birimi] || ''}${Number(v).toLocaleString('tr-TR')}`;
+  const priceBits = [
+    p.fiyat != null ? `Satış: <strong>${money(p.fiyat)}</strong>` : '',
+    p.musteri_fiyat != null ? `İstenen: <strong>${money(p.musteri_fiyat)}</strong>` : '',
+  ].filter(Boolean).join(' · ');
+  const priceLine = priceBits ? `<div class="ekleyen-line" style="color:var(--gold)">💰 ${priceBits}</div>` : '';
+  return bdLine + priceLine + (p.ekleyen ? `<div class="ekleyen-line">👤 ${esc(p.ekleyen)} ekledi</div>` : '');
 }
 
 function itemList(p, ctx) {
@@ -637,6 +644,7 @@ function openProp(id) {
   $('#f_daire_no').value = p?.daire_no || '';
   $('#f_m2').value = p?.metrekare ?? '';
   $('#f_fiyat').value = p?.fiyat ?? '';
+  $('#f_musteri_fiyat').value = p?.musteri_fiyat ?? '';
   $('#f_cur').value = p?.para_birimi || 'GBP';
   setSelectValue('#f_banyo', p?.banyo_sayisi != null ? String(p.banyo_sayisi) : '');
   $('#f_kat').value = p?.kat || '';
@@ -813,6 +821,7 @@ $('#savePropBtn').addEventListener('click', async () => {
     oda_sayisi: $('#f_oda').value.trim() || null,
     metrekare: numOrNull($('#f_m2').value),
     fiyat: numOrNull($('#f_fiyat').value),
+    musteri_fiyat: numOrNull($('#f_musteri_fiyat').value),
     para_birimi: $('#f_cur').value,
     banyo_sayisi: numOrNull($('#f_banyo').value),
     kat: $('#f_kat').value.trim() || null,
@@ -856,10 +865,10 @@ async function savePropPayload(payload) {
     ? supabase.from('properties').update(pl).eq('id', editId)
     : supabase.from('properties').insert(pl);
   let { error } = await run(payload);
-  if (error && /blok|daire_no|schema cache|column/i.test(error.message || '')) {
-    const { blok, daire_no, ...rest } = payload;
+  if (error && /blok|daire_no|musteri_fiyat|schema cache|column/i.test(error.message || '')) {
+    const { blok, daire_no, musteri_fiyat, ...rest } = payload;
     ({ error } = await run(rest));
-    if (!error) toast('Kaydedildi, fakat Blok/Daire No için önce SQL’i çalıştırın', 'err');
+    if (!error) toast('Kaydedildi, fakat Blok/Daire No/Müşteri fiyatı için önce SQL’i çalıştırın', 'err');
   }
   return error;
 }

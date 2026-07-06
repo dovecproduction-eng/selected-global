@@ -51,6 +51,7 @@ alter table public.properties add column if not exists proje text;
 -- Sadece yönetim panelinde görünen iç bilgiler (portföy/vitrin/ilan sayfasında gösterilmez)
 alter table public.properties add column if not exists blok text;
 alter table public.properties add column if not exists daire_no text;
+alter table public.properties add column if not exists musteri_fiyat numeric; -- müşterinin (mal sahibinin) istediği fiyat — yalnız yönetim
 alter table public.portfolios add column if not exists olusturan text;
 create index if not exists idx_properties_ref on public.properties(ref_kodu);
 
