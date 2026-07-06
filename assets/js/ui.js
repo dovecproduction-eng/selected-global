@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=55';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=55';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=56';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=56';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -449,7 +449,7 @@ export async function makeReel(row, opts = {}, onProgress) {
   try { await document.fonts.ready; } catch (e) {}
 
   let logo = null; try { logo = (await loadImage(BRAND.logoLight)).img; } catch (e) {}
-  const urls = (row.fotograflar || []).slice(0, 8);
+  const urls = (row.fotograflar || []); // tüm fotoğraflar
   const imgs = [];
   for (const u of urls) { try { const { img } = await loadImage(u); imgs.push(img); } catch (e) {} }
   if (!imgs.length) throw new Error('Fotoğraf yok');
