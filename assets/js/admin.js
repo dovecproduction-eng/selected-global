@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=47';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=47';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=48';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=48';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;

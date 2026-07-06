@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=47';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=47';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=48';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=48';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -445,6 +445,7 @@ export async function makeReel(row, opts = {}, onProgress) {
   const isSale = row.tip === 'satilik';
   const region = regionDisplay(row.bolge) || '';
   const regionUp = region.toLocaleUpperCase('tr');
+  try { await document.fonts.load("700 60px 'Dancing Script'"); } catch (e) {}
   try { await document.fonts.ready; } catch (e) {}
 
   let logo = null; try { logo = (await loadImage(BRAND.logoLight)).img; } catch (e) {}
@@ -468,6 +469,13 @@ export async function makeReel(row, opts = {}, onProgress) {
     ctx.drawImage(img, (W - dw) / 2 + panx * W, (H - dh) / 2, dw, dh);
   };
   const botGrad = (from) => { const g = ctx.createLinearGradient(0, H * from, 0, H); g.addColorStop(0, 'rgba(10,37,64,0)'); g.addColorStop(.55, 'rgba(10,37,64,.6)'); g.addColorStop(1, 'rgba(10,37,64,.97)'); ctx.fillStyle = g; ctx.fillRect(0, H * from, W, H * (1 - from)); };
+  const topGrad = (to) => { const g = ctx.createLinearGradient(0, 0, 0, H * to); g.addColorStop(0, 'rgba(10,37,64,.8)'); g.addColorStop(1, 'rgba(10,37,64,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, W, H * to); };
+  const wrapLines = (text, font, maxW, maxLines) => {
+    ctx.font = font; const words = String(text).split(/\s+/); let line = ''; const lines = [];
+    for (const w of words) { const t = line ? line + ' ' + w : w; if (ctx.measureText(t).width > maxW && line) { lines.push(line); line = w; if (lines.length >= maxLines) break; } else line = t; }
+    if (line && lines.length < maxLines) lines.push(line);
+    return lines;
+  };
   const drawLogo = (cx, top, w) => { if (!logo) return; const h = w * (logo.height / logo.width || 0.166); ctx.drawImage(logo, cx - w / 2, top, w, h); };
 
   function drawSpecs() {
@@ -501,26 +509,37 @@ export async function makeReel(row, opts = {}, onProgress) {
     ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
     if (sc.img) drawCover(sc.img, 1.02 + 0.08 * p, (sc.pan || 0) * p);
     if (sc.type === 'hero') {
-      botGrad(0.40);
-      ctx.font = '800 32px Manrope, sans-serif'; const tag = isSale ? 'SATILIK' : 'KİRALIK'; const tw = ctx.measureText(tag).width;
-      roundRect(ctx, 54, 74, tw + 58, 64, 32); ctx.fillStyle = isSale ? gold : '#fff'; ctx.fill();
-      ctx.fillStyle = isSale ? '#fff' : navy; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(tag, 84, 107); ctx.textBaseline = 'alphabetic';
-      drawLogo(W - 195, 78, 270);
+      topGrad(0.34); botGrad(0.40);
+      // Satılık/Kiralık — daha büyük
+      ctx.font = '800 40px Manrope, sans-serif'; const tag = isSale ? 'SATILIK' : 'KİRALIK'; const tw = ctx.measureText(tag).width;
+      roundRect(ctx, 54, 74, tw + 72, 78, 39); ctx.fillStyle = isSale ? gold : '#fff'; ctx.fill();
+      ctx.fillStyle = isSale ? '#fff' : navy; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.fillText(tag, 90, 114); ctx.textBaseline = 'alphabetic';
+      // İlan açıklaması — üstte ortada, el yazısı (script)
+      const acik = (row.aciklama || '').trim();
+      if (acik) {
+        const a = Math.max(0, Math.min(1, (p * sc.dur) / 0.6)); ctx.globalAlpha = a;
+        ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 14;
+        const font = "700 60px 'Dancing Script', cursive"; const lines = wrapLines(acik, font, W - 150, 3);
+        let ty = 200; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 74; });
+        ctx.shadowBlur = 0; ctx.globalAlpha = 1;
+      }
       ctx.globalAlpha = Math.max(0, Math.min(1, (p * sc.dur) / 0.5));
-      let y = H * 0.58;
+      let y = H * 0.60;
       if (regionUp) { ctx.font = '800 40px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 60, y); }
       y += 96; const pf = fitFont(priceText(), '800', 94, W - 120); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(priceText(), 60, y);
       const meta = [row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null, row.konut_tipi].filter(Boolean).join('   ·   ');
       if (meta) { y += 58; ctx.font = '600 38px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(meta, 60, y); }
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
-      botGrad(0.60);
-      // Logo ortada
-      drawLogo(W / 2, H - 250, 320);
-      // Altta: solda lokasyon, sağda proje · oda · m²
-      const infoY = H - 132;
-      if (regionUp) { ctx.font = `800 ${fitFont(regionUp, '800', 36, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.textAlign = 'left'; ctx.fillText(regionUp, 70, infoY); }
-      const right = [row.proje, row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
+      botGrad(0.58);
+      // Logo ortada — daha büyük
+      drawLogo(W / 2, H - 360, 480);
+      // Proje adı sabit ortada (logonun altında)
+      if (row.proje) { ctx.font = `800 ${fitFont(row.proje.toLocaleUpperCase('tr'), '800', 46, W - 160)}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.textAlign = 'center'; ctx.fillText(row.proje.toLocaleUpperCase('tr'), W / 2, H - 210); }
+      // Altta: solda lokasyon, sağda oda · m²
+      const infoY = H - 120;
+      if (regionUp) { ctx.font = `700 ${fitFont(regionUp, '700', 34, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'left'; ctx.fillText(regionUp, 70, infoY); }
+      const right = [row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
       if (right) { ctx.font = `700 ${fitFont(right, '700', 34, W / 2 - 90)}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.textAlign = 'right'; ctx.fillText(right, W - 70, infoY); }
     } else if (sc.type === 'specs') drawSpecs();
     else if (sc.type === 'outro') drawOutro();
