@@ -1,10 +1,10 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY, PUBLIC_CONTACT } from './config.js?v=44';
-import { t, applyI18n, getLang } from './i18n.js?v=44';
+import { supabase, BRAND, CURRENCY, creatorContact } from './config.js?v=45';
+import { t, applyI18n, getLang } from './i18n.js?v=45';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, logoMark, wireCallPrice,
-} from './ui.js?v=44';
+} from './ui.js?v=45';
 
 // "Fiyat için arayınız" → Ara/WhatsApp butonlarına kaydır
 wireCallPrice(() => document.querySelector('.detail-cta') || document.querySelector('.contact-row'));
@@ -13,8 +13,9 @@ document.getElementById('header').innerHTML = renderHeader();
 document.getElementById('footer').innerHTML = renderFooter();
 
 const id = new URLSearchParams(location.search).get('id');
-// İletişim numarası: kim eklerse eklesin müşteriye tek yetkili (Janna) görünür
-let contactRaw = PUBLIC_CONTACT.phoneRaw;
+const telParam = new URLSearchParams(location.search).get('tel');
+// İletişim: portföyden gelen hazırlayan (tel) öncelikli, yoksa daireyi ekleyen, yoksa genel
+let contactRaw = telParam || BRAND.phoneRaw;
 let row = null;
 let activePhoto = 0;
 
@@ -121,6 +122,7 @@ async function load() {
   const { data, error } = await supabase.from('properties').select('*').eq('id', id).single();
   if (error || !data) { notFound(); return; }
   row = data;
+  if (!telParam && row.ekleyen) contactRaw = creatorContact(row.ekleyen).phoneRaw;
   document.title = `${pickTitle(row)} — Selected Global`;
   render();
 }

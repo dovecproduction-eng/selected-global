@@ -33,9 +33,10 @@ export const PUBLIC_CONTACT = { name: 'Janna', phone: '0533 883 45 25', phoneRaw
 // Danışmanlar: ada göre iletişim + giriş e-postasına göre otomatik isim
 // keys: isim eşleşmesi için kelimeler. emails: o kişinin giriş e-posta(ları) (varsa).
 export const CREATORS = [
-  { keys: ['jana', 'janna'], emails: [], name: 'Jana', phone: '0533 883 45 25', phoneRaw: '905338834525' },
-  { keys: ['berk', 'çetinkaya', 'cetinkaya'], emails: ['berk.cetinkaya@dovecgroup.com'], name: 'Berk Çetinkaya', phone: '0533 883 45 25', phoneRaw: '905338834525' },
-  { keys: ['orçun', 'orcun', 'döveç', 'dovec'], emails: [], name: 'Orçun Döveç', phone: '0548 869 05 15', phoneRaw: '905488690515' },
+  { keys: ['izgün', 'izgun', 'günsal', 'gunsal'], emails: [], name: 'İzgün Günsal', phone: '0533 820 55 15', phoneRaw: '905338205515' },
+  { keys: ['janna', 'jana', 'alek', 'emiral'], emails: [], name: 'Janna Alek Emiral', phone: '0533 883 45 25', phoneRaw: '905338834525' },
+  { keys: ['orçun', 'orcun', 'karagöz', 'karagoz'], emails: [], name: 'Orçun Karagöz', phone: '0548 869 05 15', phoneRaw: '905488690515' },
+  { keys: ['celal', 'seyitzade'], emails: [], name: 'Celal Seyitzade', phone: '0539 124 45 25', phoneRaw: '905391244525' },
 ];
 // İsme göre danışmanı bul (yazım farkına dayanıklı); yoksa genel numara
 export function creatorContact(olusturan) {

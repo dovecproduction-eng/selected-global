@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail } from './config.js?v=44';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=44';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS } from './config.js?v=45';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=45';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -918,6 +918,21 @@ async function delPort(kod) {
 let editPortKod = null;
 // Giriş yapan kişinin adı (otomatik) — Hazırlayan ve "daire ekleyen" için
 function currentCreatorName() { return nameFromEmail(myEmail); }
+// Hazırlayan dropdown'ını doldur ve seçili kişiyi ayarla (listede yoksa ekler)
+function fillCreatorSelect(sel) {
+  const el = $('#port_creator'); if (!el) return;
+  el.innerHTML = CREATORS.map((c) => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  if (sel && !CREATORS.some((c) => c.name === sel)) el.insertAdjacentHTML('afterbegin', `<option value="${esc(sel)}">${esc(sel)}</option>`);
+  el.value = sel || CREATORS[0].name;
+}
+// Otomatik varsayılan hazırlayan: son seçilen → giriş e-postasından → ilk kişi
+function defaultCreator() {
+  const remembered = localStorage.getItem('sg_creator');
+  if (remembered && CREATORS.some((c) => c.name === remembered)) return remembered;
+  const auto = currentCreatorName();
+  if (auto && CREATORS.some((c) => c.name === auto)) return auto;
+  return CREATORS[0].name;
+}
 function resetPortFilters() {
   fSel.tip = 'all'; fSel.regions = []; fSel.proje = ''; fSel.furn = ''; fSel.q = '';
   $$('#sf_tip button').forEach((b) => b.classList.toggle('active', b.dataset.tip === 'all'));
@@ -928,7 +943,7 @@ $('#addPortBtn').addEventListener('click', () => {
   editPortKod = null;
   selected = new Set();
   $('#port_title').value = '';
-  $('#port_creator').value = currentCreatorName();
+  fillCreatorSelect(defaultCreator());
   $('#portModalTitle').textContent = 'Yeni portföy';
   $('#savePortBtn').textContent = 'Link oluştur';
   resetPortFilters();
@@ -942,7 +957,7 @@ function openEditPort(kod) {
   editPortKod = kod;
   selected = new Set(port.property_ids || []);
   $('#port_title').value = port.baslik || '';
-  $('#port_creator').value = port.olusturan || currentCreatorName();
+  fillCreatorSelect(port.olusturan || defaultCreator());
   $('#portModalTitle').textContent = 'Portföyü düzenle';
   $('#savePortBtn').textContent = 'Güncelle';
   resetPortFilters();

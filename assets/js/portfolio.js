@@ -1,10 +1,10 @@
 // Selected Global — Portföy linki sayfası (müşteriye gönderilen seçki)
-import { supabase, ALL_LISTINGS_URL, PUBLIC_CONTACT } from './config.js?v=44';
-import { t, applyI18n, getLang } from './i18n.js?v=44';
+import { supabase, ALL_LISTINGS_URL, creatorContact } from './config.js?v=45';
+import { t, applyI18n, getLang } from './i18n.js?v=45';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, wireCallPrice,
-} from './ui.js?v=44';
+} from './ui.js?v=45';
 
 // "Fiyat için arayınız" → alttaki iletişim kartına kaydır
 wireCallPrice(() => document.getElementById('pContact'));
@@ -145,8 +145,8 @@ async function load() {
   const { data: p, error } = await supabase.from('portfolios').select('*').eq('kod', kod).single();
   if (error || !p) { fail(); return; }
   portfolio = p;
-  // İletişim kartı = Janna (isim + telefon). "Hazırlayan" satırı gerçek kişiyi gösterir.
-  contact = PUBLIC_CONTACT;
+  // İletişim = portföyü hazırlayan seçilen kişi (isim + telefon)
+  contact = creatorContact(p.olusturan);
   const ids = p.property_ids || [];
   if (ids.length) {
     const { data: props } = await supabase.from('properties').select('*').in('id', ids);
