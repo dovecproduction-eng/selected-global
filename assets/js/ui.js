@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=61';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=61';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=62';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=62';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -512,7 +512,7 @@ export async function makeReel(row, opts = {}, onProgress) {
     ctx.strokeStyle = 'rgba(201,162,75,.5)'; ctx.lineWidth = 2; ctx.strokeRect(46, 60, W - 92, H - 120);
     drawLogo(W / 2, 140, 360);
     ctx.textAlign = 'center'; ctx.font = '800 42px Manrope, sans-serif'; ctx.fillStyle = goldL; ctx.fillText('DAİRE ÖZELLİKLERİ', W / 2, 400);
-    const rows = [['Bölge', region], ['Proje', row.proje], ['Konut Tipi', row.konut_tipi], ['Oda Sayısı', row.oda_sayisi], ['Alan', row.metrekare ? `${row.metrekare} m²` : null], ['Banyo', row.banyo_sayisi != null ? String(row.banyo_sayisi) : null], ['Kat', row.kat], ['Eşya', row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız')]].filter(([, v]) => v != null && v !== '').slice(0, 7);
+    const rows = [['Bölge', region], ['Proje', row.proje], ['Konut Tipi', row.konut_tipi], ['Oda Sayısı', row.oda_sayisi], ['Alan', row.metrekare ? `${row.metrekare} m²` : null], ['Banyo', row.banyo_sayisi != null ? String(row.banyo_sayisi) : null], ['Eşya', row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız')]].filter(([, v]) => v != null && v !== '').slice(0, 7);
     let y = 520; const x0 = 100, x1 = W - 100;
     rows.forEach(([k, v]) => {
       ctx.textAlign = 'left'; ctx.font = '600 36px Manrope, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,.6)'; ctx.fillText(k, x0, y);
@@ -574,12 +574,12 @@ export async function makeReel(row, opts = {}, onProgress) {
         let ty = H - 400; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 58; });
         ctx.shadowBlur = 0;
       }
-      // Altta ortada: proje → FİYAT → (daire no · eşya · oda · m²)
+      // Altta ortada: proje → FİYAT → (eşya · oda · m²) — daire no ve kat gösterilmez
       ctx.textAlign = 'center';
       let by = H - 230;
       if (row.proje) { const f = fitFont(row.proje.toLocaleUpperCase('tr'), '700', 38, W - 140); ctx.font = `700 ${f}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.fillText(row.proje.toLocaleUpperCase('tr'), W / 2, by); by += 66; }
       const pf = fitFont(priceText(), '800', 58, W - 140); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 8; ctx.fillText(priceText(), W / 2, by); ctx.shadowBlur = 0; by += 56;
-      const specs = [row.daire_no ? `Daire ${row.daire_no}` : null, row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız'), row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
+      const specs = [row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız'), row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
       if (specs) { const f = fitFont(specs, '600', 34, W - 120); ctx.font = `600 ${f}px Manrope, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(specs, W / 2, by); }
     } else if (sc.type === 'specs') drawSpecs();
     else if (sc.type === 'outro') drawOutro();
