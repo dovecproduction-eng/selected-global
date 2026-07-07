@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=59';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=59';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=60';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=60';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};

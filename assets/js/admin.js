@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=59';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=59';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=60';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=60';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -401,7 +401,7 @@ function itemGallery(p, ctx) {
   </div>`;
 }
 function itemCompact(p, ctx) {
-  const meta = [tipBadge(p), p.konut_tipi ? esc(p.konut_tipi) : null, regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : null, p.oda_sayisi ? esc(p.oda_sayisi) : null].filter(Boolean).join(' · ');
+  const meta = [tipBadge(p), p.proje ? `<span class="c-proje">${esc(p.proje)}</span>` : null, p.konut_tipi ? esc(p.konut_tipi) : null, regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : null, p.oda_sayisi ? esc(p.oda_sayisi) : null].filter(Boolean).join(' · ');
   return `<div class="compact-row${selCls(p, ctx)}" data-id="${p.id}">
     ${ctx === 'select' ? `<span class="row-check">${ICON.check}</span>` : ''}
     <span class="c-title">${esc(pickTitle(p) || 'Başlıksız')}</span>
@@ -590,7 +590,7 @@ $('#propView').addEventListener('click', (e) => {
 });
 
 // Görünüm anahtarı (Portföy seçimi)
-let selView = 'list';
+let selView = 'compact';
 $('#selView')?.addEventListener('click', (e) => {
   const b = e.target.closest('button[data-view]'); if (!b) return;
   selView = b.dataset.view;

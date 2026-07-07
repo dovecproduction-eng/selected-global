@@ -398,6 +398,7 @@ button { font-family: inherit; cursor: pointer; }
 .compact-row:hover { background: var(--bg-soft); }
 .compact-row .c-title { font-weight: 700; font-size: .88rem; color: var(--navy); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 0 1 38%; min-width: 90px; }
 .compact-row .c-meta { font-size: .78rem; color: var(--muted); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: flex; align-items: center; gap: 6px; }
+.compact-row .c-meta .c-proje { color: var(--gold); font-weight: 800; }
 .compact-row .c-price { font-weight: 700; color: var(--navy); font-size: .85rem; white-space: nowrap; }
 .compact-row .acts { flex-shrink: 0; }
 
