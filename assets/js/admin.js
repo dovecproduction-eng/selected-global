@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=60';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=60';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=61';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=61';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -396,7 +396,7 @@ function itemGallery(p, ctx) {
   const cover = coverUrl(p);
   return `<div class="gtile${selCls(p, ctx)}" data-id="${p.id}">
     ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
-    <div class="gtile-overlay"><span class="gt-logo">${logoMark(true)}</span><span class="gt-title">${esc(pickTitle(p) || 'Başlıksız')}</span></div>
+    <div class="gtile-overlay">${p.proje ? `<span class="gt-proje">${esc(p.proje)}</span>` : ''}<span class="gt-price">${priceText(p)}</span><span class="gt-title">${esc(pickTitle(p) || 'Başlıksız')}</span></div>
     ${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : `<button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>`}
   </div>`;
 }

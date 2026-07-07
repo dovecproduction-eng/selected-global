@@ -346,6 +346,8 @@ button { font-family: inherit; cursor: pointer; }
 .gtile .ph { position: absolute; inset: 0; display: grid; place-items: center; color: #B6C2D0; }
 .gtile-overlay { position: absolute; left: 0; right: 0; bottom: 0; padding: 34px 10px 8px; background: linear-gradient(to top, rgba(10,37,64,.92) 12%, rgba(10,37,64,.5) 55%, transparent); color: #fff; font-size: .76rem; font-weight: 700; line-height: 1.2; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; }
 .gtile-overlay .gt-logo .logo-img { height: 15px; width: auto; filter: drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
+.gtile-overlay .gt-proje { color: #E4CE96; font-weight: 800; font-size: .64rem; letter-spacing: .04em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.gtile-overlay .gt-price { color: #fff; font-weight: 800; font-size: .95rem; text-shadow: 0 1px 4px rgba(0,0,0,.5); }
 .gtile-overlay .gt-logo .logo-word { font-size: .7rem; color: #fff; }
 .gtile-overlay .gt-title { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 
