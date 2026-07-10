@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=64';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=64';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=65';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=65';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -418,6 +418,19 @@ export async function renderCoverImage(row) {
   return await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));
 }
 
+// Bir görseli (webp/png dahil) JPEG blob'una çevirir — indirme her zaman .jpg olsun diye
+async function fetchAsJpeg(url) {
+  const res = await fetch(url);
+  const blob = await res.blob();
+  if (blob.type === 'image/jpeg') return blob; // zaten jpeg
+  const bmp = await createImageBitmap(blob);
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); // JPEG şeffaflık tutmaz → beyaz zemin
+  ctx.drawImage(bmp, 0, 0); bmp.close && bmp.close();
+  return await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92));
+}
+
 // Daire(ler)in fotoğraflarını + markalı kapağı ZIP olarak indir
 export async function downloadPropertyPhotos(rows, zipName, onProgress) {
   try { await ensureJSZip(); } catch (e) { toast('İndirme aracı yüklenemedi', 'err'); return; }
@@ -438,9 +451,8 @@ export async function downloadPropertyPhotos(rows, zipName, onProgress) {
     const photos = row.fotograflar || [];
     for (let i = 0; i < photos.length; i++) {
       try {
-        const res = await fetch(photos[i]); const blob = await res.blob();
-        const ext = (blob.type.split('/')[1] || 'jpg').replace('jpeg', 'jpg');
-        folder.file(`${String(i + 1).padStart(2, '0')}.${ext}`, blob);
+        const jpeg = await fetchAsJpeg(photos[i]);
+        folder.file(`${String(i + 1).padStart(2, '0')}.jpg`, jpeg);
       } catch (e) {}
       done++; if (onProgress) onProgress(done, total);
     }
