@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=66" />
+  <link rel="stylesheet" href="assets/css/style.css?v=67" />
 </head>
 <body class="admin-body">
 
@@ -141,8 +141,15 @@
             </div>
           </div>
           <p class="text-muted" style="margin-top:0">Daireleri seç → <strong>Seçilenleri indir</strong> → her daire kendi <strong>Blok / Daire No</strong> klasörüne JPG olarak iner.</p>
-          <div class="search" style="margin-bottom:12px"><input id="dlSearch" placeholder="Ara (başlık, proje, blok, daire no)…" /></div>
-          <div class="prop-compact" id="dlGrid"></div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
+            <div class="search" style="flex:1;min-width:180px"><input id="dlSearch" placeholder="Ara (başlık, proje, blok, daire no)…" /></div>
+            <div class="view-switch" id="dlViewSwitch">
+              <button data-dlview="grid" class="active" title="Sütun"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg><span>Sütun</span></button>
+              <button data-dlview="list" title="Liste"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg><span>Liste</span></button>
+              <button data-dlview="compact" title="Kompakt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 6h16M4 10h16M4 14h16M4 18h16"/></svg><span>Kompakt</span></button>
+            </div>
+          </div>
+          <div class="prop-grid" id="dlGrid"></div>
           <div id="dlResult" style="margin-top:12px"></div>
         </div>
       </section>
@@ -433,6 +440,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=66"></script>
+  <script type="module" src="assets/js/admin.js?v=67"></script>
 </body>
 </html>

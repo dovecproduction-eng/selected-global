@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=66';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=66';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=67';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=67';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -1321,21 +1321,33 @@ function dlFiltered() {
   return props.filter((p) => `${pickTitle(p)} ${p.proje || ''} ${p.blok || ''} ${p.daire_no || ''} ${regionDisplay(p.bolge) || ''}`.toLocaleLowerCase('tr').includes(q));
 }
 function updateDlCount() { const el = $('#dlCount'); if (el) el.textContent = dlSelected.size; }
+let dlView = 'grid'; // varsayılan: Sütun
+function dlMeta(p) {
+  return [p.blok ? `Blok ${esc(p.blok)}` : '<span class="miss">Blok yok</span>', p.daire_no ? `No ${esc(p.daire_no)}` : '<span class="miss">No yok</span>', p.proje ? esc(p.proje) : '', regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : ''].filter(Boolean).join(' · ');
+}
+function dlItems(list) {
+  const selc = (p) => (dlSelected.has(p.id) ? ' sel' : '');
+  if (dlView === 'grid') return list.map((p) => {
+    const n = (p.fotograflar || []).length;
+    return `<div class="prop-gcard${selc(p)}" data-id="${p.id}"><div class="gcard-media branded">${brandedCover(p)}${n ? `<span class="pcount">${ICON.camera}${n}</span>` : ''}<span class="row-check tile-check">${ICON.check}</span></div><div class="gcard-body"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div><div class="ekleyen-line" style="color:var(--muted)">${dlMeta(p)}</div></div></div>`;
+  }).join('');
+  if (dlView === 'list') return list.map((p) => {
+    const cover = coverUrl(p); const n = (p.fotograflar || []).length;
+    return `<div class="admin-item${selc(p)}" data-id="${p.id}"><div class="thumb-wrap">${cover ? `<img class="thumb" src="${esc(cover)}" alt="" />` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}</div><div class="meta"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div><div class="s">${dlMeta(p)}</div></div><span class="row-check">${ICON.check}</span></div>`;
+  }).join('');
+  // compact
+  return list.map((p) => {
+    const n = (p.fotograflar || []).length;
+    return `<div class="compact-row${selc(p)}" data-id="${p.id}"><span class="row-check">${ICON.check}</span><span class="c-title">${esc(pickTitle(p) || 'Başlıksız')}</span><span class="c-meta">${dlMeta(p)}</span><span class="c-price">${n} foto</span></div>`;
+  }).join('');
+}
 function renderDlGrid() {
   const el = $('#dlGrid'); if (!el) return;
-  if (!props.length) { el.innerHTML = '<p class="text-muted">Henüz daire yok.</p>'; updateDlCount(); return; }
+  if (!props.length) { el.className = ''; el.innerHTML = '<p class="text-muted">Henüz daire yok.</p>'; updateDlCount(); return; }
   const list = dlFiltered();
-  if (!list.length) { el.innerHTML = '<p class="text-muted">Aramaya uygun daire yok.</p>'; updateDlCount(); return; }
-  el.innerHTML = list.map((p) => {
-    const meta = [p.blok ? `Blok ${esc(p.blok)}` : '<span class="miss">Blok yok</span>', p.daire_no ? `No ${esc(p.daire_no)}` : '<span class="miss">No yok</span>', p.proje ? esc(p.proje) : '', regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : ''].filter(Boolean).join(' · ');
-    const n = (p.fotograflar || []).length;
-    return `<div class="compact-row${dlSelected.has(p.id) ? ' sel' : ''}" data-id="${p.id}">
-      <span class="row-check">${ICON.check}</span>
-      <span class="c-title">${esc(pickTitle(p) || 'Başlıksız')}</span>
-      <span class="c-meta">${meta}</span>
-      <span class="c-price">${n} foto</span>
-    </div>`;
-  }).join('');
+  if (!list.length) { el.className = ''; el.innerHTML = '<p class="text-muted">Aramaya uygun daire yok.</p>'; updateDlCount(); return; }
+  el.className = dlView === 'grid' ? 'prop-grid' : dlView === 'list' ? 'admin-list' : 'prop-compact';
+  el.innerHTML = dlItems(list);
   el.querySelectorAll('[data-id]').forEach((it) => it.addEventListener('click', () => {
     const id = it.dataset.id;
     if (dlSelected.has(id)) { dlSelected.delete(id); it.classList.remove('sel'); }
@@ -1344,6 +1356,12 @@ function renderDlGrid() {
   }));
   updateDlCount();
 }
+$('#dlViewSwitch')?.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-dlview]'); if (!b) return;
+  dlView = b.dataset.dlview;
+  $$('#dlViewSwitch button').forEach((x) => x.classList.toggle('active', x === b));
+  renderDlGrid();
+});
 $('#dlSearch')?.addEventListener('input', (e) => { dlQuery = e.target.value; renderDlGrid(); });
 $('#dlSelAll')?.addEventListener('click', () => {
   const list = dlFiltered();
