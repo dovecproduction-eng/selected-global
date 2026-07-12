@@ -54,9 +54,19 @@ alter table public.properties add column if not exists daire_no text;
 alter table public.properties add column if not exists musteri_fiyat numeric; -- müşterinin (mal sahibinin) istediği fiyat — yalnız yönetim
 alter table public.portfolios add column if not exists olusturan text;
 
--- GİZLİLİK: yönetime özel sütunları dışarıdaki (anon) kullanıcıdan tamamen gizle.
--- Bu sütunlar artık müşteri tarafında ağ trafiğinde bile görünmez; sadece giriş yapan admin (authenticated) okur.
-revoke select (musteri_fiyat, blok, daire_no) on public.properties from anon;
+-- GİZLİLİK: yönetime özel sütunları (musteri_fiyat, blok, daire_no) dışarıdaki (anon)
+-- kullanıcıdan tamamen gizle. Bu sütunlar artık müşteri tarafında ağ trafiğinde bile
+-- görünmez; sadece giriş yapan admin (authenticated) okur.
+--
+-- ÖNEMLİ: Supabase, anon rolüne TABLO GENELİNDE select yetkisi verir. PostgreSQL'de
+-- sütun-bazlı `revoke select (col)`, tablo-geneli grant'ın üstüne geçemez ve etkisiz kalır.
+-- Bu yüzden ÖNCE tablo geneli SELECT'i geri alıp SONRA yalnız güvenli sütunları veriyoruz.
+revoke select on public.properties from anon;
+grant  select (
+  id, ref_kodu, konut_tipi, baslik, title_en, tip, oda_sayisi, fiyat, para_birimi,
+  metrekare, bolge, banyo_sayisi, kat, esyali, ozellikler, aciklama, desc_en,
+  fotograflar, kapak_index, created_at, ekleyen, proje
+) on public.properties to anon;
 create index if not exists idx_properties_ref on public.properties(ref_kodu);
 
 -- FOTOĞRAF deposu (bucket)
