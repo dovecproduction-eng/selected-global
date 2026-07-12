@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=65" />
+  <link rel="stylesheet" href="assets/css/style.css?v=66" />
 </head>
 <body class="admin-body">
 
@@ -68,6 +68,7 @@
         <button data-tab="props" class="active">Daireler</button>
         <button data-tab="ports">Müşteriye Gönder</button>
         <button data-tab="excel">Excel ile ekle</button>
+        <button data-tab="indir">Daireleri indir (jpg)</button>
       </div>
     </div>
 
@@ -125,6 +126,24 @@
             biçim olarak <strong>“CSV UTF-8 (Virgülle ayrılmış)”</strong> seç → kaydet → o <strong>.csv</strong> dosyasını buraya yükle. CSV her zaman sorunsuz çalışır.
           </div>
           <div id="importResult" style="margin-top:12px"></div>
+        </div>
+      </section>
+
+      <!-- DAİRELERİ İNDİR (JPG) -->
+      <section id="tab-indir" class="hidden">
+        <div class="panel">
+          <div class="panel-head">
+            <h3>Daireleri indir <span class="text-muted" style="font-size:.82rem">(JPG — Blok / Daire No klasörleri)</span></h3>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <span class="text-muted" style="font-size:.85rem"><span id="dlCount">0</span> seçili</span>
+              <button class="btn btn-ghost btn-sm" id="dlSelAll">Tümünü seç</button>
+              <button class="btn btn-primary btn-sm" id="dlDownloadBtn">⬇ Seçilenleri indir (JPG)</button>
+            </div>
+          </div>
+          <p class="text-muted" style="margin-top:0">Daireleri seç → <strong>Seçilenleri indir</strong> → her daire kendi <strong>Blok / Daire No</strong> klasörüne JPG olarak iner.</p>
+          <div class="search" style="margin-bottom:12px"><input id="dlSearch" placeholder="Ara (başlık, proje, blok, daire no)…" /></div>
+          <div class="prop-compact" id="dlGrid"></div>
+          <div id="dlResult" style="margin-top:12px"></div>
         </div>
       </section>
 
@@ -414,6 +433,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=65"></script>
+  <script type="module" src="assets/js/admin.js?v=66"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=65';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=65';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=66';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=66';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -321,10 +321,11 @@ $('#loginForm').addEventListener('submit', async (e) => {
 $('#logoutBtn').addEventListener('click', async () => { await supabase.auth.signOut(); showLogin(); });
 
 /* ============== SEKMELER ============== */
-const TAB_IDS = ['props', 'ports', 'excel'];
+const TAB_IDS = ['props', 'ports', 'excel', 'indir'];
 $$('.admin-tabs button').forEach((b) => b.addEventListener('click', () => {
   $$('.admin-tabs button').forEach((x) => x.classList.toggle('active', x === b));
   TAB_IDS.forEach((id) => $(`#tab-${id}`).classList.toggle('hidden', b.dataset.tab !== id));
+  if (b.dataset.tab === 'indir') renderDlGrid();
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }));
 
@@ -1305,5 +1306,67 @@ async function importXlsx(file) {
   toast(bits.join(', ') || 'Tamamlandı', 'ok');
   loadProps();
 }
+
+/* ============== DAİRELERİ İNDİR (JPG — Blok/Daire No klasörleri) ============== */
+let dlSelected = new Set();
+let dlQuery = '';
+// ZIP klasör adı: "Blok A - Daire 12" (yoksa başlık); geçersiz karakterleri temizler
+function dlFolderName(p) {
+  const bd = [p.blok ? `Blok ${p.blok}` : '', p.daire_no ? `Daire ${p.daire_no}` : ''].filter(Boolean).join(' - ');
+  return (bd || slugify(pickTitle(p)) || 'daire').replace(/[\/\\:*?"<>|]/g, '-').trim();
+}
+function dlFiltered() {
+  const q = dlQuery.trim().toLocaleLowerCase('tr');
+  if (!q) return props;
+  return props.filter((p) => `${pickTitle(p)} ${p.proje || ''} ${p.blok || ''} ${p.daire_no || ''} ${regionDisplay(p.bolge) || ''}`.toLocaleLowerCase('tr').includes(q));
+}
+function updateDlCount() { const el = $('#dlCount'); if (el) el.textContent = dlSelected.size; }
+function renderDlGrid() {
+  const el = $('#dlGrid'); if (!el) return;
+  if (!props.length) { el.innerHTML = '<p class="text-muted">Henüz daire yok.</p>'; updateDlCount(); return; }
+  const list = dlFiltered();
+  if (!list.length) { el.innerHTML = '<p class="text-muted">Aramaya uygun daire yok.</p>'; updateDlCount(); return; }
+  el.innerHTML = list.map((p) => {
+    const meta = [p.blok ? `Blok ${esc(p.blok)}` : '<span class="miss">Blok yok</span>', p.daire_no ? `No ${esc(p.daire_no)}` : '<span class="miss">No yok</span>', p.proje ? esc(p.proje) : '', regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : ''].filter(Boolean).join(' · ');
+    const n = (p.fotograflar || []).length;
+    return `<div class="compact-row${dlSelected.has(p.id) ? ' sel' : ''}" data-id="${p.id}">
+      <span class="row-check">${ICON.check}</span>
+      <span class="c-title">${esc(pickTitle(p) || 'Başlıksız')}</span>
+      <span class="c-meta">${meta}</span>
+      <span class="c-price">${n} foto</span>
+    </div>`;
+  }).join('');
+  el.querySelectorAll('[data-id]').forEach((it) => it.addEventListener('click', () => {
+    const id = it.dataset.id;
+    if (dlSelected.has(id)) { dlSelected.delete(id); it.classList.remove('sel'); }
+    else { dlSelected.add(id); it.classList.add('sel'); }
+    updateDlCount();
+  }));
+  updateDlCount();
+}
+$('#dlSearch')?.addEventListener('input', (e) => { dlQuery = e.target.value; renderDlGrid(); });
+$('#dlSelAll')?.addEventListener('click', () => {
+  const list = dlFiltered();
+  const allSel = list.length && list.every((p) => dlSelected.has(p.id));
+  if (allSel) list.forEach((p) => dlSelected.delete(p.id)); else list.forEach((p) => dlSelected.add(p.id));
+  $('#dlSelAll').textContent = allSel ? 'Tümünü seç' : 'Seçimi kaldır';
+  renderDlGrid();
+});
+$('#dlDownloadBtn')?.addEventListener('click', async () => {
+  const rows = props.filter((p) => dlSelected.has(p.id));
+  if (!rows.length) { toast('Önce daire seçin', 'err'); return; }
+  const withPhotos = rows.filter((r) => (r.fotograflar || []).length);
+  if (!withPhotos.length) { toast('Seçilen dairelerde fotoğraf yok', 'err'); return; }
+  const btn = $('#dlDownloadBtn'); const orig = btn.innerHTML; btn.disabled = true;
+  $('#dlResult').innerHTML = '<div class="import-summary">Hazırlanıyor…</div>';
+  try {
+    await downloadPropertyPhotos(withPhotos, `selected-global-daireler-${new Date().toISOString().slice(0, 10)}`, (d, total) => {
+      btn.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span> ${d}/${total}`;
+    }, dlFolderName);
+    $('#dlResult').innerHTML = `<div class="import-summary"><span class="big">✓ ${withPhotos.length} daire indirildi.</span> Her daire kendi Blok/Daire No klasöründe (JPG).</div>`;
+    toast(`${withPhotos.length} daire indirildi`, 'ok');
+  } catch (e) { console.error(e); toast('İndirme hatası', 'err'); }
+  btn.disabled = false; btn.innerHTML = orig;
+});
 
 init();

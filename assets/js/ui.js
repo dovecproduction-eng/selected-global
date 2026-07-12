@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=65';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=65';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=66';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=66';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -432,15 +432,15 @@ async function fetchAsJpeg(url) {
 }
 
 // Daire(ler)in fotoğraflarını + markalı kapağı ZIP olarak indir
-export async function downloadPropertyPhotos(rows, zipName, onProgress) {
+export async function downloadPropertyPhotos(rows, zipName, onProgress, folderNameFn) {
   try { await ensureJSZip(); } catch (e) { toast('İndirme aracı yüklenemedi', 'err'); return; }
   rows = (Array.isArray(rows) ? rows : [rows]).filter(Boolean);
   const zip = new window.JSZip();
   const total = rows.reduce((n, r) => n + 1 + ((r.fotograflar || []).length), 0);
   let done = 0;
   for (const row of rows) {
-    const base = slugify(`${row.bolge || ''}-${pickTitle(row)}`) || 'daire';
-    const folder = rows.length > 1 ? zip.folder(base) : zip;
+    const base = folderNameFn ? folderNameFn(row) : (slugify(`${row.bolge || ''}-${pickTitle(row)}`) || 'daire');
+    const folder = (folderNameFn || rows.length > 1) ? zip.folder(base) : zip;
     // Markalı kapak (ilk dosya)
     try {
       const coverBlob = await renderCoverImage(row);
