@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=70" />
+  <link rel="stylesheet" href="assets/css/style.css?v=71" />
 </head>
 <body class="admin-body">
 
@@ -58,6 +58,13 @@
         </div>
         <div class="header-actions">
           <a href="#" id="viewSiteLink" target="_blank" rel="noopener" class="link-quiet" style="color:#fff">Web sitesi ↗</a>
+          <div class="user-menu">
+            <button class="btn btn-ghost btn-sm" id="userBtn">👤 <span id="userBtnName">Hesabım</span> ▾</button>
+            <div class="user-dropdown hidden" id="userDropdown">
+              <button type="button" data-uact="portfoyum">📊 Portföyüm</button>
+              <button type="button" data-uact="sifre">🔒 Şifre değiştir</button>
+            </div>
+          </div>
           <button class="btn btn-ghost btn-sm" id="logoutBtn">Çıkış</button>
         </div>
       </div>
@@ -438,8 +445,35 @@
     </div>
   </div>
 
+  <!-- ŞİFRE DEĞİŞTİR -->
+  <div class="modal-overlay" id="pwModal">
+    <div class="modal" style="max-width:440px">
+      <div class="modal-head"><h3>Şifre değiştir</h3><button class="icon-btn" data-close></button></div>
+      <div class="modal-body">
+        <form id="pwForm" autocomplete="off">
+          <div class="field"><label>Eski şifre</label><input type="password" id="pwOld" autocomplete="current-password" placeholder="••••••••" /></div>
+          <div class="field"><label>Yeni şifre</label><input type="password" id="pwNew" autocomplete="new-password" placeholder="En az 6 karakter" /></div>
+          <div class="field"><label>Yeni şifre (tekrar)</label><input type="password" id="pwNew2" autocomplete="new-password" placeholder="Yeni şifreyi tekrar yaz" /></div>
+          <p id="pwErr" class="hint" style="color:var(--danger);margin:4px 0 0"></p>
+        </form>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" data-close>Vazgeç</button>
+        <button class="btn btn-primary" id="pwSave">Güncelle</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- PORTFÖYÜM (ANALİZ) -->
+  <div class="modal-overlay" id="statsModal">
+    <div class="modal" style="max-width:920px">
+      <div class="modal-head"><h3 id="statsTitle">Portföyüm</h3><button class="icon-btn" data-close></button></div>
+      <div class="modal-body"><div id="statsBody"></div></div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=70"></script>
+  <script type="module" src="assets/js/admin.js?v=71"></script>
 </body>
 </html>

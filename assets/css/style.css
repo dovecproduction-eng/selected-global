@@ -779,6 +779,33 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .zoom-hint svg { width: 19px; height: 19px; }
 @media (hover: none) { .zoom-hint { opacity: .85; transform: none; } }
 
+/* ---------- Kullanıcı menüsü (header) ---------- */
+.user-menu { position: relative; }
+.user-dropdown { position: absolute; top: calc(100% + 8px); right: 0; z-index: 120; background: #fff; border: 1px solid var(--line); border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); padding: 6px; min-width: 200px; display: flex; flex-direction: column; }
+.user-dropdown button { text-align: left; background: none; border: none; padding: 11px 12px; border-radius: 8px; font-family: inherit; font-size: .92rem; font-weight: 600; color: var(--navy); cursor: pointer; }
+.user-dropdown button:hover { background: var(--bg-tint); }
+
+/* ---------- Portföyüm (analiz dashboard) ---------- */
+.stat-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0 18px; }
+.stat-tiles.small { grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: 10px 0 0; }
+.stat-tile { background: var(--bg-tint); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px 16px 14px; }
+.stat-tile .st-val { font-size: 1.7rem; font-weight: 800; color: var(--navy); line-height: 1.1; letter-spacing: -.01em; }
+.stat-tile .st-label { font-size: .8rem; color: var(--muted); font-weight: 600; margin-top: 4px; }
+.stat-tile.accent { background: var(--navy); border-color: var(--navy); }
+.stat-tile.accent .st-val { color: #fff; }
+.stat-tile.accent .st-label { color: rgba(255,255,255,.75); }
+.stat-tile.warn { background: #FBEFE0; border-color: #EAD3AE; }
+.stat-tile.warn .st-val { color: #8A6A2B; }
+.stat-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+@media (max-width: 620px) { .stat-cols { grid-template-columns: 1fr; } }
+.stat-card { background: #fff; border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+.stat-card h4 { font-size: .78rem; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; font-weight: 800; }
+.stat-bar { display: grid; grid-template-columns: 118px 1fr 34px; align-items: center; gap: 10px; margin-bottom: 9px; }
+.stat-bar .sb-label { font-size: .82rem; color: var(--ink); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.stat-bar .sb-track { height: 10px; background: var(--bg-tint); border-radius: 999px; overflow: hidden; }
+.stat-bar .sb-fill { display: block; height: 100%; background: var(--navy); border-radius: 999px; min-width: 6px; }
+.stat-bar .sb-val { font-size: .85rem; font-weight: 800; color: var(--navy); text-align: right; }
+
 /* Blok / Daire no eksik uyarısı (admin liste) */
 .ekleyen-line .miss { color: var(--danger); font-weight: 800; }
 

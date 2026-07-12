@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=70';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=70';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=71';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=71';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -294,6 +294,7 @@ function showLogin() { $('#loginScreen').classList.remove('hidden'); $('#app').c
 function showApp() {
   $('#loginScreen').classList.add('hidden');
   $('#app').classList.remove('hidden');
+  $('#userBtnName').textContent = currentCreatorName() || 'Hesabım';
   loadProps();
   loadPorts();
   // Adres #ports / #excel ile geldiyse o sekmeyi aç (önizlemeden "geri" için)
@@ -319,6 +320,78 @@ $('#loginForm').addEventListener('submit', async (e) => {
 });
 
 $('#logoutBtn').addEventListener('click', async () => { await supabase.auth.signOut(); showLogin(); });
+
+/* ============== KULLANICI MENÜSÜ / HESAP ============== */
+$('#userBtn')?.addEventListener('click', (e) => { e.stopPropagation(); $('#userDropdown').classList.toggle('hidden'); });
+document.addEventListener('click', (e) => { if (!e.target.closest('.user-menu')) $('#userDropdown')?.classList.add('hidden'); });
+$('#userDropdown')?.addEventListener('click', (e) => {
+  const b = e.target.closest('button[data-uact]'); if (!b) return;
+  $('#userDropdown').classList.add('hidden');
+  if (b.dataset.uact === 'portfoyum') openStats();
+  else if (b.dataset.uact === 'sifre') { $('#pwErr').textContent = ''; $('#pwForm')?.reset(); openModal('#pwModal'); }
+});
+
+// Şifre değiştir: eski şifreyi doğrula → yeni şifreyi (2 kez) güncelle
+$('#pwSave')?.addEventListener('click', async () => {
+  const oldP = $('#pwOld').value, n1 = $('#pwNew').value, n2 = $('#pwNew2').value;
+  const err = $('#pwErr'); err.textContent = '';
+  if (!oldP || !n1 || !n2) { err.textContent = 'Tüm alanları doldurun.'; return; }
+  if (n1.length < 6) { err.textContent = 'Yeni şifre en az 6 karakter olmalı.'; return; }
+  if (n1 !== n2) { err.textContent = 'Yeni şifreler aynı değil.'; return; }
+  const btn = $('#pwSave'); btn.disabled = true; btn.textContent = 'Güncelleniyor…';
+  const { error: authErr } = await supabase.auth.signInWithPassword({ email: myEmail, password: oldP });
+  if (authErr) { err.textContent = 'Eski şifre yanlış.'; btn.disabled = false; btn.textContent = 'Güncelle'; return; }
+  const { error } = await supabase.auth.updateUser({ password: n1 });
+  btn.disabled = false; btn.textContent = 'Güncelle';
+  if (error) { err.textContent = 'Güncellenemedi: ' + error.message; return; }
+  closeModal($('#pwModal')); $('#pwForm').reset(); toast('Şifre güncellendi', 'ok');
+});
+
+// Portföyüm — analiz dashboard'u
+function openStats() {
+  const me = asciiLower(currentCreatorName());
+  const matchMe = (name) => { const n = asciiLower(name || ''); return !!n && !!me && (n === me || n.includes(me) || me.includes(n)); };
+  let scope = props.filter((p) => matchMe(p.ekleyen));
+  let scopeLabel = 'senin eklediğin daireler';
+  if (!scope.length) { scope = props; scopeLabel = 'tüm daireler (sana ait ilan bulunamadı)'; }
+  const myPorts = ports.filter((p) => matchMe(p.olusturan));
+  const total = scope.length;
+  const sat = scope.filter((p) => p.tip === 'satilik');
+  const kir = scope.filter((p) => p.tip === 'kiralik');
+  const byCur = {}; sat.forEach((p) => { if (p.fiyat != null) { const c = p.para_birimi || 'GBP'; (byCur[c] = byCur[c] || []).push(Number(p.fiyat)); } });
+  const avgStr = Object.entries(byCur).map(([c, a]) => `${CURRENCY[c] || ''}${Math.round(a.reduce((x, y) => x + y, 0) / a.length).toLocaleString('tr-TR')}`).join(' · ') || '—';
+  const groupCount = (fn) => { const m = {}; scope.forEach((p) => { const k = fn(p) || 'Belirtilmemiş'; m[k] = (m[k] || 0) + 1; }); return Object.entries(m).sort((a, b) => b[1] - a[1]).slice(0, 8); };
+  const regionRows = groupCount((p) => regionDisplay(p.bolge));
+  const projeRows = groupCount((p) => p.proje);
+  const noPrice = scope.filter((p) => p.fiyat == null).length;
+  const noPhoto = scope.filter((p) => !coverUrl(p)).length;
+  const noBlokDaire = scope.filter((p) => !p.blok || !p.daire_no).length;
+  const bar = (rows) => { const max = Math.max(1, ...rows.map(([, n]) => n)); return rows.map(([label, n]) => `<div class="stat-bar"><span class="sb-label" title="${esc(label)}">${esc(label)}</span><span class="sb-track"><span class="sb-fill" style="width:${Math.round(n / max * 100)}%"></span></span><span class="sb-val">${n}</span></div>`).join(''); };
+  const tile = (val, label, cls) => `<div class="stat-tile${cls ? ' ' + cls : ''}"><div class="st-val">${val}</div><div class="st-label">${esc(label)}</div></div>`;
+  $('#statsTitle').textContent = `Portföyüm — ${currentCreatorName() || ''}`;
+  $('#statsBody').innerHTML = `
+    <p class="text-muted" style="margin-top:0;font-size:.85rem">İstatistikler: <strong>${esc(scopeLabel)}</strong></p>
+    <div class="stat-tiles">
+      ${tile(total, 'Toplam ilan', 'accent')}
+      ${tile(sat.length, 'Satılık')}
+      ${tile(kir.length, 'Kiralık')}
+      ${tile(avgStr, 'Ort. satış fiyatı')}
+      ${tile(myPorts.length, 'Oluşturduğun portföy')}
+    </div>
+    <div class="stat-cols">
+      <div class="stat-card"><h4>Bölgelere göre</h4>${regionRows.length ? bar(regionRows) : '<p class="text-muted">Veri yok</p>'}</div>
+      <div class="stat-card"><h4>Projelere göre</h4>${projeRows.length ? bar(projeRows) : '<p class="text-muted">Veri yok</p>'}</div>
+    </div>
+    <div class="stat-card">
+      <h4>Tamamlanması gerekenler</h4>
+      <div class="stat-tiles small">
+        ${tile(noPrice, 'Fiyatı girilmemiş', noPrice ? 'warn' : '')}
+        ${tile(noPhoto, 'Kendi fotoğrafı yok', noPhoto ? 'warn' : '')}
+        ${tile(noBlokDaire, 'Blok/Daire no eksik', noBlokDaire ? 'warn' : '')}
+      </div>
+    </div>`;
+  openModal('#statsModal');
+}
 
 /* ============== SEKMELER ============== */
 const TAB_IDS = ['props', 'ports', 'excel', 'indir'];
