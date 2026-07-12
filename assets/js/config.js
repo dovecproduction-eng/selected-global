@@ -41,7 +41,7 @@ export const CREATORS = [
   { keys: ['janna', 'jana', 'alek', 'emiral'], emails: [], name: 'Janna Alek Emiral', phone: '0533 883 45 25', phoneRaw: '905338834525' },
   { keys: ['orçun', 'orcun', 'karagöz', 'karagoz'], emails: [], name: 'Orçun Karagöz', phone: '0548 869 05 15', phoneRaw: '905488690515' },
   { keys: ['celal', 'seyitzade'], emails: [], name: 'Celal Seyitzade', phone: '0539 124 45 25', phoneRaw: '905391244525' },
-  { keys: ['cavid', 'javid'], emails: [], name: 'Cavid', phone: '0548 824 05 15', phoneRaw: '905488240515' },
+  { keys: ['cavid', 'javid', 'rustamov'], emails: [], name: 'Cavid Rustamov', phone: '0548 824 05 15', phoneRaw: '905488240515' },
 ];
 // İsme göre danışmanı bul (yazım farkına dayanıklı); yoksa genel numara
 export function creatorContact(olusturan) {
