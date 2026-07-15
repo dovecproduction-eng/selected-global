@@ -874,3 +874,21 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
   .lb-prev { left: 8px; } .lb-next { right: 8px; }
   .lb-nav svg { width: 22px; height: 22px; }
 }
+
+/* ===== Aktivite Kaydı (log) ===== */
+.log-filters { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+.log-filters select, .log-filters input { padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: .9rem; background: #fff; color: var(--navy); }
+.log-filters input[type="search"] { flex: 1; min-width: 150px; }
+.log-filters #logCount { margin-left: auto; font-size: .85rem; white-space: nowrap; }
+.log-table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; }
+.log-table { width: 100%; border-collapse: collapse; font-size: .88rem; }
+.log-table thead th { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); color: var(--muted); font-weight: 600; white-space: nowrap; background: var(--bg-soft); position: sticky; top: 0; }
+.log-table td { padding: 9px 12px; border-bottom: 1px solid var(--line-soft); vertical-align: top; }
+.log-table tbody tr:last-child td { border-bottom: 0; }
+.log-table tbody tr:hover { background: var(--bg-soft); }
+.log-when { white-space: nowrap; color: var(--muted); font-variant-numeric: tabular-nums; }
+.log-detail { color: var(--muted); }
+.log-badge { display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: 999px; font-size: .8rem; font-weight: 600; white-space: nowrap; background: var(--bg-tint); color: var(--navy); }
+.log-badge.ok { background: #E7F6EE; color: #1A7F4B; }
+.log-badge.warn { background: #FBF0E1; color: #A6641A; }
+.log-badge.danger { background: #FBEAEA; color: var(--danger); }

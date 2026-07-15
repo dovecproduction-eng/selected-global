@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=72" />
+  <link rel="stylesheet" href="assets/css/style.css?v=73" />
 </head>
 <body class="admin-body">
 
@@ -61,6 +61,7 @@
           <div class="user-menu">
             <button class="btn btn-ghost btn-sm" id="userBtn">👤 <span id="userBtnName">Hesabım</span> ▾</button>
             <div class="user-dropdown hidden" id="userDropdown">
+              <button type="button" data-uact="log" id="uactLog" class="hidden">🗒️ Aktivite Kaydı</button>
               <button type="button" data-uact="portfoyum">📊 Portföyüm</button>
               <button type="button" data-uact="sifre">🔒 Şifre değiştir</button>
             </div>
@@ -472,8 +473,29 @@
     </div>
   </div>
 
+  <!-- Aktivite Kaydı (yalnız süper admin) -->
+  <div class="modal-overlay" id="logModal">
+    <div class="modal" style="max-width:1120px">
+      <div class="modal-head">
+        <h3>🗒️ Aktivite Kaydı</h3>
+        <button class="btn btn-ghost btn-sm" id="logExportBtn" style="margin-left:auto">📊 Excel indir</button>
+        <button class="icon-btn" data-close></button>
+      </div>
+      <div class="modal-body">
+        <div class="log-filters">
+          <select id="logUser" title="Kişiye göre"></select>
+          <select id="logAction" title="Eyleme göre"></select>
+          <input type="date" id="logDate" title="Tarihe göre" />
+          <input type="search" id="logSearch" placeholder="Ara (ilan, detay)…" />
+          <span id="logCount" class="text-muted"></span>
+        </div>
+        <div id="logBody"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=72"></script>
+  <script type="module" src="assets/js/admin.js?v=73"></script>
 </body>
 </html>

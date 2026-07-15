@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact } from './config.js?v=72';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=72';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=73';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=73';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -285,6 +285,38 @@ $('#f_konut').addEventListener('change', updateKatVisibility);
 
 /* ============== AUTH ============== */
 let myEmail = '';
+// Süper admin (Orçun): her kaydı düzenler/siler, logları görür. Diğerleri yalnız kendi kaydını.
+function isSuperAdmin() { return !!myEmail && asciiLower(myEmail) === asciiLower(SUPER_ADMIN_EMAIL); }
+function ownsRow(row) {
+  if (row && row.owner_email) return asciiLower(row.owner_email) === asciiLower(myEmail);
+  // Sahiplik sütunu henüz dolmadıysa (SQL/backfill öncesi geçiş) ekleyen/oluşturan ADINA göre eşleştir
+  const me = asciiLower(currentCreatorName());
+  const nm = asciiLower(row?.ekleyen || row?.olusturan || '');
+  return !!me && !!nm && (nm === me || nm.includes(me) || me.includes(nm));
+}
+function canEdit(row) { return isSuperAdmin() || ownsRow(row); }
+
+// Kaydı özetleyen kısa etiket (log/onay mesajları için)
+function entityLabel(p) {
+  const bd = [p.blok ? `Blok ${p.blok}` : '', p.daire_no ? `No ${p.daire_no}` : ''].filter(Boolean).join(' ');
+  return pickTitle(p) || bd || p.ref_kodu || 'Daire';
+}
+function moneyStr(v, cur) { return v == null ? '—' : `${CURRENCY[cur] || ''}${Number(v).toLocaleString('tr-TR')}`; }
+
+// Aktivite kaydı yaz (başarısız olursa işlemi bozmaz). action: create|update|delete|price_change|photo_add|photo_download|portfolio_create|media_create
+async function logAct(action, entity_type, entity_ref, detail) {
+  try {
+    await supabase.from('activity_log').insert({
+      actor_email: myEmail || null,
+      actor_name: currentCreatorName() || null,
+      action,
+      entity_type: entity_type || null,
+      entity_ref: entity_ref ? String(entity_ref).slice(0, 200) : null,
+      detail: detail ? String(detail).slice(0, 500) : null,
+    });
+  } catch (_) { /* log tablosu yoksa/başarısızsa sessiz geç */ }
+}
+
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
   if (session) { myEmail = session.user?.email || ''; showApp(); } else showLogin();
@@ -295,6 +327,7 @@ function showApp() {
   $('#loginScreen').classList.add('hidden');
   $('#app').classList.remove('hidden');
   $('#userBtnName').textContent = currentCreatorName() || 'Hesabım';
+  $('#uactLog')?.classList.toggle('hidden', !isSuperAdmin());  // Aktivite Kaydı yalnız süper admine görünür
   loadProps();
   loadPorts();
   // Adres #ports / #excel ile geldiyse o sekmeyi aç (önizlemeden "geri" için)
@@ -329,6 +362,7 @@ $('#userDropdown')?.addEventListener('click', (e) => {
   $('#userDropdown').classList.add('hidden');
   if (b.dataset.uact === 'portfoyum') openStats();
   else if (b.dataset.uact === 'sifre') { $('#pwErr').textContent = ''; $('#pwForm')?.reset(); openModal('#pwModal'); }
+  else if (b.dataset.uact === 'log') openLog();
 });
 
 // Şifre değiştir: eski şifreyi doğrula → yeni şifreyi (2 kez) güncelle
@@ -393,6 +427,88 @@ function openStats() {
   openModal('#statsModal');
 }
 
+/* ============== AKTİVİTE KAYDI (LOG) — yalnız süper admin ============== */
+const ACTION_META = {
+  create:           { label: 'Ekledi',             emoji: '➕', cls: 'ok' },
+  update:           { label: 'Düzenledi',          emoji: '✏️', cls: '' },
+  price_change:     { label: 'Fiyat değiştirdi',   emoji: '💰', cls: 'warn' },
+  photo_add:        { label: 'Fotoğraf ekledi',    emoji: '🖼️', cls: '' },
+  photo_download:   { label: 'Fotoğraf indirdi',   emoji: '⬇️', cls: '' },
+  portfolio_create: { label: 'Portföy oluşturdu',  emoji: '🔗', cls: 'ok' },
+  media_create:     { label: 'Görsel/Video yaptı', emoji: '🎬', cls: '' },
+  export:           { label: 'Excel dışa aktardı', emoji: '📊', cls: '' },
+  delete:           { label: 'Sildi',              emoji: '🗑️', cls: 'danger' },
+};
+function actionMeta(a) { return ACTION_META[a] || { label: a || '—', emoji: '•', cls: '' }; }
+function fmtWhen(iso) { try { return new Date(iso).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso || ''; } }
+
+let logRows = [];
+async function openLog() {
+  if (!isSuperAdmin()) { toast('Bu alanı yalnız yetkili görebilir.', 'err'); return; }
+  $('#logBody').innerHTML = '<p class="text-muted">Yükleniyor…</p>';
+  openModal('#logModal');
+  const { data, error } = await supabase.from('activity_log').select('*').order('created_at', { ascending: false }).limit(2000);
+  if (error) {
+    $('#logBody').innerHTML = `<p class="text-muted">Kayıtlar yüklenemedi. Önce SQL'i (v73) çalıştırdığınızdan emin olun.<br><small>${esc(error.message || '')}</small></p>`;
+    return;
+  }
+  logRows = data || [];
+  // Filtre seçeneklerini doldur (kişi + eylem)
+  const users = [...new Set(logRows.map((r) => r.actor_name || r.actor_email).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
+  $('#logUser').innerHTML = '<option value="">Herkes</option>' + users.map((u) => `<option value="${esc(u)}">${esc(u)}</option>`).join('');
+  const actions = [...new Set(logRows.map((r) => r.action))];
+  $('#logAction').innerHTML = '<option value="">Tüm eylemler</option>' + actions.map((a) => `<option value="${esc(a)}">${esc(actionMeta(a).label)}</option>`).join('');
+  renderLog();
+}
+
+function filteredLog() {
+  const u = $('#logUser')?.value || '', a = $('#logAction')?.value || '', d = $('#logDate')?.value || '', q = asciiLower(($('#logSearch')?.value || '').trim());
+  return logRows.filter((r) => {
+    if (u && (r.actor_name || r.actor_email) !== u) return false;
+    if (a && r.action !== a) return false;
+    if (d && (r.created_at || '').slice(0, 10) !== d) return false;
+    if (q) { const hay = asciiLower(`${r.entity_ref || ''} ${r.detail || ''} ${r.actor_name || ''}`); if (!hay.includes(q)) return false; }
+    return true;
+  });
+}
+
+function renderLog() {
+  const rows = filteredLog();
+  $('#logCount').textContent = `${rows.length} kayıt`;
+  if (!rows.length) { $('#logBody').innerHTML = '<p class="text-muted">Bu filtreye uygun kayıt yok.</p>'; return; }
+  $('#logBody').innerHTML = `
+    <div class="log-table-wrap"><table class="log-table">
+      <thead><tr><th>Tarih & Saat</th><th>Kişi</th><th>Eylem</th><th>İlan / Öğe</th><th>Detay</th></tr></thead>
+      <tbody>${rows.map((r) => { const m = actionMeta(r.action); return `<tr>
+        <td class="log-when">${esc(fmtWhen(r.created_at))}</td>
+        <td>${esc(r.actor_name || r.actor_email || '—')}</td>
+        <td><span class="log-badge ${m.cls}">${m.emoji} ${esc(m.label)}</span></td>
+        <td>${esc(r.entity_ref || '—')}</td>
+        <td class="log-detail">${esc(r.detail || '')}</td>
+      </tr>`; }).join('')}</tbody>
+    </table></div>`;
+}
+
+function exportLog() {
+  if (!window.XLSX) { toast('Excel aracı yüklenemedi, sayfayı yenileyin', 'err'); return; }
+  const rows = filteredLog();
+  if (!rows.length) { toast('Aktarılacak kayıt yok', 'err'); return; }
+  const header = ['Tarih & Saat', 'Kişi', 'E-posta', 'Eylem', 'İlan / Öğe', 'Detay'];
+  const aoa = [header, ...rows.map((r) => [fmtWhen(r.created_at), r.actor_name || '', r.actor_email || '', actionMeta(r.action).label, r.entity_ref || '', r.detail || ''])];
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 18 }, { wch: 18 }, { wch: 26 }, { wch: 18 }, { wch: 28 }, { wch: 40 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Aktivite');
+  XLSX.writeFile(wb, `selected-global-aktivite-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  toast(`${rows.length} kayıt dışa aktarıldı`, 'ok');
+}
+
+$('#logUser')?.addEventListener('change', renderLog);
+$('#logAction')?.addEventListener('change', renderLog);
+$('#logDate')?.addEventListener('change', renderLog);
+$('#logSearch')?.addEventListener('input', renderLog);
+$('#logExportBtn')?.addEventListener('click', exportLog);
+
 /* ============== SEKMELER ============== */
 const TAB_IDS = ['props', 'ports', 'excel', 'indir'];
 $$('.admin-tabs button').forEach((b) => b.addEventListener('click', () => {
@@ -444,6 +560,7 @@ function priceText(p) { return p.fiyat != null ? fmtPrice(p.fiyat, p.para_birimi
 function tipBadge(p) { return `<span class="badge-${p.tip === 'satilik' ? 'sale' : 'rent'}">${p.tip === 'satilik' ? 'Satılık' : 'Kiralık'}</span>`; }
 function itemTail(p, ctx) {
   if (ctx === 'select') return `<span class="row-check">${ICON.check}</span>`;
+  if (!canEdit(p)) return `<div class="acts"></div>`;   // yalnız sahibi/süper admin düzenler-siler
   return `<div class="acts"><button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div>`;
 }
 function selCls(p, ctx) { return ctx === 'select' && selected.has(p.id) ? ' sel' : ''; }
@@ -483,7 +600,7 @@ function itemGallery(p, ctx) {
   return `<div class="gtile${selCls(p, ctx)}" data-id="${p.id}">
     ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
     <div class="gtile-overlay">${p.proje ? `<span class="gt-proje">${esc(p.proje)}</span>` : ''}<span class="gt-price">${priceText(p)}</span><span class="gt-title">${esc(pickTitle(p) || 'Başlıksız')}</span></div>
-    ${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : `<button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>`}
+    ${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : (canEdit(p) ? `<button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>` : '')}
   </div>`;
 }
 function itemCompact(p, ctx) {
@@ -510,7 +627,7 @@ function viewTable(list, ctx) {
     <td>${p.metrekare != null ? esc(p.metrekare) : '—'}</td>
     <td class="price">${priceText(p)}</td>
     <td>${p.esyali == null ? '—' : (p.esyali ? 'Eşyalı' : 'Eşyasız')}</td>
-    ${ctx === 'browse' ? `<td><div class="t-acts"><button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div></td>` : ''}
+    ${ctx === 'browse' ? `<td><div class="t-acts">${canEdit(p) ? `<button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>` : ''}</div></td>` : ''}
   </tr>`).join('');
   return `<table class="prop-table"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
 }
@@ -578,7 +695,7 @@ function openGallery(id) {
   const coverHtml = photos.length
     ? brandedCover(p)
     : `<div class="cover-figure"><div class="cover-photo" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}<span style="color:var(--muted);font-size:.85rem;margin-top:8px">Fotoğraf yok</span></div></div>`;
-  const selectStrip = photos.length > 1
+  const selectStrip = (photos.length > 1 && canEdit(p))
     ? `<div class="cover-select">
          <div class="cover-select-label">Kapak fotoğrafını seç (tıkla):</div>
          <div class="cover-thumbs" id="pmCoverThumbs">
@@ -619,6 +736,7 @@ function openGallery(id) {
     renderPropList();                    // listedeki kapak da değişsin
   };
 
+  $('#pmEdit').classList.toggle('hidden', !canEdit(p));  // düzenleme yalnız sahibe/süper admine
   $('#pmEdit').onclick = () => { closeModal($('#photoModal')); openProp(id); };
   $('#pmOpen').href = `daire.html?id=${id}`;
   const dl = $('#pmDownload');
@@ -629,6 +747,7 @@ function openGallery(id) {
     dl.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Hazırlanıyor…</span>`;
     await downloadPropertyPhotos([p], slugify(`${p.bolge || ''}-${pickTitle(p)}`), () => {});
     dl.disabled = false; dl.innerHTML = orig;
+    logAct('photo_download', 'property', entityLabel(p), '1 daire');
     toast('Fotoğraflar indirildi', 'ok');
   };
 
@@ -648,6 +767,7 @@ function openGallery(id) {
         fileName: slugify(`${p.bolge || ''}-${pickTitle(p) || 'daire'}`) + '-reels',
       }, (pr) => { reel.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Video hazırlanıyor… %${Math.round(pr * 100)}</span>`; });
       reel.disabled = false; reel.innerHTML = orig;
+      logAct('media_create', 'property', entityLabel(p), 'Instagram videosu');
       toast(ext === 'mp4' ? 'Video indirildi (MP4)' : 'Video indirildi (WebM — Instagram için Safari önerilir)', 'ok');
     } catch (e) {
       console.error(e); reel.disabled = false; reel.innerHTML = orig;
@@ -919,6 +1039,8 @@ $('#savePropBtn').addEventListener('click', async () => {
     kapak_index: 0,
     // Ekleyen: mevcut varsa korunur, yoksa (yeni daire ya da eski boş kayıt) giriş yapan
     ekleyen: (editId && props.find((x) => x.id === editId)?.ekleyen) || currentCreatorName() || null,
+    // Sahip (yetki için): düzenlemede mevcut sahip korunur; yeni kayıtta giriş yapan kişinin e-postası
+    owner_email: (editId ? (props.find((x) => x.id === editId)?.owner_email ?? null) : (myEmail || null)),
   };
 
   // Mükerrer uyarısı (sadece yeni daire eklerken)
@@ -930,6 +1052,7 @@ $('#savePropBtn').addEventListener('click', async () => {
     }
   }
 
+  const before = editId ? props.find((x) => x.id === editId) : null;
   const btn = $('#savePropBtn'); btn.disabled = true; btn.textContent = 'Kaydediliyor…';
   const error = await savePropPayload(payload);
 
@@ -937,6 +1060,20 @@ $('#savePropBtn').addEventListener('click', async () => {
   if (error) { console.error(error); toast('Kaydedilemedi: ' + error.message, 'err'); return; }
   closeModal($('#propModal'));
   toast(editId ? 'Daire güncellendi' : 'Daire eklendi', 'ok');
+
+  // ---- Aktivite kaydı ----
+  const label = entityLabel(payload);
+  if (!editId) {
+    logAct('create', 'property', label, `${(payload.fotograflar || []).length} fotoğraf · ${moneyStr(payload.fiyat, payload.para_birimi)}`);
+  } else {
+    logAct('update', 'property', label, null);
+    if ((before?.fiyat ?? null) !== (payload.fiyat ?? null))
+      logAct('price_change', 'property', label, `Satış: ${moneyStr(before?.fiyat, before?.para_birimi)} → ${moneyStr(payload.fiyat, payload.para_birimi)}`);
+    if ((before?.musteri_fiyat ?? null) !== (payload.musteri_fiyat ?? null))
+      logAct('price_change', 'property', label, `İstenen: ${moneyStr(before?.musteri_fiyat, before?.para_birimi)} → ${moneyStr(payload.musteri_fiyat, payload.para_birimi)}`);
+    const oldN = (before?.fotograflar || []).length, newN = (payload.fotograflar || []).length;
+    if (newN > oldN) logAct('photo_add', 'property', label, `+${newN - oldN} fotoğraf (toplam ${newN})`);
+  }
   loadProps();
 });
 
@@ -953,22 +1090,24 @@ async function savePropPayload(payload) {
     ? supabase.from('properties').update(pl).eq('id', editId)
     : supabase.from('properties').insert(pl);
   let { error } = await run(payload);
-  if (error && /blok|daire_no|musteri_fiyat|schema cache|column/i.test(error.message || '')) {
-    const { blok, daire_no, musteri_fiyat, ...rest } = payload;
+  if (error && /blok|daire_no|musteri_fiyat|owner_email|schema cache|column/i.test(error.message || '')) {
+    const { blok, daire_no, musteri_fiyat, owner_email, ...rest } = payload;
     ({ error } = await run(rest));
-    if (!error) toast('Kaydedildi, fakat Blok/Daire No/Müşteri fiyatı için önce SQL’i çalıştırın', 'err');
+    if (!error) toast('Kaydedildi, fakat Blok/Daire No/Sahiplik için önce SQL’i çalıştırın', 'err');
   }
   return error;
 }
 
 async function delProp(id) {
   const p = props.find((x) => x.id === id);
+  if (p && !canEdit(p)) { toast('Bu daireyi silme yetkiniz yok — yalnız ekleyen kişi veya Orçun silebilir.', 'err'); return; }
   if (!confirm(`"${pickTitle(p) || 'Bu daire'}" silinecek. Emin misiniz?`)) return;
   // Storage fotoğraflarını da temizle — ORTAK (_ortak/) fotoğraflar paylaşımlı, onları SİLME
   const paths = (p.fotograflar || []).map(urlToPath).filter(Boolean).filter((path) => !path.startsWith('_ortak/'));
   if (paths.length) await supabase.storage.from(STORAGE_BUCKET).remove(paths).catch(() => {});
   const { error } = await supabase.from('properties').delete().eq('id', id);
   if (error) { toast('Silinemedi', 'err'); return; }
+  logAct('delete', 'property', entityLabel(p || { id }), null);
   toast('Daire silindi', 'ok');
   loadProps();
 }
@@ -992,6 +1131,7 @@ function renderPortList() {
     const url = portUrl(p.kod);
     const count = (p.property_ids || []).length;
     const date = new Date(p.created_at).toLocaleDateString('tr-TR');
+    const editable = canEdit(p);   // yalnız oluşturan/süper admin düzenler-siler
     return `
     <div class="port-card" data-preview="${url}&admin=1" title="Önizlemek için tıkla">
       <div class="port-card-top">
@@ -1000,8 +1140,8 @@ function renderPortList() {
           <div class="port-title">${esc(p.baslik || 'Başlıksız portföy')}</div>
           <div class="port-sub">${count} daire · ${date}${p.olusturan ? ' · Hazırlayan: ' + esc(p.olusturan) : ''}</div>
         </div>
-        <button class="icon-btn" data-editport="${p.kod}" title="Düzenle">${ICON.edit}</button>
-        <button class="icon-btn danger" data-delport="${p.kod}" title="Portföyü sil">${ICON.trash}</button>
+        ${editable ? `<button class="icon-btn" data-editport="${p.kod}" title="Düzenle">${ICON.edit}</button>
+        <button class="icon-btn danger" data-delport="${p.kod}" title="Portföyü sil">${ICON.trash}</button>` : ''}
       </div>
       <div class="port-link" data-copy="${p.kod}" title="Kopyalamak için tıkla">
         <span class="port-link-url">${esc(url)}</span>
@@ -1009,7 +1149,7 @@ function renderPortList() {
       </div>
       <div class="port-actions">
         <a class="btn btn-wa btn-sm" href="${waShare(url)}" target="_blank" rel="noopener">${ICON.wa}<span>WhatsApp'tan gönder</span></a>
-        <button class="btn btn-ghost btn-sm" data-editport="${p.kod}">${ICON.edit}<span>Düzenle</span></button>
+        ${editable ? `<button class="btn btn-ghost btn-sm" data-editport="${p.kod}">${ICON.edit}<span>Düzenle</span></button>` : ''}
         <a class="btn btn-ghost btn-sm" href="${url}&admin=1" target="_blank" rel="noopener">${ICON.link}<span>Önizle</span></a>
       </div>
     </div>`;
@@ -1026,9 +1166,12 @@ function renderPortList() {
 }
 
 async function delPort(kod) {
+  const pt = ports.find((x) => x.kod === kod);
+  if (pt && !canEdit(pt)) { toast('Bu portföyü silme yetkiniz yok — yalnız oluşturan kişi veya Orçun silebilir.', 'err'); return; }
   if (!confirm('Bu portföy linki silinecek. Link artık çalışmayacak. Emin misiniz?')) return;
   const { error } = await supabase.from('portfolios').delete().eq('kod', kod);
   if (error) { toast('Silinemedi', 'err'); return; }
+  logAct('delete', 'portfolio', pt?.baslik || kod, null);
   toast('Portföy silindi', 'ok'); loadPorts();
 }
 
@@ -1133,7 +1276,12 @@ $('#savePortBtn').addEventListener('click', async () => {
     ({ error } = await supabase.from('portfolios').update(payload).eq('kod', kod));
   } else {
     kod = Math.random().toString(36).slice(2, 9);
-    ({ error } = await supabase.from('portfolios').insert({ kod, ...payload }));
+    const full = { kod, ...payload, owner_email: myEmail || null };
+    ({ error } = await supabase.from('portfolios').insert(full));
+    if (error && /owner_email|schema cache|column/i.test(error.message || '')) {
+      const { owner_email, ...rest } = full;              // owner_email sütunu henüz yoksa onsuz dene
+      ({ error } = await supabase.from('portfolios').insert(rest));
+    }
   }
 
   btn.disabled = false; btn.textContent = origLabel;
@@ -1142,6 +1290,7 @@ $('#savePortBtn').addEventListener('click', async () => {
   editPortKod = null;
   closeModal($('#portModal'));
   if (wasEdit) { toast('Portföy güncellendi (link aynı)', 'ok'); } else { showLink(kod); }
+  logAct(wasEdit ? 'update' : 'portfolio_create', 'portfolio', payload.baslik || kod, `${ids.length} daire`);
   loadPorts();
 });
 
@@ -1247,6 +1396,7 @@ $('#exportBtn')?.addEventListener('click', () => {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, 'Daireler');
   XLSX.writeFile(wb, `selected-global-daireler-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  logAct('export', 'property', `${props.length} daire (Excel)`, 'Tüm daireler Excel olarak dışa aktarıldı');
   toast(`${props.length} daire dışa aktarıldı`, 'ok');
 });
 
@@ -1455,6 +1605,7 @@ $('#dlDownloadBtn')?.addEventListener('click', async () => {
       btn.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span> ${d}/${total}`;
     }, dlFolderName);
     $('#dlResult').innerHTML = `<div class="import-summary"><span class="big">✓ ${withPhotos.length} daire indirildi.</span> Her daire kendi Blok/Daire No klasöründe (JPG).</div>`;
+    logAct('photo_download', 'property', `${withPhotos.length} daire (toplu)`, null);
     toast(`${withPhotos.length} daire indirildi`, 'ok');
   } catch (e) { console.error(e); toast('İndirme hatası', 'err'); }
   btn.disabled = false; btn.innerHTML = orig;

@@ -69,6 +69,68 @@ grant  select (
 ) on public.properties to anon;
 create index if not exists idx_properties_ref on public.properties(ref_kodu);
 
+-- ============================================================
+-- v73 — SAHİPLİK & YETKİ + AKTİVİTE KAYDI (LOG)
+-- Bu bloğu Supabase → SQL Editor'da BİR KEZ çalıştırın (tekrar çalıştırmak güvenli).
+-- Kural: Orçun (süper admin) her şeyi düzenler/siler ve logları görür.
+--        Diğer danışmanlar yalnız KENDİ ekledikleri kaydı düzenler/siler.
+-- ============================================================
+
+-- 1) Sahiplik: her kaydı kimin oluşturduğu (giriş e-postası). Yeni kayıtta panel otomatik yazar.
+alter table public.properties add column if not exists owner_email text;
+alter table public.portfolios add column if not exists owner_email text;
+
+-- 2) YETKİ (RLS): eski geniş "for all" politikalarını kaldır, sahip-bazlı politikalar kur.
+drop policy if exists "write_properties" on public.properties;
+drop policy if exists "write_portfolios" on public.portfolios;
+
+-- properties — ekleme/düzenleme/silme yalnız kendi kaydında (veya süper admin ise hepsinde)
+drop policy if exists "props_insert" on public.properties;
+drop policy if exists "props_update" on public.properties;
+drop policy if exists "props_delete" on public.properties;
+create policy "props_insert" on public.properties for insert to authenticated
+  with check ( owner_email = (auth.jwt() ->> 'email') or (auth.jwt() ->> 'email') = 'orcundovec@gmail.com' );
+create policy "props_update" on public.properties for update to authenticated
+  using  ( owner_email = (auth.jwt() ->> 'email') or (auth.jwt() ->> 'email') = 'orcundovec@gmail.com' );
+create policy "props_delete" on public.properties for delete to authenticated
+  using  ( owner_email = (auth.jwt() ->> 'email') or (auth.jwt() ->> 'email') = 'orcundovec@gmail.com' );
+
+-- portfolios — aynı kural
+drop policy if exists "ports_insert" on public.portfolios;
+drop policy if exists "ports_update" on public.portfolios;
+drop policy if exists "ports_delete" on public.portfolios;
+create policy "ports_insert" on public.portfolios for insert to authenticated
+  with check ( owner_email = (auth.jwt() ->> 'email') or (auth.jwt() ->> 'email') = 'orcundovec@gmail.com' );
+create policy "ports_update" on public.portfolios for update to authenticated
+  using  ( owner_email = (auth.jwt() ->> 'email') or (auth.jwt() ->> 'email') = 'orcundovec@gmail.com' );
+create policy "ports_delete" on public.portfolios for delete to authenticated
+  using  ( owner_email = (auth.jwt() ->> 'email') or (auth.jwt() ->> 'email') = 'orcundovec@gmail.com' );
+
+-- 3) AKTİVİTE KAYDI (LOG) — değiştirilemez; herkes kendi adına yazar, YALNIZ Orçun okur.
+create table if not exists public.activity_log (
+  id          uuid primary key default gen_random_uuid(),
+  created_at  timestamptz not null default now(),
+  actor_email text,
+  actor_name  text,
+  action      text not null,   -- create|update|delete|price_change|photo_add|photo_download|portfolio_create|media_create
+  entity_type text,            -- property|portfolio
+  entity_ref  text,
+  detail      text
+);
+alter table public.activity_log enable row level security;
+-- herkes yalnız KENDİ adına log yazabilir
+drop policy if exists "log_insert" on public.activity_log;
+create policy "log_insert" on public.activity_log for insert to authenticated
+  with check ( actor_email = (auth.jwt() ->> 'email') );
+-- yalnız Orçun okuyabilir; güncelleme/silme politikası YOK → kayıt değiştirilemez/silinemez
+drop policy if exists "log_read" on public.activity_log;
+create policy "log_read" on public.activity_log for select to authenticated
+  using ( (auth.jwt() ->> 'email') = 'orcundovec@gmail.com' );
+-- anon hiç göremez; authenticated yalnız ekler/okur
+revoke all on public.activity_log from anon;
+grant select, insert on public.activity_log to authenticated;
+create index if not exists idx_activity_log_created on public.activity_log(created_at desc);
+
 -- FOTOĞRAF deposu (bucket)
 insert into storage.buckets (id, name, public)
 values ('property-images', 'property-images', true)

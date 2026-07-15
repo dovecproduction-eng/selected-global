@@ -7,6 +7,10 @@ export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiO
 
 export const STORAGE_BUCKET = 'property-images';
 
+// SÜPER ADMIN — her şeyi düzenleyip silebilen ve aktivite loglarını görebilen tek kişi.
+// (Panelde 'admin' rozeti yok; dışarıdan sıradan danışman gibi görünür.) Değişirse burayı güncelle.
+export const SUPER_ADMIN_EMAIL = 'orcundovec@gmail.com';
+
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // Müşteri (public) tarafında çekilecek sütunlar — YÖNETİME ÖZEL alanlar (musteri_fiyat, blok, daire_no)
