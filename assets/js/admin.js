@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=77';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=77';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=78';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=78';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -759,9 +759,8 @@ function openGallery(id) {
     const orig = reel.innerHTML; reel.disabled = true;
     reel.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Video hazırlanıyor… %0</span>`;
     try {
-      // İletişim = oturum açan kişi (giriş e-postası tanınmazsa son seçilen/varsayılan)
-      const who = currentCreatorName();
-      const contact = creatorContact(CREATORS.some((c) => c.name === who) ? who : defaultCreator());
+      // Video sonundaki iletişim = daireyi ekleyen/atanan kişi (adı soyadı + telefonu)
+      const contact = creatorContact(p.ekleyen);
       const ext = await downloadReel(p, {
         contact,
         fileName: slugify(`${p.bolge || ''}-${pickTitle(p) || 'daire'}`) + '-reels',
