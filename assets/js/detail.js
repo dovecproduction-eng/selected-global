@@ -1,10 +1,10 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=79';
-import { t, applyI18n, getLang } from './i18n.js?v=79';
+import { supabase, BRAND, CURRENCY, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=80';
+import { t, applyI18n, getLang } from './i18n.js?v=80';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, logoMark, wireCallPrice,
-} from './ui.js?v=79';
+} from './ui.js?v=80';
 
 // "Fiyat için arayınız" → Ara/WhatsApp butonlarına kaydır
 wireCallPrice(() => document.querySelector('.detail-cta') || document.querySelector('.contact-row'));
@@ -131,6 +131,26 @@ function notFound() {
   document.getElementById('detail').innerHTML =
     `<div class="state"><h3>${t('detail_not_found')}</h3><a class="link-quiet" href="index.html">← ${t('back_to_listings')}</a></div>`;
 }
+
+// İlan sayfasında klavye ok tuşlarıyla galeride gezin (← önceki / → sonraki)
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+  if (document.querySelector('.lightbox')) return;   // tam ekran galeri açıksa gezinmeyi ona bırak
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || tag === 'select') return;
+  const photos = (row && row.fotograflar) || [];
+  if (photos.length < 2) return;
+  e.preventDefault();
+  activePhoto = (activePhoto + (e.key === 'ArrowRight' ? 1 : -1) + photos.length) % photos.length;
+  const mi = document.getElementById('mainImg');
+  if (mi) mi.src = photos[activePhoto];
+  const th = document.getElementById('thumbs');
+  if (th) th.querySelectorAll('img').forEach((x, i) => {
+    const on = i === activePhoto;
+    x.classList.toggle('active', on);
+    if (on) x.scrollIntoView({ inline: 'nearest', block: 'nearest' });
+  });
+});
 
 wireLangSwitch(() => { if (row) render(); });
 applyI18n(document);
