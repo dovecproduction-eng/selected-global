@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=78';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=78';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=79';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=79';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -256,6 +256,15 @@ function applyProjectPhotos(proje) {
     commons.forEach((url) => { if (!have.has(url)) photos.push({ url, path: urlToPath(url), common: true }); });
   }
   renderPreviews();
+}
+
+// Seçili projenin ortak fotoğraflarını HER ZAMAN garanti et — kaç foto olursa olsun,
+// düzenleme/yükleme sırası ne olursa olsun eksik kalanları kayıtta sona ekler.
+function withProjectCommons(urls, proje) {
+  const commons = PROJECT_COMMON_PHOTOS[proje] || [];
+  if (!commons.length) return urls;
+  const have = new Set(urls);
+  return [...urls, ...commons.filter((u) => !have.has(u))];
 }
 
 // Kullanıcı projeyi değiştirince il/ilçe + olanaklar + ortak fotoğraflar otomatik dolar (kayıt yüklerken tetiklenmez)
@@ -1058,7 +1067,7 @@ $('#savePropBtn').addEventListener('click', async () => {
     kat: $('#f_kat').value.trim() || null,
     esyali: $('#f_esyali').value === '' ? null : $('#f_esyali').value === 'true',
     aciklama: $('#f_aciklama').value.trim() || null,
-    fotograflar: photos.map((p) => p.url),
+    fotograflar: withProjectCommons(photos.map((p) => p.url), $('#f_proje').value || null),
     kapak_index: 0,
     // Ekleyen: süper admin atadıysa o danışman; yoksa mevcut korunur; yoksa giriş yapan
     ekleyen: assignName || prevRow?.ekleyen || currentCreatorName() || null,
