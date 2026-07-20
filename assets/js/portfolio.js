@@ -1,10 +1,10 @@
 // Selected Global — Portföy linki sayfası (müşteriye gönderilen seçki)
-import { supabase, ALL_LISTINGS_URL, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=75';
-import { t, applyI18n, getLang } from './i18n.js?v=75';
+import { supabase, ALL_LISTINGS_URL, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=76';
+import { t, applyI18n, getLang } from './i18n.js?v=76';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, wireCallPrice,
-} from './ui.js?v=75';
+} from './ui.js?v=76';
 
 // "Fiyat için arayınız" → alttaki iletişim kartına kaydır
 wireCallPrice(() => document.getElementById('pContact'));

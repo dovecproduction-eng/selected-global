@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=75';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=75';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=76';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=76';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -866,8 +866,24 @@ function openProp(id) {
     const ordered = [p.fotograflar[cov], ...p.fotograflar.filter((_, i) => i !== cov)];
     photos = ordered.map((url) => ({ url, path: urlToPath(url) }));
   }
+  // Satış danışmanı atama alanı — yalnız süper admin (Orçun) görür
+  const af = $('#assignField');
+  if (af) {
+    af.style.display = isSuperAdmin() ? '' : 'none';
+    if (isSuperAdmin()) {
+      fillAssignSelect();
+      const cur = id ? (CREATORS.find((c) => asciiLower(c.name) === asciiLower(p?.ekleyen))?.name || null) : null;
+      $('#f_assign').value = cur || 'Janna Alek Emiral';   // yeni dairede varsayılan: Janna
+    }
+  }
   renderPreviews();
   openModal('#propModal');
+}
+// Atama menüsünü CREATORS ile doldur (bir kez)
+function fillAssignSelect() {
+  const el = $('#f_assign'); if (!el || el.dataset.filled) return;
+  el.innerHTML = CREATORS.map((c) => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  el.dataset.filled = '1';
 }
 
 function urlToPath(url) {
@@ -1018,6 +1034,14 @@ $('#savePropBtn').addEventListener('click', async () => {
   }
   $('#f_il').style.borderColor = '';
 
+  // Satış danışmanı atama — yalnız süper admin (Orçun). Seçilen danışman daireyi "sahiplenir".
+  let assignName = null, assignEmail = null;
+  if (isSuperAdmin()) {
+    assignName = $('#f_assign')?.value || null;
+    assignEmail = assignName ? (CREATORS.find((c) => c.name === assignName)?.emails?.[0] || null) : null;
+  }
+  const prevRow = editId ? props.find((x) => x.id === editId) : null;
+
   const payload = {
     baslik: $('#f_baslik').value.trim() || null,
     tip: $('#f_tip').value,
@@ -1037,10 +1061,10 @@ $('#savePropBtn').addEventListener('click', async () => {
     aciklama: $('#f_aciklama').value.trim() || null,
     fotograflar: photos.map((p) => p.url),
     kapak_index: 0,
-    // Ekleyen: mevcut varsa korunur, yoksa (yeni daire ya da eski boş kayıt) giriş yapan
-    ekleyen: (editId && props.find((x) => x.id === editId)?.ekleyen) || currentCreatorName() || null,
-    // Sahip (yetki için): düzenlemede mevcut sahip korunur; yeni kayıtta giriş yapan kişinin e-postası
-    owner_email: (editId ? (props.find((x) => x.id === editId)?.owner_email ?? null) : (myEmail || null)),
+    // Ekleyen: süper admin atadıysa o danışman; yoksa mevcut korunur; yoksa giriş yapan
+    ekleyen: assignName || prevRow?.ekleyen || currentCreatorName() || null,
+    // Sahip (yetki için): süper admin atadıysa o danışmanın e-postası; yoksa mevcut/giriş yapan
+    owner_email: assignName ? assignEmail : (editId ? (prevRow?.owner_email ?? null) : (myEmail || null)),
   };
 
   // Mükerrer uyarısı (sadece yeni daire eklerken)

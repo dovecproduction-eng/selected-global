@@ -892,3 +892,7 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .log-badge.ok { background: #E7F6EE; color: #1A7F4B; }
 .log-badge.warn { background: #FBF0E1; color: #A6641A; }
 .log-badge.danger { background: #FBEAEA; color: var(--danger); }
+
+/* Satış danışmanı atama (yalnız süper admin) */
+.assign-field { background: var(--bg-tint); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
+.assign-field label { color: var(--navy); font-weight: 600; }
