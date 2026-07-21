@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=81';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=81';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=82';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=82';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -473,7 +473,10 @@ export async function makeReel(row, opts = {}, onProgress) {
   try { await document.fonts.ready; } catch (e) {}
 
   let logo = null; try { logo = (await loadImage(BRAND.logoLight)).img; } catch (e) {}
-  const urls = (row.fotograflar || []).slice(0, 15); // en fazla 15 fotoğraf
+  // Kapak (kapak_index) HER ZAMAN ilk kare olsun → sonra kalanlar, en fazla 15
+  const _all = row.fotograflar || [];
+  const _cov = _all.length ? Math.min(row.kapak_index || 0, _all.length - 1) : 0;
+  const urls = (_all.length ? [_all[_cov], ..._all.filter((_, i) => i !== _cov)] : []).slice(0, 15);
   const imgs = [];
   for (const u of urls) { try { const { img } = await loadImage(u); imgs.push(img); } catch (e) {} }
   if (!imgs.length) throw new Error('Fotoğraf yok');

@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, CREATORS, creatorContact, nameFromEmail, SUPER_ADMIN_EMAIL } from './config.js?v=81';
+import { supabase, CURRENCY, CREATORS, creatorContact, nameFromEmail, SUPER_ADMIN_EMAIL } from './config.js?v=82';
 import {
   esc, pickTitle, regionDisplay, slugify, toast,
   downloadPropertyPhotos, downloadReel, renderFooter,
-} from './ui.js?v=81';
+} from './ui.js?v=82';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -57,6 +57,14 @@ async function loadProps() {
   fillPropOptions('');
 }
 function currentProp() { return props.find((p) => p.id === curId) || null; }
+// Dairenin kapak fotoğrafı (kapak_index)
+function coverOf(p) { const ph = p?.fotograflar || []; if (!ph.length) return null; return ph[Math.min(p.kapak_index || 0, ph.length - 1)]; }
+// Seçili fotoğraflar — KAPAK her zaman ilk sırada (gönderi/carousel'de 1. slayt olur)
+function orderedSel() {
+  const cov = coverOf(currentProp());
+  const arr = [...igSelected];
+  return (cov && igSelected.has(cov)) ? [cov, ...arr.filter((u) => u !== cov)] : arr;
+}
 
 function propLabel(p) {
   const bits = [pickTitle(p) || 'Başlıksız'];
@@ -113,7 +121,7 @@ function renderPhotos() {
   if (!p) { grid.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Önce daire seç.</p>'; return; }
   const photos = p.fotograflar || [];
   if (!photos.length) { grid.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Bu dairede fotoğraf yok.</p>'; return; }
-  const order = [...igSelected];
+  const order = orderedSel();
   grid.innerHTML = photos.map((u) => {
     const on = igSelected.has(u);
     const num = on ? order.indexOf(u) + 1 : '';
@@ -165,7 +173,7 @@ function updatePreview() {
   const media = $('#igPhoneMedia');
   const p = currentProp();
   media.className = 'ig-phone-media ' + (FMT_META[igFormat].aspect === 'tall' ? 'tall' : 'feed');
-  const first = igFormat === 'reels' ? (p?.fotograflar || [])[0] : [...igSelected][0];
+  const first = igFormat === 'reels' ? coverOf(p) : orderedSel()[0];
   if (first) {
     media.style.backgroundImage = `url("${first}")`;
     media.innerHTML = igFormat === 'reels' ? '<span class="ig-play">▶</span>' : (igSelected.size > 1 ? `<span class="ig-count">1/${igSelected.size}</span>` : '');
@@ -181,7 +189,7 @@ function updatePreview() {
 async function doDownload() {
   const p = currentProp();
   if (!p) { toast('Önce daire seç', 'err'); return; }
-  const urls = [...igSelected];
+  const urls = orderedSel();   // kapak ilk sırada
   if (!urls.length) { toast('En az bir fotoğraf seç', 'err'); return; }
   const btn = $('#igDownload'); const orig = btn.innerHTML; btn.disabled = true;
   btn.textContent = 'Hazırlanıyor…';

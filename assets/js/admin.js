@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=81';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=81';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=82';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=82';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -763,20 +763,20 @@ function openGallery(id) {
   // 🎬 Instagram Reels videosu
   const reel = $('#pmReel');
   reel.classList.toggle('hidden', !photos.length);
-  reel.innerHTML = `🎬<span> Instagram videosu</span>`;
+  reel.innerHTML = `🎬<span> Instagram Reels oluştur</span>`;
   reel.onclick = async () => {
     const orig = reel.innerHTML; reel.disabled = true;
-    reel.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Video hazırlanıyor… %0</span>`;
+    reel.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Reels hazırlanıyor… %0</span>`;
     try {
       // Video sonundaki iletişim = daireyi ekleyen/atanan kişi (adı soyadı + telefonu)
       const contact = creatorContact(p.ekleyen);
       const ext = await downloadReel(p, {
         contact,
         fileName: slugify(`${p.bolge || ''}-${pickTitle(p) || 'daire'}`) + '-reels',
-      }, (pr) => { reel.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Video hazırlanıyor… %${Math.round(pr * 100)}</span>`; });
+      }, (pr) => { reel.innerHTML = `<span class="spin" style="display:inline-flex">${ICON.spinner}</span><span>Reels hazırlanıyor… %${Math.round(pr * 100)}</span>`; });
       reel.disabled = false; reel.innerHTML = orig;
-      logAct('media_create', 'property', entityLabel(p), 'Instagram videosu');
-      toast(ext === 'mp4' ? 'Video indirildi (MP4)' : 'Video indirildi (WebM — Instagram için Safari önerilir)', 'ok');
+      logAct('media_create', 'property', entityLabel(p), 'Instagram Reels');
+      toast(ext === 'mp4' ? 'Reels videosu indirildi (MP4)' : 'Reels indirildi (WebM — Instagram için Safari önerilir)', 'ok');
     } catch (e) {
       console.error(e); reel.disabled = false; reel.innerHTML = orig;
       toast('Video oluşturulamadı: ' + (e.message || e), 'err');
