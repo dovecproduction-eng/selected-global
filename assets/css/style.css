@@ -896,3 +896,79 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 /* Satış danışmanı atama (yalnız süper admin) */
 .assign-field { background: var(--bg-tint); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 8px; }
 .assign-field label { color: var(--navy); font-weight: 600; }
+
+/* ============== INSTAGRAM SAYFASI ============== */
+.ig-titlebar { background: var(--bg-soft); border-bottom: 1px solid var(--line); padding: 22px 0; }
+.ig-titlebar h1 { font-size: 1.7rem; }
+.ig-titlebar p { color: var(--muted); margin: 4px 0 0; font-size: .92rem; }
+.ig-main { padding: 22px 16px 60px; }
+
+.ig-connect { display: flex; align-items: center; gap: 18px; justify-content: space-between; flex-wrap: wrap;
+  background: var(--bg-tint); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; margin-bottom: 22px; }
+.ig-connect-txt { display: flex; align-items: flex-start; gap: 14px; }
+.ig-connect-txt strong { color: var(--navy); }
+.ig-connect-txt p { margin: 3px 0 0; font-size: .87rem; }
+.ig-badge { display: inline-flex; align-items: center; font-size: .74rem; font-weight: 700; padding: 5px 10px; border-radius: 999px; white-space: nowrap; }
+.ig-badge.off { background: #FBEAEA; color: var(--danger); }
+.ig-badge.on { background: #E7F6EE; color: #1A7F4B; }
+
+.ig-grid { display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start; }
+.ig-compose { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
+.ig-compose h3 { font-size: 1.2rem; margin-bottom: 16px; }
+.ig-compose .field { margin-bottom: 16px; }
+.ig-compose label { display: block; font-weight: 600; color: var(--navy); font-size: .88rem; margin-bottom: 6px; }
+.ig-compose input[type="search"], .ig-compose textarea, .ig-compose select { width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font: inherit; color: var(--navy); background: #fff; }
+.ig-compose select[size] { padding: 4px; }
+.ig-compose select option { padding: 6px 8px; }
+.ig-compose textarea { resize: vertical; line-height: 1.5; }
+
+.ig-format { display: flex; flex-wrap: wrap; gap: 8px; }
+.ig-format button { flex: 1; min-width: 90px; padding: 9px 12px; border: 1px solid var(--line); background: #fff; border-radius: 10px; font-weight: 600; font-size: .86rem; color: var(--muted); cursor: pointer; transition: .15s; }
+.ig-format button:hover { border-color: var(--navy-500); }
+.ig-format button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+.ig-photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 8px; }
+.ig-ph { position: relative; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; cursor: pointer; background: var(--bg-soft); aspect-ratio: 1; }
+.ig-ph img { width: 100%; height: 100%; object-fit: cover; display: block; opacity: .55; transition: .15s; }
+.ig-ph.on { border-color: var(--gold); }
+.ig-ph.on img { opacity: 1; }
+.ig-ph-num { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--gold); color: #fff; font-size: .72rem; font-weight: 800; display: grid; place-items: center; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+.ig-reels-note { background: var(--bg-tint); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; font-size: .88rem; color: var(--navy); }
+.ig-capmeta { font-size: .78rem; color: var(--muted); margin-top: 6px; text-align: right; }
+
+.ig-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.ig-actions .btn { flex: 1; min-width: 160px; }
+.ig-tip { font-size: .83rem; color: var(--muted); background: var(--bg-soft); border-radius: 10px; padding: 12px 14px; margin: 16px 0 0; line-height: 1.5; }
+
+/* Önizleme (telefon) */
+.ig-preview { position: sticky; top: 16px; text-align: center; }
+.ig-phone { border: 8px solid var(--navy); border-radius: 28px; overflow: hidden; background: #000; box-shadow: 0 12px 34px rgba(10,37,64,.22); }
+.ig-phone-top { display: flex; align-items: center; gap: 8px; padding: 10px 12px; background: #fff; }
+.ig-dot { width: 26px; height: 26px; border-radius: 50%; background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); flex: 0 0 auto; }
+.ig-handle { font-weight: 700; font-size: .82rem; color: var(--navy); }
+.ig-phone-media { position: relative; background-size: cover; background-position: center; display: grid; place-items: center; color: #fff; }
+.ig-phone-media.tall { aspect-ratio: 9/16; }
+.ig-phone-media.feed { aspect-ratio: 4/5; }
+.ig-ph-empty { color: #9fb0c0; font-size: .85rem; }
+.ig-play { font-size: 2.4rem; opacity: .9; text-shadow: 0 2px 10px rgba(0,0,0,.5); }
+.ig-count { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,.55); color: #fff; font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; }
+.ig-phone-cap { background: #fff; padding: 10px 12px; font-size: .8rem; color: var(--navy); text-align: left; min-height: 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ig-fmt-label { margin-top: 10px; font-size: .82rem; font-weight: 700; color: var(--muted); letter-spacing: .03em; }
+
+/* Analiz kilitli */
+.ig-insights { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; margin-top: 24px; }
+.ig-insights h3 { font-size: 1.15rem; margin-bottom: 16px; }
+.ig-insight-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.ig-itile { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 16px; text-align: center; position: relative; }
+.ig-itile.locked { opacity: .75; }
+.ig-itile .lk { position: absolute; top: 8px; right: 10px; font-size: .8rem; }
+.ig-itile .iv { font-size: 1.5rem; font-weight: 800; color: var(--navy); font-family: var(--font-display); }
+.ig-itile .il { font-size: .8rem; color: var(--muted); margin-top: 4px; }
+
+.ig-road { margin: 8px 0 14px; padding-left: 20px; }
+.ig-road li { margin-bottom: 10px; line-height: 1.5; font-size: .9rem; }
+
+@media (max-width: 860px) {
+  .ig-grid { grid-template-columns: 1fr; }
+  .ig-preview { position: static; max-width: 300px; margin: 0 auto; }
+}

@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Instagram — Selected Global</title>
+  <link rel="manifest" href="manifest.json?v=2" />
+  <meta name="theme-color" content="#0A2540" />
+  <link rel="apple-touch-icon" href="assets/img/icon-180.png?v=2" />
+  <link rel="preconnect" href="https://kimwdxymgdnkvivbvmtk.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css?v=81" />
+</head>
+<body class="admin-body">
+
+  <!-- GİRİŞ EKRANI -->
+  <div class="login-screen" id="loginScreen">
+    <div class="login-card">
+      <div class="brand" style="justify-content:center">
+        <span class="logo-mark">
+          <img class="logo-img" src="assets/img/logo.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+          <span class="logo-word" style="display:none;color:var(--navy)">SELECTED<i>·</i>GLOBAL</span>
+        </span>
+      </div>
+      <h2>Instagram</h2>
+      <p class="muted">Devam etmek için giriş yapın</p>
+      <form id="loginForm">
+        <div class="field">
+          <label>E-posta</label>
+          <input type="email" id="loginEmail" required autocomplete="username" placeholder="ornek@selectedglobal.com" />
+        </div>
+        <div class="field">
+          <label>Şifre</label>
+          <input type="password" id="loginPass" required autocomplete="current-password" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Giriş yap</button>
+        <p id="loginErr" class="hint" style="color:var(--danger);text-align:center;margin-top:12px"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- SAYFA -->
+  <div id="app" class="hidden">
+    <header class="site-header admin-topbar">
+      <div class="container header-inner">
+        <div class="brand">
+          <span class="logo-mark">
+            <img class="logo-img" src="assets/img/logo-white.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+            <span class="logo-word" style="display:none;color:#fff">SELECTED<i>·</i>GLOBAL</span>
+          </span>
+        </div>
+        <div class="header-actions">
+          <a href="admin.html" class="link-quiet" style="color:#fff">← Panele dön</a>
+          <span id="userName" style="color:#fff;font-size:.85rem;opacity:.9"></span>
+          <button class="btn btn-ghost btn-sm" id="logoutBtn">Çıkış</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="ig-titlebar">
+      <div class="container">
+        <h1>📸 Instagram</h1>
+        <p>Dairelerini gönderi, carousel, story veya reels olarak hazırla.</p>
+      </div>
+    </div>
+
+    <main class="ig-main container">
+
+      <!-- Bağlantı & analiz şeridi -->
+      <div class="ig-connect">
+        <div class="ig-connect-txt">
+          <span class="ig-badge off" id="igStatus">● Bağlı değil</span>
+          <div>
+            <strong>Otomatik paylaşım & analiz henüz bağlı değil.</strong>
+            <p class="text-muted">Şimdilik aşağıdan fotoğraf + caption hazırla, elle paylaş. Instagram İşletme hesabını bağlayınca buradan <em>doğrudan paylaşır</em> ve Instagram'ın normalde göstermediği analizleri görürsün.</p>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="roadmapBtn">🗺️ Kurulum yol haritası</button>
+      </div>
+
+      <div class="ig-grid">
+        <!-- SOL: hazırla -->
+        <section class="ig-compose">
+          <h3>Gönderi hazırla</h3>
+
+          <div class="field">
+            <label>Daire seç</label>
+            <input id="igSearch" type="search" placeholder="Ara: başlık, bölge, proje…" autocomplete="off" />
+            <select id="igProp" size="6"></select>
+          </div>
+
+          <div class="field">
+            <label>Format</label>
+            <div class="ig-format" id="igFormat">
+              <button type="button" data-fmt="story" class="active">Story</button>
+              <button type="button" data-fmt="carousel">Carousel</button>
+              <button type="button" data-fmt="post">Tek Gönderi</button>
+              <button type="button" data-fmt="reels">Reels (video)</button>
+            </div>
+          </div>
+
+          <div class="field" id="igPhotosField">
+            <label>
+              Fotoğraflar <span class="text-muted" id="igPhotoHint"></span>
+              <button type="button" class="link-quiet" id="igSelectAll" style="float:right">Tümünü seç</button>
+            </label>
+            <div class="ig-photos" id="igPhotos"><p class="text-muted" style="grid-column:1/-1">Önce daire seç.</p></div>
+          </div>
+
+          <div class="field ig-reels-note hidden" id="igReelsField">
+            🎬 Reels formatında dairenin fotoğraflarından otomatik dikey video oluşturulur (en fazla 15 fotoğraf). Aşağıdan <strong>"Reels videosu oluştur"</strong>a bas.
+          </div>
+
+          <div class="field">
+            <label>
+              Caption
+              <button type="button" class="link-quiet" id="igAutoCap" style="float:right">✨ Otomatik oluştur</button>
+            </label>
+            <textarea id="igCaption" rows="9" placeholder="Açıklama ve hashtag'ler…"></textarea>
+            <div class="ig-capmeta"><span id="igCapCount">0</span> karakter · Instagram sınırı 2.200</div>
+          </div>
+
+          <div class="ig-actions">
+            <button class="btn btn-primary" id="igDownload">⬇ Seçili fotoğrafları indir</button>
+            <button class="btn btn-gold hidden" id="igReel">🎬 Reels videosu oluştur</button>
+            <button class="btn btn-ghost" id="igCopyCap">📋 Caption'ı kopyala</button>
+            <a class="btn btn-ghost" href="https://www.instagram.com/" target="_blank" rel="noopener">↗ Instagram'ı aç</a>
+          </div>
+          <p class="ig-tip">💡 <strong>Elle paylaşım:</strong> Fotoğrafları indir → "Instagram'ı aç" → yeni gönderi/story → indirdiğin fotoğrafları seç → caption'ı yapıştır. (Bağlantı kurulunca tek butonla doğrudan paylaşılacak.)</p>
+        </section>
+
+        <!-- SAĞ: önizleme -->
+        <aside class="ig-preview">
+          <div class="ig-phone">
+            <div class="ig-phone-top"><span class="ig-dot"></span><span class="ig-handle">selectedglobal</span></div>
+            <div class="ig-phone-media" id="igPhoneMedia"><span class="ig-ph-empty">Önizleme</span></div>
+            <div class="ig-phone-cap" id="igPhoneCap"></div>
+          </div>
+          <div class="ig-fmt-label" id="igFmtLabel">Story · 9:16</div>
+        </aside>
+      </div>
+
+      <!-- Analiz (kilitli — bağlanınca dolar) -->
+      <section class="ig-insights">
+        <h3>📊 Analiz <span class="text-muted">— hesap bağlanınca burada görünecek</span></h3>
+        <div class="ig-insight-tiles" id="igInsights">
+          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Erişim (Reach)</div></div>
+          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Gösterim</div></div>
+          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Profil ziyareti</div></div>
+          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Yeni takipçi</div></div>
+          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Kaydetme / paylaşma</div></div>
+          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">En iyi paylaşım saati</div></div>
+          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Takipçi demografisi</div></div>
+          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Etkileşim oranı</div></div>
+        </div>
+        <p class="text-muted" style="font-size:.85rem;margin:12px 0 0">Bunlar Instagram'ın uygulamada tek ekranda göstermediği verilerdir; İşletme hesabı bağlanınca otomatik dolar.</p>
+      </section>
+    </main>
+
+    <div id="footer"></div>
+  </div>
+
+  <!-- Yol haritası modalı -->
+  <div class="modal-overlay" id="roadmapModal">
+    <div class="modal" style="max-width:720px">
+      <div class="modal-head"><h3>🗺️ Instagram bağlantısı — yol haritası</h3><button class="icon-btn" data-close></button></div>
+      <div class="modal-body" id="roadmapBody"></div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/instagram.js?v=81"></script>
+</body>
+</html>
