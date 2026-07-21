@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail } from './config.js?v=85';
+import { supabase, CURRENCY, creatorContact, nameFromEmail } from './config.js?v=86';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, renderCoverImage, renderFooter,
-} from './ui.js?v=85';
+} from './ui.js?v=86';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -120,14 +120,40 @@ function setSource(src) {
   setFormat(igFormat);   // reels alanının görünürlüğü kaynağa bağlı
   renderPhotos(); updateCapCount(); updatePreview();
 }
-function addFreeFiles(files) {
-  let added = 0;
-  for (const f of files) {
-    if (!f.type || !f.type.startsWith('image/')) continue;
-    const url = URL.createObjectURL(f);
-    freePhotos.push({ url, file: f }); igSelected.add(url); added++;
+// Serbest görseli markala: alt gradyen + Selected Global logosu (görsele gömülür)
+let _logo = null;
+function _loadImg(src) { return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
+async function brandFreeImage(file) {
+  if (!_logo) { try { _logo = await _loadImg('assets/img/logo-white.svg'); } catch (_) { _logo = null; } }
+  const bmp = await createImageBitmap(file);
+  const W = bmp.width, H = bmp.height;
+  const c = document.createElement('canvas'); c.width = W; c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(bmp, 0, 0, W, H);
+  const gh = Math.round(H * 0.34);
+  const g = ctx.createLinearGradient(0, H - gh, 0, H);
+  g.addColorStop(0, 'rgba(10,37,64,0)'); g.addColorStop(1, 'rgba(10,37,64,0.85)');
+  ctx.fillStyle = g; ctx.fillRect(0, H - gh, W, gh);
+  if (_logo) {
+    const ratio = (_logo.width ? _logo.height / _logo.width : 0.24) || 0.24;
+    const lw = Math.min(W * 0.46, W - 40); const lh = lw * ratio;
+    ctx.drawImage(_logo, (W - lw) / 2, H - lh - Math.round(H * 0.05), lw, lh);
   }
-  if (added) { renderPhotos(); updatePreview(); toast(`${added} görsel eklendi`, 'ok'); }
+  const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92));
+  return URL.createObjectURL(blob);
+}
+async function addFreeFiles(files) {
+  const imgs = [...files].filter((f) => f.type && f.type.startsWith('image/'));
+  if (!imgs.length) return;
+  toast('Görseller hazırlanıyor…');
+  for (const f of imgs) {
+    const raw = URL.createObjectURL(f);
+    let branded = raw;
+    try { branded = await brandFreeImage(f); } catch (_) { /* markalanamazsa ham hali */ }
+    freePhotos.push({ url: branded, raw, file: f }); igSelected.add(branded);
+    renderPhotos(); updatePreview();
+  }
+  toast(`${imgs.length} görsel eklendi (gradyen + logo)`, 'ok');
 }
 
 /* ---------- GÖRSEL IZGARASI ---------- */
@@ -204,8 +230,12 @@ async function updatePreview() {
     bg = orderedSel()[0] || (freePhotos[0] && freePhotos[0].url) || null;
     overlay = igFormat === 'reels' ? '<span class="ig-play">▶</span>' : (igSelected.size > 1 ? `<span class="ig-count">1/${igSelected.size}</span>` : '');
   }
-  if (bg) { media.style.backgroundImage = `url("${bg}")`; media.innerHTML = overlay; }
-  else { media.style.backgroundImage = ''; media.innerHTML = '<span class="ig-ph-empty">Görsel seç</span>'; }
+  if (bg) {
+    media.style.backgroundImage = `url("${bg}")`;
+    media.style.backgroundSize = igSource === 'free' ? 'contain' : 'cover';  // serbest: logolu görsel tam görünsün
+    media.style.backgroundColor = '#0A2540';
+    media.innerHTML = overlay;
+  } else { media.style.backgroundImage = ''; media.innerHTML = '<span class="ig-ph-empty">Görsel seç</span>'; }
   $('#igPhoneCap').textContent = ($('#igCaption').value || '').split('\n')[0] || '';
 }
 
@@ -245,7 +275,9 @@ async function doReel() {
       if (!urls.length) { toast('Önce görsel yükle', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
       const contact = creatorContact(nameFromEmail(myEmail));
       const title = ($('#igCaption').value || '').split('\n').find((l) => l.trim()) || '';
-      const row = { fotograflar: urls, kapak_index: 0, tip: null, fiyat: null, para_birimi: 'GBP', proje: null, bolge: null, ozellikler: [], aciklama: null };
+      // Reels kendi logosunu ekler → ham (markasız) görseli kullan, çift logo olmasın
+      const rawUrls = urls.map((u) => (freePhotos.find((f) => f.url === u)?.raw) || u);
+      const row = { fotograflar: rawUrls, kapak_index: 0, tip: null, fiyat: null, para_birimi: 'GBP', proje: null, bolge: null, ozellikler: [], aciklama: null };
       ext = await downloadReel(row, { plain: true, title, contact, fileName: 'selected-global-reels' }, prog);
       logAct('media_create', 'Serbest gönderi', 'Instagram Reels (serbest)');
     }
