@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, CREATORS, creatorContact, nameFromEmail, SUPER_ADMIN_EMAIL } from './config.js?v=82';
+import { supabase, CURRENCY, CREATORS, creatorContact, nameFromEmail, SUPER_ADMIN_EMAIL } from './config.js?v=83';
 import {
   esc, pickTitle, regionDisplay, slugify, toast,
   downloadPropertyPhotos, downloadReel, renderFooter,
-} from './ui.js?v=82';
+} from './ui.js?v=83';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];

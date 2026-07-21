@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=82';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=82';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=83';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=83';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -578,24 +578,24 @@ export async function makeReel(row, opts = {}, onProgress) {
       drawLogo(W / 2, H - 180, 330);
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
-      botGrad(0.58);
-      // Logo ortada — büyük
-      drawLogo(W / 2, H - 590, 560);
-      // Logonun altında: ilan açıklaması (lüks serif)
+      botGrad(0.60);
+      // İlan açıklaması (lüks serif) — üst kısımda
       const acik = (row.aciklama || '').trim();
       if (acik) {
         ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 12;
         const font = "500 44px Fraunces, Georgia, serif"; const lines = wrapLines(acik, font, W - 150, 2);
-        let ty = H - 400; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 58; });
+        let ty = H - 560; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 58; });
         ctx.shadowBlur = 0;
       }
-      // Altta ortada: proje → FİYAT → (eşya · oda · m²) — daire no ve kat gösterilmez
+      // Proje → FİYAT → specs — logonun hemen üstünde (biraz yukarıda); daire no/kat yok
       ctx.textAlign = 'center';
-      let by = H - 230;
-      if (row.proje) { const f = fitFont(row.proje.toLocaleUpperCase('tr'), '700', 38, W - 140); ctx.font = `700 ${f}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.fillText(row.proje.toLocaleUpperCase('tr'), W / 2, by); by += 66; }
-      const pf = fitFont(priceText(), '800', 58, W - 140); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 8; ctx.fillText(priceText(), W / 2, by); ctx.shadowBlur = 0; by += 56;
+      let by = H - 440;
+      if (row.proje) { const f = fitFont(row.proje.toLocaleUpperCase('tr'), '700', 38, W - 140); ctx.font = `700 ${f}px Manrope, sans-serif`; ctx.fillStyle = goldL; ctx.fillText(row.proje.toLocaleUpperCase('tr'), W / 2, by); by += 70; }
+      const pf = fitFont(priceText(), '800', 58, W - 140); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 8; ctx.fillText(priceText(), W / 2, by); ctx.shadowBlur = 0; by += 58;
       const specs = [row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız'), row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
       if (specs) { const f = fitFont(specs, '600', 34, W - 120); ctx.font = `600 ${f}px Manrope, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(specs, W / 2, by); }
+      // Logo — İLK KAREDEKİ GİBİ SABİT: altta ortada, aynı konum ve boyut (kaymasın)
+      drawLogo(W / 2, H - 180, 330);
     } else if (sc.type === 'specs') drawSpecs();
     else if (sc.type === 'outro') drawOutro();
   }
