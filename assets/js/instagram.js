@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, CREATORS, creatorContact, nameFromEmail, SUPER_ADMIN_EMAIL } from './config.js?v=83';
+import { supabase, CURRENCY, creatorContact, nameFromEmail } from './config.js?v=84';
 import {
   esc, pickTitle, regionDisplay, slugify, toast,
-  downloadPropertyPhotos, downloadReel, renderFooter,
-} from './ui.js?v=83';
+  downloadPropertyPhotos, downloadReel, renderCoverImage, renderFooter,
+} from './ui.js?v=84';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -33,7 +33,6 @@ $('#loginForm').addEventListener('submit', async (e) => {
 });
 $('#logoutBtn').addEventListener('click', async () => { await supabase.auth.signOut(); showLogin(); });
 
-// Aktivite kaydı (varsa) — başarısız olsa da işlemi bozmaz
 async function logAct(action, entity_ref, detail) {
   try {
     await supabase.from('activity_log').insert({
@@ -44,11 +43,14 @@ async function logAct(action, entity_ref, detail) {
   } catch (_) { /* sessiz */ }
 }
 
-/* ---------- VERİ ---------- */
+/* ---------- DURUM ---------- */
 let props = [];
 let curId = '';
 let igFormat = 'story';
-let igSelected = new Set();   // seçili fotoğraf url'leri (sıra korunur)
+let igSource = 'daire';       // 'daire' | 'free'
+let igSelected = new Set();   // seçili görsel url'leri (sıra korunur)
+let freePhotos = [];          // serbest mod: [{url(objectURL), file}]
+const coverCache = {};        // property.id -> markalı kapak objectURL
 
 async function loadProps() {
   const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
@@ -57,21 +59,24 @@ async function loadProps() {
   fillPropOptions('');
 }
 function currentProp() { return props.find((p) => p.id === curId) || null; }
-// Dairenin kapak fotoğrafı (kapak_index)
+
+// Geçerli görsel listesi (daire → dairenin fotoğrafları; serbest → yüklenenler)
+function photoList() { return igSource === 'free' ? freePhotos.map((f) => f.url) : (currentProp()?.fotograflar || []); }
 function coverOf(p) { const ph = p?.fotograflar || []; if (!ph.length) return null; return ph[Math.min(p.kapak_index || 0, ph.length - 1)]; }
-// Seçili fotoğraflar — KAPAK her zaman ilk sırada (gönderi/carousel'de 1. slayt olur)
+// Seçili görseller — daire modunda KAPAK ilk sırada; serbest modda yükleme/seçim sırası
 function orderedSel() {
-  const cov = coverOf(currentProp());
   const arr = [...igSelected];
+  if (igSource === 'free') return arr;
+  const cov = coverOf(currentProp());
   return (cov && igSelected.has(cov)) ? [cov, ...arr.filter((u) => u !== cov)] : arr;
 }
 
+/* ---------- DAİRE SEÇİMİ ---------- */
 function propLabel(p) {
   const bits = [pickTitle(p) || 'Başlıksız'];
   const r = regionDisplay(p.bolge); if (r) bits.push(r);
   if (p.proje) bits.push(p.proje);
-  const n = (p.fotograflar || []).length;
-  return `${bits.join(' · ')}  (${n} foto)`;
+  return `${bits.join(' · ')}  (${(p.fotograflar || []).length} foto)`;
 }
 function fillPropOptions(q) {
   const sel = $('#igProp');
@@ -84,43 +89,47 @@ function fillPropOptions(q) {
   sel.innerHTML = list.map((p) => `<option value="${esc(p.id)}"${p.id === curId ? ' selected' : ''}>${esc(propLabel(p))}</option>`).join('')
     || '<option disabled>Sonuç yok</option>';
 }
-
-/* ---------- FORMAT ---------- */
-const FMT_META = {
-  story:    { label: 'Story · 9:16',        aspect: 'tall', hint: 'her fotoğraf ayrı story karesi olur' },
-  carousel: { label: 'Carousel · 4:5',      aspect: 'feed', hint: '2–10 fotoğraf, seçtiğin sırayla' },
-  post:     { label: 'Tek Gönderi · 4:5',   aspect: 'feed', hint: '1 fotoğraf (ilk seçili kapak olur)' },
-  reels:    { label: 'Reels · 9:16 video',  aspect: 'tall', hint: 'fotoğraflardan otomatik video' },
-};
-function setFormat(fmt) {
-  igFormat = fmt;
-  $$('#igFormat button').forEach((b) => b.classList.toggle('active', b.dataset.fmt === fmt));
-  const isReels = fmt === 'reels';
-  $('#igPhotosField').classList.toggle('hidden', isReels);
-  $('#igReelsField').classList.toggle('hidden', !isReels);
-  $('#igReel').classList.toggle('hidden', !isReels);
-  $('#igDownload').classList.toggle('hidden', isReels);
-  $('#igPhotoHint').textContent = isReels ? '' : `— ${FMT_META[fmt].hint}`;
-  $('#igFmtLabel').textContent = FMT_META[fmt].label;
-  updatePreview();
-}
-
-/* ---------- FOTOĞRAFLAR ---------- */
 function onPropChange(id) {
   curId = id;
   const p = currentProp();
-  igSelected = new Set((p?.fotograflar || []));   // varsayılan: hepsi seçili
+  igSelected = new Set((p?.fotograflar || []));
   renderPhotos();
   $('#igCaption').value = p ? buildCaption(p) : '';
-  updateCapCount();
-  updatePreview();
+  updateCapCount(); updatePreview();
 }
+
+/* ---------- KAYNAK (daire / serbest) ---------- */
+function setSource(src) {
+  igSource = src;
+  $$('#igSource button').forEach((b) => b.classList.toggle('active', b.dataset.src === src));
+  $('#igDaireField').classList.toggle('hidden', src !== 'daire');
+  $('#igFreeField').classList.toggle('hidden', src !== 'free');
+  $('#igAutoCap').style.display = src === 'daire' ? '' : 'none';
+  if (src === 'free') {
+    igSelected = new Set(freePhotos.map((f) => f.url));   // yüklüyse hepsi seçili
+  } else {
+    igSelected = new Set(); curId = ''; $('#igProp').selectedIndex = -1;
+  }
+  $('#igCaption').value = '';
+  setFormat(igFormat);   // reels alanının görünürlüğü kaynağa bağlı
+  renderPhotos(); updateCapCount(); updatePreview();
+}
+function addFreeFiles(files) {
+  let added = 0;
+  for (const f of files) {
+    if (!f.type || !f.type.startsWith('image/')) continue;
+    const url = URL.createObjectURL(f);
+    freePhotos.push({ url, file: f }); igSelected.add(url); added++;
+  }
+  if (added) { renderPhotos(); updatePreview(); toast(`${added} görsel eklendi`, 'ok'); }
+}
+
+/* ---------- GÖRSEL IZGARASI ---------- */
 function renderPhotos() {
   const grid = $('#igPhotos');
-  const p = currentProp();
-  if (!p) { grid.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Önce daire seç.</p>'; return; }
-  const photos = p.fotograflar || [];
-  if (!photos.length) { grid.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Bu dairede fotoğraf yok.</p>'; return; }
+  const photos = photoList();
+  if (igSource === 'daire' && !currentProp()) { grid.innerHTML = '<p class="text-muted" style="grid-column:1/-1">Önce daire seç.</p>'; return; }
+  if (!photos.length) { grid.innerHTML = `<p class="text-muted" style="grid-column:1/-1">${igSource === 'free' ? 'Yukarıdan görsel yükle.' : 'Bu dairede fotoğraf yok.'}</p>`; return; }
   const order = orderedSel();
   grid.innerHTML = photos.map((u) => {
     const on = igSelected.has(u);
@@ -169,50 +178,72 @@ function buildCaption(p) {
 function updateCapCount() { $('#igCapCount').textContent = ($('#igCaption').value || '').length; }
 
 /* ---------- ÖNİZLEME ---------- */
-function updatePreview() {
+async function brandedCover(p) {
+  if (!p) return null;
+  if (coverCache[p.id]) return coverCache[p.id];
+  try { const blob = await renderCoverImage(p); if (blob) { const u = URL.createObjectURL(blob); coverCache[p.id] = u; return u; } } catch (_) {}
+  return null;
+}
+async function updatePreview() {
   const media = $('#igPhoneMedia');
-  const p = currentProp();
   media.className = 'ig-phone-media ' + (FMT_META[igFormat].aspect === 'tall' ? 'tall' : 'feed');
-  const first = igFormat === 'reels' ? coverOf(p) : orderedSel()[0];
-  if (first) {
-    media.style.backgroundImage = `url("${first}")`;
-    media.innerHTML = igFormat === 'reels' ? '<span class="ig-play">▶</span>' : (igSelected.size > 1 ? `<span class="ig-count">1/${igSelected.size}</span>` : '');
+  let bg = null, overlay = '';
+  if (igSource === 'daire') {
+    const p = currentProp();
+    if (p) {
+      if (igFormat === 'reels') { bg = coverOf(p); overlay = '<span class="ig-play">▶</span>'; }
+      else { bg = (await brandedCover(p)) || coverOf(p); overlay = igSelected.size > 1 ? `<span class="ig-count">1/${igSelected.size}</span>` : ''; }
+    }
   } else {
-    media.style.backgroundImage = '';
-    media.innerHTML = '<span class="ig-ph-empty">Fotoğraf seç</span>';
+    bg = orderedSel()[0] || (freePhotos[0] && freePhotos[0].url) || null;
+    overlay = igFormat === 'reels' ? '<span class="ig-play">▶</span>' : (igSelected.size > 1 ? `<span class="ig-count">1/${igSelected.size}</span>` : '');
   }
-  const cap = ($('#igCaption').value || '').split('\n')[0] || '';
-  $('#igPhoneCap').textContent = cap;
+  if (bg) { media.style.backgroundImage = `url("${bg}")`; media.innerHTML = overlay; }
+  else { media.style.backgroundImage = ''; media.innerHTML = '<span class="ig-ph-empty">Görsel seç</span>'; }
+  $('#igPhoneCap').textContent = ($('#igCaption').value || '').split('\n')[0] || '';
 }
 
 /* ---------- AKSİYONLAR ---------- */
 async function doDownload() {
-  const p = currentProp();
-  if (!p) { toast('Önce daire seç', 'err'); return; }
-  const urls = orderedSel();   // kapak ilk sırada
-  if (!urls.length) { toast('En az bir fotoğraf seç', 'err'); return; }
-  const btn = $('#igDownload'); const orig = btn.innerHTML; btn.disabled = true;
-  btn.textContent = 'Hazırlanıyor…';
+  const urls = orderedSel();
+  if (!urls.length) { toast('En az bir görsel seç', 'err'); return; }
+  const btn = $('#igDownload'); const orig = btn.innerHTML; btn.disabled = true; btn.textContent = 'Hazırlanıyor…';
   try {
-    const name = slugify(`${regionDisplay(p.bolge) || ''}-${pickTitle(p) || 'daire'}`) + '-instagram';
-    await downloadPropertyPhotos([{ ...p, fotograflar: urls }], name, (d, total) => { btn.textContent = `Hazırlanıyor… ${d}/${total}`; });
-    logAct('photo_download', pickTitle(p) || 'daire', `Instagram ${igFormat} · ${urls.length} foto`);
-    toast(`${urls.length} fotoğraf indirildi (JPEG)`, 'ok');
+    if (igSource === 'daire') {
+      const p = currentProp(); if (!p) { toast('Önce daire seç', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      const name = slugify(`${regionDisplay(p.bolge) || ''}-${pickTitle(p) || 'daire'}`) + '-instagram';
+      await downloadPropertyPhotos([{ ...p, fotograflar: urls }], name, (d, t) => { btn.textContent = `Hazırlanıyor… ${d}/${t}`; });
+      logAct('photo_download', pickTitle(p) || 'daire', `Instagram ${igFormat} · ${urls.length} görsel`);
+    } else {
+      const name = 'selected-global-gonderi-' + new Date().toISOString().slice(0, 10);
+      await downloadPropertyPhotos([{ fotograflar: urls, baslik: 'gonderi', bolge: '' }], name, (d, t) => { btn.textContent = `Hazırlanıyor… ${d}/${t}`; }, null, { noCover: true });
+      logAct('photo_download', 'Serbest gönderi', `Instagram ${igFormat} · ${urls.length} görsel`);
+    }
+    toast(`${urls.length} görsel indirildi (JPEG)`, 'ok');
   } catch (e) { console.error(e); toast('İndirme hatası', 'err'); }
   btn.disabled = false; btn.innerHTML = orig;
 }
 async function doReel() {
-  const p = currentProp();
-  if (!p) { toast('Önce daire seç', 'err'); return; }
-  if (!(p.fotograflar || []).length) { toast('Bu dairede fotoğraf yok', 'err'); return; }
-  const btn = $('#igReel'); const orig = btn.innerHTML; btn.disabled = true;
-  btn.innerHTML = 'Video hazırlanıyor… %0';
+  const btn = $('#igReel'); const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Reels hazırlanıyor… %0';
+  const prog = (pr) => { btn.innerHTML = `Reels hazırlanıyor… %${Math.round(pr * 100)}`; };
   try {
-    const contact = creatorContact(p.ekleyen);
-    const ext = await downloadReel(p, { contact, fileName: slugify(`${regionDisplay(p.bolge) || ''}-${pickTitle(p) || 'daire'}`) + '-reels' },
-      (pr) => { btn.innerHTML = `Video hazırlanıyor… %${Math.round(pr * 100)}`; });
-    logAct('media_create', pickTitle(p) || 'daire', 'Instagram Reels videosu');
-    toast(ext === 'mp4' ? 'Reels videosu indirildi (MP4)' : 'Video indirildi (WebM — Instagram için Safari önerilir)', 'ok');
+    let ext;
+    if (igSource === 'daire') {
+      const p = currentProp();
+      if (!p || !(p.fotograflar || []).length) { toast('Fotoğraflı bir daire seç', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      const contact = creatorContact(p.ekleyen);
+      ext = await downloadReel(p, { contact, fileName: slugify(`${regionDisplay(p.bolge) || ''}-${pickTitle(p) || 'daire'}`) + '-reels' }, prog);
+      logAct('media_create', pickTitle(p) || 'daire', 'Instagram Reels');
+    } else {
+      const urls = orderedSel();
+      if (!urls.length) { toast('Önce görsel yükle', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      const contact = creatorContact(nameFromEmail(myEmail));
+      const title = ($('#igCaption').value || '').split('\n').find((l) => l.trim()) || '';
+      const row = { fotograflar: urls, kapak_index: 0, tip: null, fiyat: null, para_birimi: 'GBP', proje: null, bolge: null, ozellikler: [], aciklama: null };
+      ext = await downloadReel(row, { plain: true, title, contact, fileName: 'selected-global-reels' }, prog);
+      logAct('media_create', 'Serbest gönderi', 'Instagram Reels (serbest)');
+    }
+    toast(ext === 'mp4' ? 'Reels videosu indirildi (MP4)' : 'Reels indirildi (WebM — Instagram için Safari önerilir)', 'ok');
   } catch (e) { console.error(e); toast('Video oluşturulamadı: ' + (e.message || e), 'err'); }
   btn.disabled = false; btn.innerHTML = orig;
 }
@@ -223,32 +254,58 @@ async function copyCaption() {
   catch { prompt('Caption\'ı kopyalayın:', txt); }
 }
 
-/* ---------- YOL HARİTASI MODALI ---------- */
+/* ---------- FORMAT ---------- */
+const FMT_META = {
+  story:    { label: 'Story · 9:16',        aspect: 'tall', hint: 'her görsel ayrı story karesi olur' },
+  carousel: { label: 'Carousel · 4:5',      aspect: 'feed', hint: '2–10 görsel, seçtiğin sırayla' },
+  post:     { label: 'Tek Gönderi · 4:5',   aspect: 'feed', hint: '1 görsel (ilk seçili kapak olur)' },
+  reels:    { label: 'Reels · 9:16 video',  aspect: 'tall', hint: 'görsellerden otomatik video' },
+};
+function setFormat(fmt) {
+  igFormat = fmt;
+  $$('#igFormat button').forEach((b) => b.classList.toggle('active', b.dataset.fmt === fmt));
+  const isReels = fmt === 'reels';
+  const daireReels = isReels && igSource === 'daire';
+  $('#igPhotosField').classList.toggle('hidden', daireReels);  // daire reels'te tüm fotoğraflar kullanılır → ızgara gizli
+  $('#igReelsField').classList.toggle('hidden', !daireReels);  // "otomatik video" notu sadece daire reels'te
+  $('#igReel').classList.toggle('hidden', !isReels);
+  $('#igDownload').classList.toggle('hidden', isReels);
+  $('#igPhotoHint').textContent = isReels ? '' : `— ${FMT_META[fmt].hint}`;
+  $('#igFmtLabel').textContent = FMT_META[fmt].label;
+  updatePreview();
+}
+
+/* ---------- YOL HARİTASI ---------- */
 const ROADMAP_HTML = `
   <p>Instagram <strong>İşletme hesabını</strong> bağlayınca bu sayfadan doğrudan paylaşım yapılır ve analizler dolar. Adımlar:</p>
   <ol class="ig-road">
-    <li><strong>IG İşletme hesabı → Facebook Sayfası:</strong> Instagram uygulaması → Ayarlar → Hesap → bir Facebook Sayfasına bağla (yoksa boş bir sayfa aç).</li>
+    <li><strong>IG İşletme hesabı → Facebook Sayfası:</strong> Instagram → Ayarlar → Hesap → bir Facebook Sayfasına bağla.</li>
     <li><strong>Meta Business Suite:</strong> business.facebook.com'da işletme portföyünü oluştur.</li>
-    <li><strong>Geliştirici uygulaması:</strong> developers.facebook.com → "Uygulama oluştur" → tür <em>Business</em>.</li>
-    <li><strong>Ürünler:</strong> uygulamaya <em>Instagram Graph API</em> + <em>Facebook Login</em> ekle.</li>
+    <li><strong>Geliştirici uygulaması:</strong> developers.facebook.com → "Uygulama oluştur" → tür Business.</li>
+    <li><strong>Ürünler:</strong> Instagram Graph API + Facebook Login ekle.</li>
     <li><strong>İzinler:</strong> instagram_basic, instagram_content_publish, pages_show_list, pages_read_engagement, instagram_manage_insights.</li>
-    <li><strong>Hızlı yol:</strong> Uygulamayı <em>geliştirme modunda</em> tutup kendi hesabını test kullanıcısı ekle → Meta'nın uzun incelemesine girmeden kendi hesabına paylaşırsın.</li>
-    <li><strong>Token:</strong> uzun ömürlü erişim tokeni üret (60 gün, yenilenebilir) → bana güvenli şekilde ilet.</li>
-    <li><strong>Bağlantı (bende):</strong> siteye küçük bir sunucu ucu eklerim (token gizli kalır). Fotoğraflar zaten herkese açık URL — paylaşım: media → media_publish. Carousel/Story/Reels desteklenir.</li>
-    <li><strong>Analiz:</strong> insights uçlarıyla erişim, gösterim, profil ziyareti, kaydetme, demografi, en iyi saat çekilir.</li>
+    <li><strong>Hızlı yol:</strong> uygulamayı geliştirme modunda tut + kendi hesabını test kullanıcısı ekle → uzun onay gerekmez.</li>
+    <li><strong>Token:</strong> uzun ömürlü erişim tokeni üret → bana güvenli şekilde ilet.</li>
+    <li><strong>Bağlantı (bende):</strong> siteye küçük bir sunucu ucu eklerim; media → media_publish (carousel/story/reels destekli).</li>
+    <li><strong>Analiz:</strong> insights uçlarıyla erişim, gösterim, profil ziyareti, demografi, en iyi saat.</li>
   </ol>
   <p class="text-muted" style="font-size:.86rem">Adım 1–7'yi sen başlat; her ekranı tarif ederim. Token gelince gerisini ben kurarım.</p>`;
 function openModal(sel) { $(sel).classList.add('open'); }
 function closeModal(el) { el.classList.remove('open'); }
 
 /* ---------- OLAYLAR ---------- */
+$('#igSource').addEventListener('click', (e) => { const b = e.target.closest('button[data-src]'); if (b) setSource(b.dataset.src); });
 $('#igSearch').addEventListener('input', (e) => fillPropOptions(e.target.value));
 $('#igProp').addEventListener('change', (e) => onPropChange(e.target.value));
+$('#igUpload').addEventListener('click', () => $('#igFreeInput').click());
+$('#igFreeInput').addEventListener('change', (e) => { addFreeFiles([...e.target.files]); e.target.value = ''; });
+$('#igUpload').addEventListener('dragover', (e) => { e.preventDefault(); $('#igUpload').classList.add('drag'); });
+$('#igUpload').addEventListener('dragleave', () => $('#igUpload').classList.remove('drag'));
+$('#igUpload').addEventListener('drop', (e) => { e.preventDefault(); $('#igUpload').classList.remove('drag'); addFreeFiles([...(e.dataTransfer?.files || [])]); });
 $('#igFormat').addEventListener('click', (e) => { const b = e.target.closest('button[data-fmt]'); if (b) setFormat(b.dataset.fmt); });
 $('#igPhotos').addEventListener('click', (e) => { const b = e.target.closest('.ig-ph[data-u]'); if (b) togglePhoto(b.dataset.u); });
 $('#igSelectAll').addEventListener('click', () => {
-  const p = currentProp(); if (!p) return;
-  const photos = p.fotograflar || [];
+  const photos = photoList(); if (!photos.length) return;
   if (igSelected.size === photos.length) igSelected = new Set(); else igSelected = new Set(photos);
   renderPhotos(); updatePreview();
 });
@@ -259,7 +316,7 @@ $('#igReel').addEventListener('click', doReel);
 $('#igCopyCap').addEventListener('click', copyCaption);
 $('#roadmapBtn').addEventListener('click', () => { $('#roadmapBody').innerHTML = ROADMAP_HTML; openModal('#roadmapModal'); });
 document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeModal(e.target.closest('.modal-overlay')); });
-document.addEventListener('click', (e) => { if (e.target.classList?.contains('modal-overlay')) closeModal(e.target); });
+document.addEventListener('click', (e) => { if (e.target.classList && e.target.classList.contains('modal-overlay')) closeModal(e.target); });
 
 setFormat('story');
 init();

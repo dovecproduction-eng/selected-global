@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=83';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=83';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=84';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=84';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -432,21 +432,23 @@ async function fetchAsJpeg(url) {
 }
 
 // Daire(ler)in fotoğraflarını + markalı kapağı ZIP olarak indir
-export async function downloadPropertyPhotos(rows, zipName, onProgress, folderNameFn) {
+export async function downloadPropertyPhotos(rows, zipName, onProgress, folderNameFn, opts = {}) {
   try { await ensureJSZip(); } catch (e) { toast('İndirme aracı yüklenemedi', 'err'); return; }
   rows = (Array.isArray(rows) ? rows : [rows]).filter(Boolean);
   const zip = new window.JSZip();
-  const total = rows.reduce((n, r) => n + 1 + ((r.fotograflar || []).length), 0);
+  const total = rows.reduce((n, r) => n + (opts.noCover ? 0 : 1) + ((r.fotograflar || []).length), 0);
   let done = 0;
   for (const row of rows) {
     const base = folderNameFn ? folderNameFn(row) : (slugify(`${row.bolge || ''}-${pickTitle(row)}`) || 'daire');
     const folder = (folderNameFn || rows.length > 1) ? zip.folder(base) : zip;
-    // Markalı kapak (ilk dosya)
-    try {
-      const coverBlob = await renderCoverImage(row);
-      if (coverBlob) folder.file('00-kapak.jpg', coverBlob);
-    } catch (e) { /* kapak üretilemezse ham fotoğraflarla devam */ }
-    done++; if (onProgress) onProgress(done, total);
+    // Markalı kapak (ilk dosya) — serbest gönderide (noCover) eklenmez
+    if (!opts.noCover) {
+      try {
+        const coverBlob = await renderCoverImage(row);
+        if (coverBlob) folder.file('00-kapak.jpg', coverBlob);
+      } catch (e) { /* kapak üretilemezse ham fotoğraflarla devam */ }
+      done++; if (onProgress) onProgress(done, total);
+    }
     // Ham fotoğraflar
     const photos = row.fotograflar || [];
     for (let i = 0; i < photos.length; i++) {
@@ -552,7 +554,20 @@ export async function makeReel(row, opts = {}, onProgress) {
   function drawScene(sc, p) {
     ctx.fillStyle = navy; ctx.fillRect(0, 0, W, H);
     if (sc.img) drawCover(sc.img, 1.02 + 0.08 * p, (sc.pan || 0) * p);
-    if (sc.type === 'hero') {
+    if (sc.type === 'hero' && opts.plain) {
+      // Serbest gönderi hero: büyük logo ortada + (varsa) başlık — daire bilgisi yok
+      topGrad(0.30); botGrad(0.40);
+      ctx.globalAlpha = Math.max(0, Math.min(1, (p * sc.dur) / 0.5));
+      drawLogo(W / 2, H / 2 - 40, 640);
+      const ttl = (opts.title || '').trim();
+      if (ttl) {
+        ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.5)'; ctx.shadowBlur = 12;
+        const tf = '600 54px Fraunces, Georgia, serif'; const tl = wrapLines(ttl, tf, W - 160, 3);
+        let ty = H / 2 + 230; ctx.font = tf; tl.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 66; });
+        ctx.shadowBlur = 0;
+      }
+      ctx.globalAlpha = 1;
+    } else if (sc.type === 'hero') {
       topGrad(0.38); botGrad(0.42);
       ctx.globalAlpha = Math.max(0, Math.min(1, (p * sc.dur) / 0.5));
       // Lokasyon — yukarı ortada, pin ikonlu
@@ -579,6 +594,7 @@ export async function makeReel(row, opts = {}, onProgress) {
       ctx.globalAlpha = 1;
     } else if (sc.type === 'photo') {
       botGrad(0.60);
+      if (!opts.plain) {
       // İlan açıklaması (lüks serif) — üst kısımda
       const acik = (row.aciklama || '').trim();
       if (acik) {
@@ -594,6 +610,7 @@ export async function makeReel(row, opts = {}, onProgress) {
       const pf = fitFont(priceText(), '800', 58, W - 140); ctx.font = `800 ${pf}px Manrope, sans-serif`; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.4)'; ctx.shadowBlur = 8; ctx.fillText(priceText(), W / 2, by); ctx.shadowBlur = 0; by += 58;
       const specs = [row.esyali == null ? null : (row.esyali ? 'Eşyalı' : 'Eşyasız'), row.oda_sayisi, row.metrekare ? `${row.metrekare} m²` : null].filter(Boolean).join('   ·   ');
       if (specs) { const f = fitFont(specs, '600', 34, W - 120); ctx.font = `600 ${f}px Manrope, sans-serif`; ctx.fillStyle = 'rgba(255,255,255,.9)'; ctx.fillText(specs, W / 2, by); }
+      }
       // Logo — İLK KAREDEKİ GİBİ SABİT: altta ortada, aynı konum ve boyut (kaymasın)
       drawLogo(W / 2, H - 180, 330);
     } else if (sc.type === 'specs') drawSpecs();
@@ -606,8 +623,8 @@ export async function makeReel(row, opts = {}, onProgress) {
   const heroDur = n <= 6 ? 3.4 : 3.0;
   const scenes = [{ type: 'hero', img: imgs[0], dur: heroDur, pan: 0 }];
   for (let i = 1; i < imgs.length; i++) scenes.push({ type: 'photo', img: imgs[i], idx: i, dur: photoDur, pan: (i % 2 ? 0.03 : -0.03) });
-  // Son kareler HER videoda: daire özellikleri + iletişim (logo + telefon)
-  scenes.push({ type: 'specs', dur: 3.6 });
+  // Son kareler: (daire modunda) özellikler kartı + iletişim; serbest modda sadece iletişim
+  if (!opts.plain) scenes.push({ type: 'specs', dur: 3.6 });
   scenes.push({ type: 'outro', dur: 4.0 });
   const total = scenes.reduce((s, x) => s + x.dur, 0);
   const TR = 0.45;

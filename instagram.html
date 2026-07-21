@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=83" />
+  <link rel="stylesheet" href="assets/css/style.css?v=84" />
 </head>
 <body class="admin-body">
 
@@ -86,9 +86,25 @@
           <h3>Gönderi hazırla</h3>
 
           <div class="field">
+            <label>Kaynak</label>
+            <div class="ig-format" id="igSource">
+              <button type="button" data-src="daire" class="active">🏠 Daire</button>
+              <button type="button" data-src="free">✏️ Serbest gönderi</button>
+            </div>
+          </div>
+
+          <div class="field" id="igDaireField">
             <label>Daire seç</label>
             <input id="igSearch" type="search" placeholder="Ara: başlık, bölge, proje…" autocomplete="off" />
             <select id="igProp" size="6"></select>
+          </div>
+
+          <div class="field hidden" id="igFreeField">
+            <label>Görselleri yükle <span class="text-muted">— kendi fotoğrafların/görsellerin</span></label>
+            <div class="ig-upload" id="igUpload">
+              📤 Görselleri buraya sürükle ya da <strong>tıklayıp seç</strong>
+              <input type="file" id="igFreeInput" accept="image/*" multiple hidden />
+            </div>
           </div>
 
           <div class="field">
@@ -170,6 +186,6 @@
     </div>
   </div>
 
-  <script type="module" src="assets/js/instagram.js?v=83"></script>
+  <script type="module" src="assets/js/instagram.js?v=84"></script>
 </body>
 </html>

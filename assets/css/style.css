@@ -972,3 +972,9 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
   .ig-grid { grid-template-columns: 1fr; }
   .ig-preview { position: static; max-width: 300px; margin: 0 auto; }
 }
+
+/* Instagram — serbest gönderi yükleme alanı */
+.ig-upload { border: 2px dashed var(--line); border-radius: 12px; padding: 26px 16px; text-align: center; color: var(--muted); font-size: .9rem; cursor: pointer; background: var(--bg-soft); transition: .15s; }
+.ig-upload:hover { border-color: var(--navy-500); color: var(--navy); }
+.ig-upload.drag { border-color: var(--gold); background: var(--bg-tint); color: var(--navy); }
+.ig-upload strong { color: var(--navy); }
