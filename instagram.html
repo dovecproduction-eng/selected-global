@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=84" />
+  <link rel="stylesheet" href="assets/css/style.css?v=85" />
 </head>
 <body class="admin-body">
 
@@ -94,9 +94,14 @@
           </div>
 
           <div class="field" id="igDaireField">
-            <label>Daire seç</label>
+            <label>Daire seç
+              <span class="ig-prop-view" id="igPropView" style="float:right">
+                <button type="button" data-pview="gallery" class="active" title="Galeri görünümü">▦ Galeri</button>
+                <button type="button" data-pview="list" title="Liste görünümü">☰ Liste</button>
+              </span>
+            </label>
             <input id="igSearch" type="search" placeholder="Ara: başlık, bölge, proje…" autocomplete="off" />
-            <select id="igProp" size="6"></select>
+            <div class="ig-prop-grid gallery" id="igPropGrid"></div>
           </div>
 
           <div class="field hidden" id="igFreeField">
@@ -186,6 +191,6 @@
     </div>
   </div>
 
-  <script type="module" src="assets/js/instagram.js?v=84"></script>
+  <script type="module" src="assets/js/instagram.js?v=85"></script>
 </body>
 </html>

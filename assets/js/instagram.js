@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail } from './config.js?v=84';
+import { supabase, CURRENCY, creatorContact, nameFromEmail } from './config.js?v=85';
 import {
-  esc, pickTitle, regionDisplay, slugify, toast,
+  esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, renderCoverImage, renderFooter,
-} from './ui.js?v=84';
+} from './ui.js?v=85';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -48,6 +48,7 @@ let props = [];
 let curId = '';
 let igFormat = 'story';
 let igSource = 'daire';       // 'daire' | 'free'
+let igPropView = 'gallery';   // daire seçici görünümü: 'gallery' | 'list'
 let igSelected = new Set();   // seçili görsel url'leri (sıra korunur)
 let freePhotos = [];          // serbest mod: [{url(objectURL), file}]
 const coverCache = {};        // property.id -> markalı kapak objectURL
@@ -56,7 +57,7 @@ async function loadProps() {
   const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
   if (error) { toast('Daireler yüklenemedi', 'err'); return; }
   props = data || [];
-  fillPropOptions('');
+  renderPropGrid();
 }
 function currentProp() { return props.find((p) => p.id === curId) || null; }
 
@@ -71,28 +72,33 @@ function orderedSel() {
   return (cov && igSelected.has(cov)) ? [cov, ...arr.filter((u) => u !== cov)] : arr;
 }
 
-/* ---------- DAİRE SEÇİMİ ---------- */
-function propLabel(p) {
-  const bits = [pickTitle(p) || 'Başlıksız'];
-  const r = regionDisplay(p.bolge); if (r) bits.push(r);
-  if (p.proje) bits.push(p.proje);
-  return `${bits.join(' · ')}  (${(p.fotograflar || []).length} foto)`;
-}
-function fillPropOptions(q) {
-  const sel = $('#igProp');
-  const ql = (q || '').toLocaleLowerCase('tr').trim();
+/* ---------- DAİRE SEÇİMİ (görselli galeri/liste) ---------- */
+function propThumb(p) { return coverUrl(p) || (p.fotograflar || [])[0] || ''; }
+function propPrice(p) { return p.fiyat != null ? `${CURRENCY[p.para_birimi] || ''}${Number(p.fiyat).toLocaleString('tr-TR')}` : 'Fiyat için ara'; }
+function renderPropGrid() {
+  const box = $('#igPropGrid'); if (!box) return;
+  const ql = ($('#igSearch').value || '').toLocaleLowerCase('tr').trim();
   const list = props.filter((p) => {
     if (!ql) return true;
     const hay = `${pickTitle(p) || ''} ${regionDisplay(p.bolge) || ''} ${p.proje || ''} ${p.oda_sayisi || ''}`.toLocaleLowerCase('tr');
     return hay.includes(ql);
   });
-  sel.innerHTML = list.map((p) => `<option value="${esc(p.id)}"${p.id === curId ? ' selected' : ''}>${esc(propLabel(p))}</option>`).join('')
-    || '<option disabled>Sonuç yok</option>';
+  box.className = 'ig-prop-grid ' + igPropView;
+  if (!list.length) { box.innerHTML = '<p class="text-muted" style="padding:10px;grid-column:1/-1">Sonuç yok.</p>'; return; }
+  box.innerHTML = list.map((p) => {
+    const thumb = propThumb(p); const on = p.id === curId; const n = (p.fotograflar || []).length;
+    const meta = [regionDisplay(p.bolge), p.proje].filter(Boolean).join(' · ');
+    return `<button type="button" class="ig-pcard${on ? ' on' : ''}" data-id="${esc(p.id)}">
+      <span class="ig-pcard-img"${thumb ? ` style="background-image:url('${esc(thumb)}')"` : ''}>${thumb ? '' : '📷'}${n ? `<span class="ig-pcard-n">📷 ${n}</span>` : ''}${on ? '<span class="ig-pcard-check">✓</span>' : ''}</span>
+      <span class="ig-pcard-body"><span class="t">${esc(pickTitle(p) || 'Başlıksız')}</span><span class="m">${esc(meta || '—')}</span><span class="p">${esc(propPrice(p))}</span></span>
+    </button>`;
+  }).join('');
 }
 function onPropChange(id) {
   curId = id;
   const p = currentProp();
   igSelected = new Set((p?.fotograflar || []));
+  renderPropGrid();          // seçili kartı vurgula
   renderPhotos();
   $('#igCaption').value = p ? buildCaption(p) : '';
   updateCapCount(); updatePreview();
@@ -108,7 +114,7 @@ function setSource(src) {
   if (src === 'free') {
     igSelected = new Set(freePhotos.map((f) => f.url));   // yüklüyse hepsi seçili
   } else {
-    igSelected = new Set(); curId = ''; $('#igProp').selectedIndex = -1;
+    igSelected = new Set(); curId = ''; renderPropGrid();
   }
   $('#igCaption').value = '';
   setFormat(igFormat);   // reels alanının görünürlüğü kaynağa bağlı
@@ -295,8 +301,9 @@ function closeModal(el) { el.classList.remove('open'); }
 
 /* ---------- OLAYLAR ---------- */
 $('#igSource').addEventListener('click', (e) => { const b = e.target.closest('button[data-src]'); if (b) setSource(b.dataset.src); });
-$('#igSearch').addEventListener('input', (e) => fillPropOptions(e.target.value));
-$('#igProp').addEventListener('change', (e) => onPropChange(e.target.value));
+$('#igSearch').addEventListener('input', renderPropGrid);
+$('#igPropGrid').addEventListener('click', (e) => { const b = e.target.closest('.ig-pcard[data-id]'); if (b) onPropChange(b.dataset.id); });
+$('#igPropView').addEventListener('click', (e) => { const b = e.target.closest('button[data-pview]'); if (b) { igPropView = b.dataset.pview; $$('#igPropView button').forEach((x) => x.classList.toggle('active', x === b)); renderPropGrid(); } });
 $('#igUpload').addEventListener('click', () => $('#igFreeInput').click());
 $('#igFreeInput').addEventListener('change', (e) => { addFreeFiles([...e.target.files]); e.target.value = ''; });
 $('#igUpload').addEventListener('dragover', (e) => { e.preventDefault(); $('#igUpload').classList.add('drag'); });
