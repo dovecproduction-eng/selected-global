@@ -1109,3 +1109,7 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 
 /* Liste format etiketi */
 .fmt-tag { font-size: .68rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: #fff; background: var(--fc, var(--navy)); }
+
+/* Instagram takvim — geçmiş günler (bugünden önce) koyu gri, seçilemez görünsün */
+.ig-cal-cell.past { background: #c2cad4; color: #6b7684; }
+.ig-cal-cell.past .d { color: #6b7684; opacity: .85; }

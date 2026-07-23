@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=95';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=96';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=95';
+} from './ui.js?v=96';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -552,10 +552,12 @@ function renderScheduler() {
   const byDay = {};
   schedRows.forEach((r) => { const d = new Date(r.publish_at); if (d.getFullYear() === y && d.getMonth() === m) (byDay[d.getDate()] = byDay[d.getDate()] || []).push(r); });
   const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   const isToday = (day) => today.getFullYear() === y && today.getMonth() === m && today.getDate() === day;
   let cells = '';
   for (let i = 0; i < startDow; i++) cells += '<div class="ig-cal-cell empty"></div>';
   for (let day = 1; day <= daysInMonth; day++) {
+    const isPast = new Date(y, m, day) < todayStart && !isToday(day);   // geçmiş gün → koyu gri (seçilemez)
     const posts = (byDay[day] || []).sort((a, b) => new Date(a.publish_at) - new Date(b.publish_at));
     let evs = '';
     posts.slice(0, 2).forEach((p) => {
@@ -567,7 +569,7 @@ function renderScheduler() {
       evs += `<span class="ig-cal-ev ${info.cls}${p.status !== 'pending' ? ' done' : ''}" data-tip="${esc(tip)}">${t}</span>`;
     });
     if (posts.length > 2) evs += `<span class="ig-cal-more" data-tip="${esc(posts.length + ' gönderi bu gün')}">+${posts.length - 2} daha</span>`;
-    cells += `<div class="ig-cal-cell${isToday(day) ? ' today' : ''}${posts.length ? ' has' : ''}"><span class="d">${day}</span><div class="ig-cal-evs">${evs}</div></div>`;
+    cells += `<div class="ig-cal-cell${isToday(day) ? ' today' : ''}${isPast ? ' past' : ''}${posts.length ? ' has' : ''}"><span class="d">${day}</span><div class="ig-cal-evs">${evs}</div></div>`;
   }
   const monthName = schedMonth.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
   const dows = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
