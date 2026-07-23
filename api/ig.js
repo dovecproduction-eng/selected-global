@@ -17,15 +17,32 @@ const cid = (res) => (res && res.data && (res.data.id || (res.data.data && res.d
 const ok = (res) => !!res && res.successful !== false && !res.error;
 const errOf = (res) => (res && (res.error || (res.data && res.data.message))) || 'bilinmeyen hata';
 
-async function waitReady(creation_id, tries = 24) {
+// Container işlenene kadar bekle (foto: saniyeler, video: daha uzun)
+async function waitReady(creation_id, tries = 10) {
   for (let i = 0; i < tries; i++) {
     const s = await exec('INSTAGRAM_GET_POST_STATUS', { ig_user_id: IG, creation_id });
-    const st = (s.data && (s.data.status_code || s.data.status)) || (s.data && s.data.data && s.data.data.status_code) || '';
+    const st = (s.data && (s.data.status_code || s.data.status)) || (s.data && s.data.data && (s.data.data.status_code || s.data.data.status)) || '';
     if (st === 'FINISHED') return true;
     if (st === 'ERROR' || st === 'EXPIRED') throw new Error('Medya işlenemedi (' + st + ')');
-    await new Promise((r) => setTimeout(r, 3000));
+    await new Promise((r) => setTimeout(r, 2500));
   }
-  throw new Error('Medya işleme zaman aşımı');
+  return false; // durum alınamasa da yayın denenecek
+}
+// "hazır değil" (2207027 / is_transient) hatasında bekleyip tekrar dener
+async function publishWithRetry(creation_id, tries = 6) {
+  let last;
+  for (let i = 0; i < tries; i++) {
+    const pub = await exec('INSTAGRAM_CREATE_POST', { ig_user_id: IG, creation_id });
+    if (ok(pub)) return pub;
+    last = pub;
+    const s = JSON.stringify(pub).toLowerCase();
+    if (s.includes('2207027') || s.includes('not ready') || s.includes('is not available') || s.includes('"is_transient":true') || s.includes('media id is not available')) {
+      await new Promise((r) => setTimeout(r, 3000));
+      continue;
+    }
+    return pub; // farklı bir hata → tekrar deneme
+  }
+  return last;
 }
 
 async function readBody(req) {
@@ -92,7 +109,6 @@ module.exports = async (req, res) => {
         const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'reel', video_url: videoUrl, caption });
         if (!ok(c) || !cid(c)) return res.status(400).json({ error: 'Video yüklenemedi: ' + errOf(c) });
         containerId = cid(c);
-        await waitReady(containerId);
       } else if (format === 'story') {
         if (!images[0]) return res.status(400).json({ error: 'Story için görsel gerekli.' });
         const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'photo', media_type: 'STORIES', image_url: images[0] });
@@ -105,7 +121,9 @@ module.exports = async (req, res) => {
         containerId = cid(c);
       }
 
-      const pub = await exec('INSTAGRAM_CREATE_POST', { ig_user_id: IG, creation_id: containerId });
+      // Yayınlamadan ÖNCE container'ın hazır olmasını bekle (yarış durumunu önler), sonra gerekirse tekrar dene
+      await waitReady(containerId);
+      const pub = await publishWithRetry(containerId);
       if (!ok(pub)) return res.status(400).json({ error: 'Yayınlanamadı: ' + errOf(pub), detail: pub });
       return res.json({ ok: true, id: cid(pub), format });
     }
