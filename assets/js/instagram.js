@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail } from './config.js?v=87';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET } from './config.js?v=88';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
-  downloadPropertyPhotos, downloadReel, renderCoverImage, renderFooter,
-} from './ui.js?v=87';
+  downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
+} from './ui.js?v=88';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -21,6 +21,7 @@ function showApp() {
   $('#userName').textContent = nameFromEmail(myEmail) || '';
   $('#footer').innerHTML = renderFooter();
   loadProps();
+  checkConnection();
 }
 $('#loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -340,6 +341,161 @@ const ROADMAP_HTML = `
 function openModal(sel) { $(sel).classList.add('open'); }
 function closeModal(el) { el.classList.remove('open'); }
 
+/* ---------- BACKEND (Composio) — bağlantı, yayınlama, analiz ---------- */
+const IG_API = '/api/ig';
+let igConnected = false, igUsername = '';
+
+async function checkConnection() {
+  try {
+    const r = await fetch(`${IG_API}?action=userinfo`);
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j && j.data && j.data.username) {
+      igConnected = true; igUsername = j.data.username;
+      $('#igStatus').textContent = `● Bağlı: @${igUsername}`;
+      $('#igStatus').className = 'ig-badge on';
+      $('#igPublish').classList.remove('hidden');
+      const cx = document.querySelector('.ig-connect-txt strong');
+      if (cx) cx.textContent = `Instagram bağlı: @${igUsername} — buradan doğrudan paylaşabilirsin.`;
+    } else {
+      igConnected = false;
+      $('#igStatus').textContent = '● Bağlı değil';
+      $('#igStatus').className = 'ig-badge off';
+    }
+  } catch (_) { igConnected = false; }
+  loadInsights();
+}
+
+// Supabase public bucket'a yükle → herkese açık URL (Instagram medyayı URL'den çeker)
+async function uploadPublic(blob, ext) {
+  const path = `_ig/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType: blob.type || (ext === 'mp4' ? 'video/mp4' : 'image/jpeg') });
+  if (error) throw new Error('Yükleme hatası: ' + error.message);
+  return supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+async function urlToJpegBlob(url) {
+  const bmp = await createImageBitmap(await (await fetch(url)).blob());
+  const c = document.createElement('canvas'); c.width = bmp.width; c.height = bmp.height;
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bmp, 0, 0);
+  return await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92));
+}
+
+// Yayınlanacak görselleri hazırla → herkese açık URL dizisi
+async function prepareImages(setMsg) {
+  const urls = [];
+  if (igSource === 'daire') {
+    const p = currentProp();
+    setMsg('Kapak hazırlanıyor…');
+    const cover = await renderCoverImage(p);                 // markalı kapak = 1. slayt
+    if (cover) urls.push(await uploadPublic(cover, 'jpg'));
+    if (igFormat === 'carousel') {
+      const sel = orderedSel();
+      for (let i = 0; i < sel.length && urls.length < 10; i++) {
+        setMsg(`Görsel ${urls.length} yükleniyor…`);
+        urls.push(await uploadPublic(await urlToJpegBlob(sel[i]), 'jpg'));
+      }
+    }
+  } else {
+    const sel = orderedSel(); const aspect = FMT_META[igFormat].aspect;
+    const max = igFormat === 'carousel' ? 10 : 1;
+    for (let i = 0; i < sel.length && urls.length < max; i++) {
+      setMsg(`Görsel ${i + 1} hazırlanıyor…`);
+      const fitted = await brandFitted(sel[i], aspect);
+      urls.push(await uploadPublic(await (await fetch(fitted)).blob(), 'jpg'));
+    }
+  }
+  return urls;
+}
+
+async function publishNow() {
+  if (!igConnected) { toast('Instagram bağlı değil', 'err'); return; }
+  const msgEl = $('#igPublishMsg'); const setMsg = (t) => { msgEl.textContent = t; };
+  if (igSource === 'daire' && !currentProp()) { toast('Önce daire seç', 'err'); return; }
+  if (igSource === 'free' && !igSelected.size) { toast('Önce görsel yükle', 'err'); return; }
+  if (!confirm(`Bu gönderi @${igUsername} hesabında YAYINLANACAK. Onaylıyor musun?`)) return;
+  const btn = $('#igPublish'); const orig = btn.innerHTML; btn.disabled = true; btn.textContent = 'Yayınlanıyor…';
+  const caption = $('#igCaption').value || '';
+  try {
+    let body;
+    if (igFormat === 'reels') {
+      const p = igSource === 'daire' ? currentProp()
+        : { fotograflar: orderedSel(), kapak_index: 0, tip: null, fiyat: null, para_birimi: 'GBP', proje: null, bolge: null, ozellikler: [], aciklama: null };
+      const opts = igSource === 'daire' ? { contact: creatorContact(p.ekleyen) }
+        : { plain: true, title: caption.split('\n')[0] || '', contact: creatorContact(nameFromEmail(myEmail)) };
+      const { blob, ext } = await makeReel(p, opts, (pr) => setMsg(`Video üretiliyor… %${Math.round(pr * 100)}`));
+      if (ext !== 'mp4') { setMsg('⚠ Reels doğrudan paylaşım için MP4 gerekir — lütfen Safari kullan (Chrome WebM üretir). Videoyu indirip elle de paylaşabilirsin.'); btn.disabled = false; btn.innerHTML = orig; return; }
+      setMsg('Video yükleniyor…');
+      body = { format: 'reels', videoUrl: await uploadPublic(blob, 'mp4'), caption };
+    } else {
+      const images = await prepareImages(setMsg);
+      if (!images.length) { toast('Görsel yok', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      body = { format: igFormat, images, caption };
+    }
+    setMsg('Instagram\'a gönderiliyor…');
+    const r = await fetch(`${IG_API}?action=publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    const j = await r.json().catch(() => ({}));
+    if (r.ok && j.ok) {
+      setMsg('✓ Yayınlandı! Instagram profilinde görebilirsin.');
+      toast('Instagram\'da yayınlandı 🎉', 'ok');
+      logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', `Instagram'da yayınlandı (${igFormat})`);
+      setTimeout(loadInsights, 5000);
+    } else { setMsg('✕ ' + (j.error || 'Yayınlanamadı')); toast('Yayınlanamadı', 'err'); }
+  } catch (e) { console.error(e); setMsg('✕ ' + (e.message || e)); toast('Hata: ' + (e.message || e), 'err'); }
+  btn.disabled = false; btn.innerHTML = orig;
+}
+
+/* ---------- ANALİZ ---------- */
+let lastInsights = null;
+async function loadInsights() {
+  const box = $('#igInsights'); if (!box) return;
+  box.innerHTML = '<p class="text-muted" style="padding:10px">Yükleniyor…</p>';
+  try {
+    const r = await fetch(`${IG_API}?action=insights`);
+    const j = await r.json().catch(() => ({}));
+    if (!r.ok) { box.innerHTML = `<p class="text-muted" style="padding:10px">Analiz alınamadı: ${esc(j.error || '')}<br><small>Backend anahtarı (COMPOSIO_API_KEY) Vercel'de tanımlı mı?</small></p>`; return; }
+    lastInsights = j; renderInsights(j);
+  } catch (e) { box.innerHTML = '<p class="text-muted" style="padding:10px">Analiz alınamadı (backend hazır değil olabilir).</p>'; }
+}
+function renderInsights(j) {
+  const ins = j.insights || {}, info = j.userinfo || {};
+  const vals = (m) => { const a = ins[m]; if (!Array.isArray(a) || !a[0]) return []; const it = a[0]; if (it.total_value && it.total_value.value != null) return [{ value: it.total_value.value }]; return it.values || []; };
+  const sum = (m) => vals(m).reduce((s, v) => s + (Number(v.value) || 0), 0);
+  const fmt = (n) => Number(n || 0).toLocaleString('tr-TR');
+  const tile = (val, label) => `<div class="ig-itile"><div class="iv">${esc(fmt(val))}</div><div class="il">${esc(label)}</div></div>`;
+  const tiles = [
+    tile(info.followers_count, 'Takipçi'), tile(info.media_count, 'Gönderi'),
+    tile(sum('reach'), 'Erişim (30g)'), tile(sum('views') || sum('impressions'), 'Görüntülenme'),
+    tile(sum('profile_views'), 'Profil ziyareti'), tile(sum('accounts_engaged'), 'Etkileşen hesap'),
+    tile(sum('total_interactions'), 'Toplam etkileşim'), tile(sum('website_clicks'), 'Web tıklaması'),
+  ].join('');
+
+  // En iyi saatler (online_followers) — saat→takipçi
+  let hoursHtml = '';
+  const ofv = vals('online_followers');
+  const hourMap = (ofv[0] && typeof ofv[0].value === 'object') ? ofv[0].value : null;
+  if (hourMap) {
+    const arr = Array.from({ length: 24 }, (_, h) => Number(hourMap[h] || hourMap[String(h)] || 0));
+    const mx = Math.max(1, ...arr);
+    hoursHtml = `<div class="ig-card"><h4>En aktif saatler (takipçiler online)</h4><div class="ig-hours">${arr.map((n, h) => `<span class="ig-hbar" title="${h}:00 — ${n}"><span style="height:${Math.round(n / mx * 100)}%"></span><em>${h}</em></span>`).join('')}</div></div>`;
+  }
+
+  // Son gönderiler
+  const media = (j.media && (j.media.data || j.media)) || [];
+  let mediaHtml = '';
+  if (Array.isArray(media) && media.length) {
+    mediaHtml = `<div class="ig-card"><h4>Son gönderiler</h4><div class="ig-media">${media.slice(0, 12).map((m) => {
+      const thumb = m.thumbnail_url || m.media_url || '';
+      return `<a class="ig-mtile" href="${esc(m.permalink || '#')}" target="_blank" rel="noopener">${thumb ? `<img src="${esc(thumb)}" alt="" loading="lazy" />` : '<span class="ig-mph">📷</span>'}<span class="ig-mstat">❤ ${fmt(m.like_count)} · 💬 ${fmt(m.comments_count)}</span></a>`;
+    }).join('')}</div></div>`;
+  }
+
+  const empty = !info.media_count && !sum('reach');
+  $('#igInsights').innerHTML =
+    `<div class="ig-insight-tiles">${tiles}</div>` +
+    hoursHtml + mediaHtml +
+    (empty ? '<p class="text-muted" style="font-size:.85rem;margin:12px 0 0">Hesap yeni — paylaşım yaptıkça ve takipçi geldikçe bu veriler dolacak. (Bazı metrikler ~100 takipçiden sonra Instagram tarafından açılır.)</p>'
+           : `<p class="text-muted" style="font-size:.8rem;margin:12px 0 0">Son güncelleme: ${esc((j.fetched_at || '').replace('T', ' ').slice(0, 16))}</p>`);
+}
+
 /* ---------- OLAYLAR ---------- */
 $('#igSource').addEventListener('click', (e) => { const b = e.target.closest('button[data-src]'); if (b) setSource(b.dataset.src); });
 $('#igSearch').addEventListener('input', renderPropGrid);
@@ -365,6 +521,15 @@ $('#igCopyCap').addEventListener('click', copyCaption);
 $('#roadmapBtn').addEventListener('click', () => { $('#roadmapBody').innerHTML = ROADMAP_HTML; openModal('#roadmapModal'); });
 document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeModal(e.target.closest('.modal-overlay')); });
 document.addEventListener('click', (e) => { if (e.target.classList && e.target.classList.contains('modal-overlay')) closeModal(e.target); });
+
+$('#igPublish').addEventListener('click', publishNow);
+$('#igInsRefresh').addEventListener('click', loadInsights);
+$('#igInsCopy').addEventListener('click', async () => {
+  if (!lastInsights) { toast('Önce analiz yüklensin', 'err'); return; }
+  const txt = JSON.stringify(lastInsights, null, 2);
+  try { await navigator.clipboard.writeText(txt); toast('Ham analiz verisi kopyalandı — AI\'ya yapıştırıp yorumlatabilirsin', 'ok'); }
+  catch { prompt('Ham veri (kopyala):', txt); }
+});
 
 setFormat('story');
 init();

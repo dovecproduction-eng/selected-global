@@ -1000,3 +1000,20 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-pcard-body .t { font-weight: 700; font-size: .8rem; color: var(--navy); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ig-pcard-body .m { font-size: .72rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ig-pcard-body .p { font-size: .78rem; font-weight: 700; color: var(--gold); }
+
+/* Instagram — yayın mesajı + detaylı analiz */
+.ig-publish-msg { font-size: .85rem; color: var(--navy); margin-top: 8px; min-height: 18px; }
+.ig-insights-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.ig-insights-head h3 { margin: 0; }
+.ig-insights-btns { display: flex; gap: 8px; }
+.ig-card { margin-top: 16px; border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; background: var(--bg-soft); }
+.ig-card h4 { margin: 0 0 10px; font-size: .95rem; color: var(--navy); }
+.ig-hours { display: flex; align-items: flex-end; gap: 3px; height: 90px; }
+.ig-hbar { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; }
+.ig-hbar > span { width: 100%; background: var(--navy); border-radius: 3px 3px 0 0; min-height: 2px; }
+.ig-hbar em { font-size: .55rem; color: var(--muted); font-style: normal; margin-top: 2px; }
+.ig-media { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.ig-mtile { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--bg-tint); display: block; }
+.ig-mtile img { width: 100%; height: 100%; object-fit: cover; }
+.ig-mph { position: absolute; inset: 0; display: grid; place-items: center; color: #b6c2d0; font-size: 1.4rem; }
+.ig-mstat { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, rgba(0,0,0,.7)); color: #fff; font-size: .66rem; padding: 10px 6px 4px; text-align: center; }

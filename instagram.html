@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=87" />
+  <link rel="stylesheet" href="assets/css/style.css?v=88" />
 </head>
 <body class="admin-body">
 
@@ -144,11 +144,13 @@
           </div>
 
           <div class="ig-actions">
-            <button class="btn btn-primary" id="igDownload">⬇ Seçili fotoğrafları indir</button>
+            <button class="btn btn-primary hidden" id="igPublish">🚀 Doğrudan paylaş</button>
+            <button class="btn btn-ghost" id="igDownload">⬇ Seçili fotoğrafları indir</button>
             <button class="btn btn-gold hidden" id="igReel">🎬 Reels videosu oluştur</button>
             <button class="btn btn-ghost" id="igCopyCap">📋 Caption'ı kopyala</button>
             <a class="btn btn-ghost" href="https://www.instagram.com/" target="_blank" rel="noopener">↗ Instagram'ı aç</a>
           </div>
+          <div id="igPublishMsg" class="ig-publish-msg"></div>
           <p class="ig-tip">💡 <strong>Elle paylaşım:</strong> Fotoğrafları indir → "Instagram'ı aç" → yeni gönderi/story → indirdiğin fotoğrafları seç → caption'ı yapıştır. (Bağlantı kurulunca tek butonla doğrudan paylaşılacak.)</p>
         </section>
 
@@ -163,20 +165,16 @@
         </aside>
       </div>
 
-      <!-- Analiz (kilitli — bağlanınca dolar) -->
+      <!-- Detaylı analiz -->
       <section class="ig-insights">
-        <h3>📊 Analiz <span class="text-muted">— hesap bağlanınca burada görünecek</span></h3>
-        <div class="ig-insight-tiles" id="igInsights">
-          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Erişim (Reach)</div></div>
-          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Gösterim</div></div>
-          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Profil ziyareti</div></div>
-          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Yeni takipçi</div></div>
-          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Kaydetme / paylaşma</div></div>
-          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">En iyi paylaşım saati</div></div>
-          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Takipçi demografisi</div></div>
-          <div class="ig-itile locked"><span class="lk">🔒</span><div class="iv">—</div><div class="il">Etkileşim oranı</div></div>
+        <div class="ig-insights-head">
+          <h3>📊 Detaylı analiz <span class="text-muted">— Instagram'ın tek ekranda göstermediği veriler</span></h3>
+          <div class="ig-insights-btns">
+            <button class="btn btn-ghost btn-sm" id="igInsRefresh">🔄 Yenile</button>
+            <button class="btn btn-ghost btn-sm" id="igInsCopy" title="Yapay zekânın okuyup yorumlayabileceği ham veri">🤖 Ham veri (AI)</button>
+          </div>
         </div>
-        <p class="text-muted" style="font-size:.85rem;margin:12px 0 0">Bunlar Instagram'ın uygulamada tek ekranda göstermediği verilerdir; İşletme hesabı bağlanınca otomatik dolar.</p>
+        <div id="igInsights"><p class="text-muted" style="padding:10px">Yükleniyor…</p></div>
       </section>
     </main>
 
@@ -191,6 +189,6 @@
     </div>
   </div>
 
-  <script type="module" src="assets/js/instagram.js?v=87"></script>
+  <script type="module" src="assets/js/instagram.js?v=88"></script>
 </body>
 </html>
