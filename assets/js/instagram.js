@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET } from './config.js?v=88';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET } from './config.js?v=89';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=88';
+} from './ui.js?v=89';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -47,7 +47,8 @@ async function logAct(action, entity_ref, detail) {
 /* ---------- DURUM ---------- */
 let props = [];
 let curId = '';
-let igFormat = 'story';
+let igFormat = 'carousel';
+function formatCap() { return igFormat === 'post' ? 1 : igFormat === 'carousel' ? 10 : 20; }
 let igSource = 'daire';       // 'daire' | 'free'
 let igPropView = 'gallery';   // daire seçici görünümü: 'gallery' | 'list'
 let igSelected = new Set();   // seçili görsel url'leri (sıra korunur)
@@ -98,7 +99,7 @@ function renderPropGrid() {
 function onPropChange(id) {
   curId = id;
   const p = currentProp();
-  igSelected = new Set((p?.fotograflar || []));
+  igSelected = new Set();     // başlangıçta hiçbir foto seçili değil (hata olmasın)
   renderPropGrid();          // seçili kartı vurgula
   renderPhotos();
   $('#igCaption').value = p ? buildCaption(p) : '';
@@ -112,11 +113,8 @@ function setSource(src) {
   $('#igDaireField').classList.toggle('hidden', src !== 'daire');
   $('#igFreeField').classList.toggle('hidden', src !== 'free');
   $('#igAutoCap').style.display = src === 'daire' ? '' : 'none';
-  if (src === 'free') {
-    igSelected = new Set(freePhotos.map((f) => f.url));   // yüklüyse hepsi seçili
-  } else {
-    igSelected = new Set(); curId = ''; renderPropGrid();
-  }
+  igSelected = new Set();     // başlangıçta hiçbir görsel seçili değil
+  if (src !== 'free') { curId = ''; renderPropGrid(); }
   $('#igCaption').value = '';
   setFormat(igFormat);   // reels alanının görünürlüğü kaynağa bağlı
   renderPhotos(); updateCapCount(); updatePreview();
@@ -154,10 +152,10 @@ async function addFreeFiles(files) {
   if (!imgs.length) return;
   for (const f of imgs) {
     const raw = URL.createObjectURL(f);
-    freePhotos.push({ url: raw, file: f }); igSelected.add(raw);   // ham url'yi tut, markalamayı formata göre anlık yap
+    freePhotos.push({ url: raw, file: f });   // ham url'yi tut; seçimi kullanıcı yapar (otomatik seçilmez)
   }
   renderPhotos(); updatePreview();
-  toast(`${imgs.length} görsel eklendi`, 'ok');
+  toast(`${imgs.length} görsel eklendi — aşağıdan seç`, 'ok');
 }
 
 /* ---------- GÖRSEL IZGARASI ---------- */
@@ -174,7 +172,12 @@ function renderPhotos() {
   }).join('');
 }
 function togglePhoto(u) {
-  if (igSelected.has(u)) igSelected.delete(u); else igSelected.add(u);
+  if (igSelected.has(u)) igSelected.delete(u);
+  else if (igFormat === 'post') igSelected = new Set([u]);   // Tek Gönderi = yalnız 1 foto
+  else {
+    if (igSelected.size >= formatCap()) { toast(`Bu formatta en fazla ${formatCap()} görsel`, 'err'); return; }
+    igSelected.add(u);
+  }
   renderPhotos(); updatePreview();
 }
 
@@ -312,6 +315,8 @@ const FMT_META = {
 function setFormat(fmt) {
   igFormat = fmt;
   $$('#igFormat button').forEach((b) => b.classList.toggle('active', b.dataset.fmt === fmt));
+  const cap = formatCap();
+  if (igSelected.size > cap) igSelected = new Set([...igSelected].slice(0, cap));   // yeni format sınırına indir
   const isReels = fmt === 'reels';
   const daireReels = isReels && igSource === 'daire';
   $('#igPhotosField').classList.toggle('hidden', daireReels);  // daire reels'te tüm fotoğraflar kullanılır → ızgara gizli
@@ -320,7 +325,7 @@ function setFormat(fmt) {
   $('#igDownload').classList.toggle('hidden', isReels);
   $('#igPhotoHint').textContent = isReels ? '' : `— ${FMT_META[fmt].hint}`;
   $('#igFmtLabel').textContent = FMT_META[fmt].label;
-  updatePreview();
+  renderPhotos(); updatePreview();
 }
 
 /* ---------- YOL HARİTASI ---------- */
@@ -488,12 +493,32 @@ function renderInsights(j) {
     }).join('')}</div></div>`;
   }
 
-  const empty = !info.media_count && !sum('reach');
-  $('#igInsights').innerHTML =
-    `<div class="ig-insight-tiles">${tiles}</div>` +
-    hoursHtml + mediaHtml +
-    (empty ? '<p class="text-muted" style="font-size:.85rem;margin:12px 0 0">Hesap yeni — paylaşım yaptıkça ve takipçi geldikçe bu veriler dolacak. (Bazı metrikler ~100 takipçiden sonra Instagram tarafından açılır.)</p>'
-           : `<p class="text-muted" style="font-size:.8rem;margin:12px 0 0">Son güncelleme: ${esc((j.fetched_at || '').replace('T', ' ').slice(0, 16))}</p>`);
+  // ---- Detaylı yorum / öne çıkanlar (otomatik) ----
+  const L = [];
+  L.push(`Hesapta <b>${fmt(info.followers_count)}</b> takipçi ve <b>${fmt(info.media_count)}</b> gönderi var.`);
+  const reach = sum('reach'), views = sum('views') || sum('impressions'), pv = sum('profile_views');
+  if (reach || views) L.push(`Son 30 günde toplam erişim <b>${fmt(reach)}</b>, görüntülenme <b>${fmt(views)}</b>${pv ? `, profil ziyareti <b>${fmt(pv)}</b>` : ''}.`);
+  const inter = sum('total_interactions'), eng = sum('accounts_engaged');
+  if (inter || eng) L.push(`<b>${fmt(eng)}</b> hesapla etkileşildi, toplam <b>${fmt(inter)}</b> etkileşim (beğeni/yorum/kaydetme/paylaşma) alındı.`);
+  const fc = vals('follower_count');
+  if (fc.length >= 2) { const d = Number(fc[fc.length - 1].value) - Number(fc[0].value); L.push(`Bu dönemde takipçi değişimi: <b>${d >= 0 ? '+' : ''}${fmt(d)}</b>.`); }
+  if (hourMap) {
+    const arr = Array.from({ length: 24 }, (_, h) => Number(hourMap[h] || hourMap[String(h)] || 0));
+    const best = arr.indexOf(Math.max(...arr));
+    if (Math.max(...arr) > 0) L.push(`Takipçilerin en çok <b>${best}:00–${(best + 2) % 24}:00</b> arası online — paylaşım için en iyi zaman bu.`);
+  }
+  if (Array.isArray(media) && media.length) {
+    const top = [...media].sort((a, b) => ((Number(b.like_count) || 0) + (Number(b.comments_count) || 0)) - ((Number(a.like_count) || 0) + (Number(a.comments_count) || 0)))[0];
+    if (top && (top.like_count || top.comments_count)) L.push(`En çok etkileşim alan gönderin: <a href="${esc(top.permalink || '#')}" target="_blank" rel="noopener">bu gönderi</a> — ❤ ${fmt(top.like_count)} · 💬 ${fmt(top.comments_count)}.`);
+    const er = info.followers_count ? ((media.reduce((s, m) => s + (Number(m.like_count) || 0) + (Number(m.comments_count) || 0), 0) / media.length) / info.followers_count * 100) : 0;
+    if (er) L.push(`Ortalama etkileşim oranı ~<b>%${er.toFixed(1)}</b> (gönderi başına etkileşim / takipçi).`);
+  }
+  const empty = !info.media_count && !reach;
+  if (empty) L.push('Hesap yeni; paylaşım yaptıkça ve takipçi geldikçe buraya otomatik yorumlar ve trendler gelecek. (Bazı metrikler ~100 takipçiden sonra Instagram tarafından açılır.)');
+  const analysisHtml = `<div class="ig-card ig-analysis"><h4>📈 Detaylı analiz & yorum</h4><ul>${L.map((t) => `<li>${t}</li>`).join('')}</ul>
+    <div class="ig-analysis-foot"><span class="text-muted">Son güncelleme: ${esc((j.fetched_at || '').replace('T', ' ').slice(0, 16))}</span> · <a href="javascript:void(0)" data-copyraw class="link-quiet">ham veriyi kopyala (AI için)</a></div></div>`;
+
+  $('#igInsights').innerHTML = `<div class="ig-insight-tiles">${tiles}</div>` + hoursHtml + mediaHtml + analysisHtml;
 }
 
 /* ---------- OLAYLAR ---------- */
@@ -510,7 +535,8 @@ $('#igFormat').addEventListener('click', (e) => { const b = e.target.closest('bu
 $('#igPhotos').addEventListener('click', (e) => { const b = e.target.closest('.ig-ph[data-u]'); if (b) togglePhoto(b.dataset.u); });
 $('#igSelectAll').addEventListener('click', () => {
   const photos = photoList(); if (!photos.length) return;
-  if (igSelected.size === photos.length) igSelected = new Set(); else igSelected = new Set(photos);
+  if (igSelected.size) igSelected = new Set();
+  else igSelected = new Set(photos.slice(0, formatCap()));   // format sınırı kadar seç
   renderPhotos(); updatePreview();
 });
 $('#igAutoCap').addEventListener('click', () => { const p = currentProp(); if (p) { $('#igCaption').value = buildCaption(p); updateCapCount(); updatePreview(); } });
@@ -524,12 +550,12 @@ document.addEventListener('click', (e) => { if (e.target.classList && e.target.c
 
 $('#igPublish').addEventListener('click', publishNow);
 $('#igInsRefresh').addEventListener('click', loadInsights);
-$('#igInsCopy').addEventListener('click', async () => {
-  if (!lastInsights) { toast('Önce analiz yüklensin', 'err'); return; }
+$('#igInsights').addEventListener('click', async (e) => {
+  if (!e.target.closest('[data-copyraw]')) return;
+  if (!lastInsights) return;
   const txt = JSON.stringify(lastInsights, null, 2);
-  try { await navigator.clipboard.writeText(txt); toast('Ham analiz verisi kopyalandı — AI\'ya yapıştırıp yorumlatabilirsin', 'ok'); }
-  catch { prompt('Ham veri (kopyala):', txt); }
+  try { await navigator.clipboard.writeText(txt); toast('Ham veri kopyalandı', 'ok'); } catch { prompt('Ham veri:', txt); }
 });
 
-setFormat('story');
+setFormat('carousel');
 init();

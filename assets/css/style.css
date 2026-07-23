@@ -912,7 +912,7 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-badge.off { background: #FBEAEA; color: var(--danger); }
 .ig-badge.on { background: #E7F6EE; color: #1A7F4B; }
 
-.ig-grid { display: grid; grid-template-columns: 1fr 320px; gap: 22px; align-items: start; }
+.ig-grid { display: grid; grid-template-columns: 1fr 250px; gap: 22px; align-items: start; }
 .ig-compose { background: #fff; border: 1px solid var(--line); border-radius: 16px; padding: 22px; }
 .ig-compose h3 { font-size: 1.2rem; margin-bottom: 16px; }
 .ig-compose .field { margin-bottom: 16px; }
@@ -970,7 +970,7 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 
 @media (max-width: 860px) {
   .ig-grid { grid-template-columns: 1fr; }
-  .ig-preview { position: static; max-width: 300px; margin: 0 auto; }
+  .ig-preview { position: static; max-width: 250px; margin: 0 auto; }
 }
 
 /* Instagram — serbest gönderi yükleme alanı */
@@ -988,12 +988,12 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-prop-grid.list { display: flex; flex-direction: column; gap: 6px; }
 .ig-pcard { display: flex; text-align: left; padding: 0; border: 2px solid transparent; border-radius: 10px; overflow: hidden; background: #fff; cursor: pointer; transition: .15s; }
 .ig-prop-grid.gallery .ig-pcard { flex-direction: column; }
-.ig-prop-grid.list .ig-pcard { flex-direction: row; align-items: stretch; }
+.ig-prop-grid.list .ig-pcard { flex-direction: row; align-items: center; }
 .ig-pcard:hover { border-color: var(--navy-500); }
 .ig-pcard.on { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); }
 .ig-pcard-img { position: relative; background: var(--bg-tint) center/cover no-repeat; display: grid; place-items: center; color: #b6c2d0; font-size: 1.4rem; flex: 0 0 auto; }
 .ig-prop-grid.gallery .ig-pcard-img { width: 100%; aspect-ratio: 4/3; }
-.ig-prop-grid.list .ig-pcard-img { width: 68px; }
+.ig-prop-grid.list .ig-pcard-img { width: 66px; height: 66px; flex: 0 0 66px; border-radius: 8px 0 0 8px; }
 .ig-pcard-n { position: absolute; bottom: 4px; right: 4px; background: rgba(0,0,0,.6); color: #fff; font-size: .64rem; padding: 1px 6px; border-radius: 999px; }
 .ig-pcard-check { position: absolute; top: 4px; left: 4px; width: 20px; height: 20px; border-radius: 50%; background: var(--gold); color: #fff; font-size: .72rem; font-weight: 800; display: grid; place-items: center; }
 .ig-pcard-body { padding: 7px 9px; display: flex; flex-direction: column; gap: 1px; min-width: 0; flex: 1; justify-content: center; }
@@ -1017,3 +1017,9 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-mtile img { width: 100%; height: 100%; object-fit: cover; }
 .ig-mph { position: absolute; inset: 0; display: grid; place-items: center; color: #b6c2d0; font-size: 1.4rem; }
 .ig-mstat { position: absolute; left: 0; right: 0; bottom: 0; background: linear-gradient(transparent, rgba(0,0,0,.7)); color: #fff; font-size: .66rem; padding: 10px 6px 4px; text-align: center; }
+
+/* Instagram — detaylı analiz kartı */
+.ig-analysis ul { margin: 0; padding-left: 18px; }
+.ig-analysis li { margin-bottom: 7px; font-size: .88rem; line-height: 1.55; color: var(--navy); }
+.ig-analysis b { color: var(--navy); font-weight: 700; }
+.ig-analysis-foot { margin-top: 12px; font-size: .78rem; border-top: 1px solid var(--line); padding-top: 10px; }
