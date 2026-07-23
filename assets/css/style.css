@@ -1023,3 +1023,13 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-analysis li { margin-bottom: 7px; font-size: .88rem; line-height: 1.55; color: var(--navy); }
 .ig-analysis b { color: var(--navy); font-weight: 700; }
 .ig-analysis-foot { margin-top: 12px; font-size: .78rem; border-top: 1px solid var(--line); padding-top: 10px; }
+
+/* Instagram — zamanlayıcı */
+.ig-schedule { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; background: var(--bg-soft); }
+.ig-schedule > label { display: block; font-weight: 600; color: var(--navy); font-size: .88rem; margin-bottom: 8px; }
+.ig-schedule-row { display: flex; gap: 8px; flex-wrap: wrap; }
+.ig-schedule-row input { flex: 1; min-width: 180px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; font: inherit; color: var(--navy); background: #fff; }
+.ig-sched-list { margin-top: 10px; }
+.ig-sched-title { font-size: .82rem; font-weight: 700; color: var(--navy); margin: 6px 0; }
+.ig-sched-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: .82rem; color: var(--navy); padding: 6px 8px; border-radius: 8px; background: #fff; border: 1px solid var(--line-soft); margin-bottom: 5px; }
+.ig-sched-item span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

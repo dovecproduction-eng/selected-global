@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET } from './config.js?v=89';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET } from './config.js?v=90';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=89';
+} from './ui.js?v=90';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -359,8 +359,10 @@ async function checkConnection() {
       $('#igStatus').textContent = `● Bağlı: @${igUsername}`;
       $('#igStatus').className = 'ig-badge on';
       $('#igPublish').classList.remove('hidden');
+      $('#igScheduleWrap').classList.remove('hidden');
+      loadScheduled();
       const cx = document.querySelector('.ig-connect-txt strong');
-      if (cx) cx.textContent = `Instagram bağlı: @${igUsername} — buradan doğrudan paylaşabilirsin.`;
+      if (cx) cx.textContent = `Instagram bağlı: @${igUsername} — doğrudan paylaşabilir veya zamanlayabilirsin.`;
     } else {
       igConnected = false;
       $('#igStatus').textContent = '● Bağlı değil';
@@ -446,6 +448,57 @@ async function publishNow() {
     } else { setMsg('✕ ' + (j.error || 'Yayınlanamadı')); toast('Yayınlanamadı', 'err'); }
   } catch (e) { console.error(e); setMsg('✕ ' + (e.message || e)); toast('Hata: ' + (e.message || e), 'err'); }
   btn.disabled = false; btn.innerHTML = orig;
+}
+
+/* ---------- ZAMANLAYICI ---------- */
+async function scheduleNow() {
+  if (!igConnected) { toast('Instagram bağlı değil', 'err'); return; }
+  const dt = $('#igSchedule').value;
+  if (!dt) { toast('Tarih ve saat seç', 'err'); return; }
+  const when = new Date(dt);
+  if (isNaN(when.getTime()) || when.getTime() <= Date.now() + 30000) { toast('Gelecek bir zaman seç', 'err'); return; }
+  if (igSource === 'daire' && !currentProp()) { toast('Önce daire seç', 'err'); return; }
+  if (igSource === 'free' && igFormat !== 'reels' && !igSelected.size) { toast('Görsel seç', 'err'); return; }
+  const btn = $('#igScheduleBtn'); const orig = btn.textContent; btn.disabled = true; btn.textContent = 'Hazırlanıyor…';
+  const setMsg = (t) => { $('#igPublishMsg').textContent = t; };
+  const caption = $('#igCaption').value || '';
+  try {
+    let images = [], video_url = null;
+    if (igFormat === 'reels') {
+      const p = igSource === 'daire' ? currentProp()
+        : { fotograflar: orderedSel(), kapak_index: 0, tip: null, fiyat: null, para_birimi: 'GBP', proje: null, bolge: null, ozellikler: [], aciklama: null };
+      const opts = igSource === 'daire' ? { contact: creatorContact(p.ekleyen) }
+        : { plain: true, title: caption.split('\n')[0] || '', contact: creatorContact(nameFromEmail(myEmail)) };
+      const { blob, ext } = await makeReel(p, opts, (pr) => setMsg(`Video üretiliyor… %${Math.round(pr * 100)}`));
+      if (ext !== 'mp4') { setMsg('⚠ Reels zamanlaması için MP4 gerekir — lütfen Safari kullan.'); btn.disabled = false; btn.textContent = orig; return; }
+      setMsg('Video yükleniyor…'); video_url = await uploadPublic(blob, 'mp4');
+    } else {
+      setMsg('Görseller hazırlanıyor…'); images = await prepareImages(setMsg);
+      if (!images.length) { toast('Görsel yok', 'err'); btn.disabled = false; btn.textContent = orig; return; }
+    }
+    const { error } = await supabase.from('scheduled_posts').insert({ created_by: myEmail, format: igFormat, images, video_url, caption, publish_at: when.toISOString() });
+    if (error) { setMsg('✕ ' + error.message); toast('Zamanlanamadı', 'err'); }
+    else {
+      setMsg('🕒 Zamanlandı: ' + when.toLocaleString('tr-TR'));
+      toast('Gönderi zamanlandı', 'ok'); $('#igSchedule').value = ''; loadScheduled();
+      logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', `Instagram zamanlandı (${igFormat}) → ${when.toLocaleString('tr-TR')}`);
+    }
+  } catch (e) { console.error(e); setMsg('✕ ' + (e.message || e)); toast('Hata: ' + (e.message || e), 'err'); }
+  btn.disabled = false; btn.textContent = orig;
+}
+async function loadScheduled() {
+  const box = $('#igSchedList'); if (!box) return;
+  const { data } = await supabase.from('scheduled_posts').select('*').order('publish_at', { ascending: true }).limit(50);
+  const rows = data || [];
+  if (!rows.length) { box.innerHTML = ''; return; }
+  const pending = rows.filter((r) => r.status === 'pending').length;
+  box.innerHTML = `<div class="ig-sched-title">Zamanlanmış gönderiler (${pending} bekliyor)</div>` + rows.slice(0, 20).map((r) => {
+    const when = new Date(r.publish_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+    const st = r.status === 'pending' ? '⏳' : r.status === 'published' ? '✓' : '✕';
+    const n = (Array.isArray(r.images) ? r.images.length : 0) || (r.video_url ? 1 : 0);
+    const fail = r.status === 'failed' && r.result ? ` · ${esc(String(r.result).slice(0, 40))}` : '';
+    return `<div class="ig-sched-item"><span>${st} ${esc(when)} · ${esc(r.format)} · ${n} medya${fail}</span>${r.status === 'pending' ? `<button class="icon-btn danger" data-schdel="${esc(r.id)}" title="İptal et">✕</button>` : ''}</div>`;
+  }).join('');
 }
 
 /* ---------- ANALİZ ---------- */
@@ -549,6 +602,13 @@ document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')
 document.addEventListener('click', (e) => { if (e.target.classList && e.target.classList.contains('modal-overlay')) closeModal(e.target); });
 
 $('#igPublish').addEventListener('click', publishNow);
+$('#igScheduleBtn').addEventListener('click', scheduleNow);
+$('#igSchedList').addEventListener('click', async (e) => {
+  const b = e.target.closest('[data-schdel]'); if (!b) return;
+  if (!confirm('Bu zamanlanmış gönderi iptal edilsin mi?')) return;
+  const { error } = await supabase.from('scheduled_posts').delete().eq('id', b.dataset.schdel);
+  if (error) toast('İptal edilemedi', 'err'); else { toast('İptal edildi', 'ok'); loadScheduled(); }
+});
 $('#igInsRefresh').addEventListener('click', loadInsights);
 $('#igInsights').addEventListener('click', async (e) => {
   if (!e.target.closest('[data-copyraw]')) return;

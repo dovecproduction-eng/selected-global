@@ -131,6 +131,33 @@ revoke all on public.activity_log from anon;
 grant select, insert on public.activity_log to authenticated;
 create index if not exists idx_activity_log_created on public.activity_log(created_at desc);
 
+-- ============================================================
+-- ZAMANLANMIŞ INSTAGRAM GÖNDERİLERİ (zamanlayıcı) — bu bloğu bir kez çalıştırın
+-- ============================================================
+create table if not exists public.scheduled_posts (
+  id          uuid primary key default gen_random_uuid(),
+  created_at  timestamptz not null default now(),
+  created_by  text,
+  format      text not null,                  -- carousel|post|story|reels
+  images      jsonb default '[]'::jsonb,       -- herkese açık görsel URL'leri
+  video_url   text,
+  caption     text,
+  publish_at  timestamptz not null,
+  status      text not null default 'pending', -- pending|published|failed
+  result      text,
+  ig_post_id  text
+);
+alter table public.scheduled_posts enable row level security;
+drop policy if exists "sched_insert" on public.scheduled_posts;
+create policy "sched_insert" on public.scheduled_posts for insert to authenticated with check (true);
+drop policy if exists "sched_read" on public.scheduled_posts;
+create policy "sched_read" on public.scheduled_posts for select to authenticated using (true);
+drop policy if exists "sched_del" on public.scheduled_posts;
+create policy "sched_del" on public.scheduled_posts for delete to authenticated using (true);
+revoke all on public.scheduled_posts from anon;
+grant select, insert, delete on public.scheduled_posts to authenticated;
+create index if not exists idx_sched_due on public.scheduled_posts(status, publish_at);
+
 -- FOTOĞRAF deposu (bucket)
 insert into storage.buckets (id, name, public)
 values ('property-images', 'property-images', true)

@@ -1,7 +1,8 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "cleanUrls": true,
-  "functions": { "api/ig.js": { "maxDuration": 30 } },
+  "functions": { "api/ig.js": { "maxDuration": 30 }, "api/ig-cron.js": { "maxDuration": 60 } },
+  "crons": [{ "path": "/api/ig-cron", "schedule": "*/5 * * * *" }],
   "headers": [
     {
       "source": "/assets/(.*)\\.(js|css)",
