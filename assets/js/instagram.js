@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=93';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=94';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=93';
+} from './ui.js?v=94';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -507,7 +507,11 @@ async function scheduleNow() {
       if (!images.length) { toast('Görsel yok', 'err'); btn.disabled = false; btn.textContent = orig; return; }
     }
     const { error } = await supabase.from('scheduled_posts').insert({ created_by: myEmail, format: igFormat, images, video_url, caption, publish_at: when.toISOString() });
-    if (error) { setMsg('✕ ' + error.message); toast('Zamanlanamadı', 'err'); }
+    if (error) {
+      const miss = /scheduled_posts|schema cache|PGRST205|does not exist/i.test(error.message || '');
+      setMsg(miss ? '✕ Zamanlayıcı tablosu (scheduled_posts) yok — Supabase SQL Editor\'da kurulum SQL\'ini bir kez çalıştırman gerekiyor.' : ('✕ ' + error.message));
+      toast(miss ? 'Önce zamanlayıcı SQL\'ini çalıştır' : 'Zamanlanamadı', 'err');
+    }
     else {
       setMsg('🕒 Zamanlandı: ' + when.toLocaleString('tr-TR'));
       toast('Gönderi zamanlandı', 'ok'); $('#igSchedule').value = ''; loadScheduled();
