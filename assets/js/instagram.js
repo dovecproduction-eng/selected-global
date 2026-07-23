@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=91';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=92';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=91';
+} from './ui.js?v=92';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -132,7 +132,7 @@ function setSource(src) {
 // Serbest görseli SEÇİLEN ORANA sığdır (contain: tüm görsel görünür, oran bozulmaz) + alt gradyen + logo
 let _logo = null;
 const fitCache = {};   // "rawUrl|aspect" -> markalı objectURL (formata göre)
-function _loadImg(src) { return new Promise((res, rej) => { const im = new Image(); im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
+function _loadImg(src) { return new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
 async function brandFitted(rawUrl, aspect) {
   const key = rawUrl + '|' + aspect;
   if (fitCache[key]) return fitCache[key];
@@ -451,13 +451,33 @@ async function publishNow() {
     const r = await fetch(`${IG_API}?action=publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
     if (r.ok && j.ok) {
-      setMsg('✓ Yayınlandı! Instagram profilinde görebilirsin.');
       toast('Instagram\'da yayınlandı 🎉', 'ok');
       logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', `Instagram'da yayınlandı (${igFormat})`);
+      // Gönderi / carousel → OTOMATİK olarak story'de de paylaş (story formatında ekstra bir şey yapılmaz)
+      if (igFormat === 'post' || igFormat === 'carousel') {
+        setMsg('✓ Yayınlandı — story olarak da paylaşılıyor…');
+        const okStory = await autoStory();
+        setMsg(okStory ? '✓ Gönderi + Story paylaşıldı! Instagram\'da görebilirsin.' : '✓ Gönderi paylaşıldı (story eklenemedi).');
+      } else {
+        setMsg('✓ Yayınlandı! Instagram profilinde görebilirsin.');
+      }
       setTimeout(loadInsights, 5000);
     } else { setMsg('✕ ' + (j.error || 'Yayınlanamadı')); toast('Yayınlanamadı', 'err'); }
   } catch (e) { console.error(e); setMsg('✕ ' + (e.message || e)); toast('Hata: ' + (e.message || e), 'err'); }
   btn.disabled = false; btn.innerHTML = orig;
+}
+
+// Gönderi/carousel sonrası kapaktan 9:16 markalı story üretip yayınlar (başarısız olursa ana paylaşımı bozmaz)
+async function autoStory() {
+  try {
+    const coverRaw = igSource === 'daire' ? coverOf(currentProp()) : orderedSel()[0];
+    if (!coverRaw) return false;
+    const storyBlobUrl = await brandFitted(coverRaw, 'tall');
+    const storyUrl = await uploadPublic(await (await fetch(storyBlobUrl)).blob(), 'jpg');
+    const r = await fetch(`${IG_API}?action=publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ format: 'story', images: [storyUrl], caption: '' }) });
+    const j = await r.json().catch(() => ({}));
+    return !!(r.ok && j.ok);
+  } catch (_) { return false; }
 }
 
 /* ---------- ZAMANLAYICI ---------- */
@@ -496,19 +516,51 @@ async function scheduleNow() {
   } catch (e) { console.error(e); setMsg('✕ ' + (e.message || e)); toast('Hata: ' + (e.message || e), 'err'); }
   btn.disabled = false; btn.textContent = orig;
 }
+let schedRows = [];
+let schedMonth = new Date();
 async function loadScheduled() {
+  const { data } = await supabase.from('scheduled_posts').select('*').order('publish_at', { ascending: true }).limit(200);
+  schedRows = data || [];
+  renderScheduler();
+}
+function renderScheduler() {
   const box = $('#igSchedList'); if (!box) return;
-  const { data } = await supabase.from('scheduled_posts').select('*').order('publish_at', { ascending: true }).limit(50);
-  const rows = data || [];
-  if (!rows.length) { box.innerHTML = ''; return; }
-  const pending = rows.filter((r) => r.status === 'pending').length;
-  box.innerHTML = `<div class="ig-sched-title">Zamanlanmış gönderiler (${pending} bekliyor)</div>` + rows.slice(0, 20).map((r) => {
-    const when = new Date(r.publish_at).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
-    const st = r.status === 'pending' ? '⏳' : r.status === 'published' ? '✓' : '✕';
+  const y = schedMonth.getFullYear(), m = schedMonth.getMonth();
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+  const startDow = (new Date(y, m, 1).getDay() + 6) % 7; // Pazartesi = 0
+  const byDay = {};
+  schedRows.forEach((r) => { const d = new Date(r.publish_at); if (d.getFullYear() === y && d.getMonth() === m) (byDay[d.getDate()] = byDay[d.getDate()] || []).push(r); });
+  const today = new Date();
+  const isToday = (day) => today.getFullYear() === y && today.getMonth() === m && today.getDate() === day;
+  let cells = '';
+  for (let i = 0; i < startDow; i++) cells += '<div class="ig-cal-cell empty"></div>';
+  for (let day = 1; day <= daysInMonth; day++) {
+    const posts = byDay[day] || []; const cnt = posts.length;
+    const cls = cnt ? (posts.some((p) => p.status === 'failed') ? ' has fail' : posts.every((p) => p.status === 'published') ? ' has done' : ' has') : '';
+    cells += `<div class="ig-cal-cell${isToday(day) ? ' today' : ''}${cls}"><span class="d">${day}</span>${cnt ? `<span class="ig-cal-dot">${cnt}</span>` : ''}</div>`;
+  }
+  const monthName = schedMonth.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
+  const dows = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+  const cal = `<div class="ig-cal">
+    <div class="ig-cal-head"><button type="button" class="ig-cal-nav" data-calnav="-1">‹</button><strong>${esc(monthName)}</strong><button type="button" class="ig-cal-nav" data-calnav="1">›</button></div>
+    <div class="ig-cal-grid">${dows.map((d) => `<div class="ig-cal-dow">${d}</div>`).join('')}${cells}</div>
+    <div class="ig-cal-legend"><span class="lg pend"></span>bekliyor <span class="lg done"></span>yayınlandı <span class="lg fail"></span>hata</div>
+  </div>`;
+  const sorted = [...schedRows].sort((a, b) => new Date(a.publish_at) - new Date(b.publish_at));
+  const items = sorted.slice(0, 40).map((r) => {
+    const w = new Date(r.publish_at);
+    const dstr = w.toLocaleDateString('tr-TR', { day: '2-digit', month: 'short' });
+    const tstr = w.toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+    const badge = r.status === 'pending' ? '<span class="sb pend">⏳ Bekliyor</span>' : r.status === 'published' ? '<span class="sb ok">✓ Yayınlandı</span>' : '<span class="sb fail">✕ Hata</span>';
+    const thumb = (Array.isArray(r.images) && r.images[0]) || '';
     const n = (Array.isArray(r.images) ? r.images.length : 0) || (r.video_url ? 1 : 0);
-    const fail = r.status === 'failed' && r.result ? ` · ${esc(String(r.result).slice(0, 40))}` : '';
-    return `<div class="ig-sched-item"><span>${st} ${esc(when)} · ${esc(r.format)} · ${n} medya${fail}</span>${r.status === 'pending' ? `<button class="icon-btn danger" data-schdel="${esc(r.id)}" title="İptal et">✕</button>` : ''}</div>`;
+    return `<div class="ig-sched2">
+      <div class="ig-sched2-thumb"${thumb && !r.video_url ? ` style="background-image:url('${esc(thumb)}')"` : ''}>${r.video_url ? '🎬' : (thumb ? '' : '📷')}</div>
+      <div class="ig-sched2-info"><div class="w">${esc(dstr)} · ${esc(tstr)}</div><div class="mt">${esc(r.format)} · ${n} medya ${badge}</div>${r.status === 'failed' && r.result ? `<div class="er">${esc(String(r.result).slice(0, 60))}</div>` : ''}</div>
+      ${r.status === 'pending' ? `<button class="icon-btn danger" data-schdel="${esc(r.id)}" title="İptal et">✕</button>` : ''}
+    </div>`;
   }).join('');
+  box.innerHTML = cal + (sorted.length ? `<div class="ig-sched-title">Planlanan gönderiler</div>${items}` : '<p class="text-muted" style="font-size:.82rem;margin-top:10px">Henüz zamanlanmış gönderi yok. Yukarıdan tarih/saat seçip "Zamanla"ya bas.</p>');
 }
 
 /* ---------- ANALİZ ---------- */
@@ -614,6 +666,8 @@ document.addEventListener('click', (e) => { if (e.target.classList && e.target.c
 $('#igPublish').addEventListener('click', publishNow);
 $('#igScheduleBtn').addEventListener('click', scheduleNow);
 $('#igSchedList').addEventListener('click', async (e) => {
+  const nav = e.target.closest('[data-calnav]');
+  if (nav) { schedMonth.setMonth(schedMonth.getMonth() + Number(nav.dataset.calnav)); renderScheduler(); return; }
   const b = e.target.closest('[data-schdel]'); if (!b) return;
   if (!confirm('Bu zamanlanmış gönderi iptal edilsin mi?')) return;
   const { error } = await supabase.from('scheduled_posts').delete().eq('id', b.dataset.schdel);
