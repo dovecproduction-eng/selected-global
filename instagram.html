@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=98" />
+  <link rel="stylesheet" href="assets/css/style.css?v=99" />
 </head>
 <body class="admin-body">
 
@@ -74,9 +74,14 @@
         <div class="ig-profile-info">
           <div class="ig-profile-top">
             <span class="ig-username" id="igUsername">selectedglobal</span>
-            <span class="ig-badge off" id="igStatus">● Bağlı değil</span>
+            <span class="ig-status-dot off" id="igDot" title="Bağlantı durumu"></span>
+            <span class="ig-badge off" id="igStatus">● Çevrimdışı</span>
           </div>
           <div class="ig-profile-stats" id="igStats"><b>—</b> gönderi &nbsp; <b>—</b> takipçi &nbsp; <b>—</b> takip</div>
+        </div>
+        <div class="ig-profile-actions">
+          <button class="ig-onoff" id="igOnOff" type="button">🟢 Aktif</button>
+          <button class="btn btn-ghost btn-sm" id="igAnalizBtn">📊 Analiz</button>
         </div>
       </div>
 
@@ -174,21 +179,23 @@
         </aside>
       </div>
 
-      <!-- Detaylı analiz -->
-      <section class="ig-insights">
-        <div class="ig-insights-head">
-          <h3>📊 Detaylı analiz <span class="text-muted">— Instagram'ın tek ekranda göstermediği veriler</span></h3>
-          <div class="ig-insights-btns">
-            <button class="btn btn-ghost btn-sm" id="igInsRefresh">🔄 Yenile</button>
-          </div>
-        </div>
-        <div id="igInsights"><p class="text-muted" style="padding:10px">Yükleniyor…</p></div>
-      </section>
     </main>
 
     <div id="footer"></div>
   </div>
 
-  <script type="module" src="assets/js/instagram.js?v=98"></script>
+  <!-- Analiz popup -->
+  <div class="modal-overlay" id="analizModal">
+    <div class="modal" style="max-width:920px">
+      <div class="modal-head">
+        <h3>📊 Detaylı analiz</h3>
+        <button class="btn btn-ghost btn-sm" id="igInsRefresh" style="margin-left:auto">🔄 Yenile</button>
+        <button class="icon-btn" data-close></button>
+      </div>
+      <div class="modal-body"><div id="igInsights"><p class="text-muted" style="padding:10px">Yükleniyor…</p></div></div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/instagram.js?v=99"></script>
 </body>
 </html>

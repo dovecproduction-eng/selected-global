@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=98';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=99';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=98';
+} from './ui.js?v=99';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -31,7 +31,7 @@ function showApp() {
   }
   $('#footer').innerHTML = renderFooter();
   loadProps();
-  checkConnection();
+  applyOnlineState();   // çevrimiçi/çevrimdışı tercihine göre bağlan
 }
 $('#loginForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -353,8 +353,34 @@ function closeModal(el) { el.classList.remove('open'); }
 /* ---------- BACKEND (Composio) — bağlantı, yayınlama, analiz ---------- */
 const IG_API = '/api/ig';
 let igConnected = false, igUsername = '';
+let igOffline = localStorage.getItem('ig_offline') === '1';   // kullanıcının manuel çevrimdışı tercihi
+
+// Yeşil/kırmızı nokta + Aktif/Çevrimdışı durumu
+function setDot(on) { const d = $('#igDot'); if (d) d.className = 'ig-status-dot ' + (on ? 'on' : 'off'); }
+function applyOnlineState() {
+  const btn = $('#igOnOff');
+  if (igOffline) {
+    igConnected = false;
+    setDot(false);
+    $('#igStatus').textContent = '● Çevrimdışı'; $('#igStatus').className = 'ig-badge off';
+    if (btn) btn.textContent = '🔴 Çevrimdışı';
+    $('#igPublish').classList.add('hidden');
+    $('#igScheduleWrap').classList.add('hidden');
+    $('#igPublishMsg').textContent = 'Çevrimdışı — paylaşım/zamanlama kapalı. Yeniden bağlanmak için "🔴 Çevrimdışı"ya bas.';
+  } else {
+    if (btn) btn.textContent = '🟢 Aktif';
+    $('#igPublishMsg').textContent = '';
+    checkConnection();   // yeniden bağlan
+  }
+}
+function toggleOnline() {
+  igOffline = !igOffline;
+  localStorage.setItem('ig_offline', igOffline ? '1' : '0');
+  applyOnlineState();
+}
 
 async function checkConnection() {
+  if (igOffline) { applyOnlineState(); return; }
   try {
     const r = await fetch(`${IG_API}?action=userinfo`);
     const j = await r.json().catch(() => ({}));
@@ -362,17 +388,17 @@ async function checkConnection() {
       igConnected = true; igUsername = j.data.username; const d = j.data;
       const fmt = (n) => Number(n || 0).toLocaleString('tr-TR');
       $('#igUsername').textContent = '@' + igUsername;
-      $('#igStatus').textContent = '● Bağlı'; $('#igStatus').className = 'ig-badge on';
+      $('#igStatus').textContent = '● Aktif'; $('#igStatus').className = 'ig-badge on';
+      setDot(true);
       $('#igStats').innerHTML = `<b>${fmt(d.media_count)}</b> gönderi &nbsp; <b>${fmt(d.followers_count)}</b> takipçi &nbsp; <b>${fmt(d.follows_count)}</b> takip`;
       $('#igPublish').classList.remove('hidden');
       $('#igScheduleWrap').classList.remove('hidden');
       loadScheduled();
     } else {
-      igConnected = false;
-      $('#igStatus').textContent = '● Bağlı değil'; $('#igStatus').className = 'ig-badge off';
+      igConnected = false; setDot(false);
+      $('#igStatus').textContent = '● Bağlanamadı'; $('#igStatus').className = 'ig-badge off';
     }
-  } catch (_) { igConnected = false; }
-  loadInsights();
+  } catch (_) { igConnected = false; setDot(false); }
 }
 
 // Supabase public bucket'a yükle → herkese açık URL (Instagram medyayı URL'den çeker)
@@ -681,6 +707,8 @@ document.addEventListener('click', (e) => { if (e.target.classList && e.target.c
 
 $('#igPublish').addEventListener('click', publishNow);
 $('#igScheduleBtn').addEventListener('click', scheduleNow);
+$('#igOnOff').addEventListener('click', toggleOnline);
+$('#igAnalizBtn').addEventListener('click', () => { $('#analizModal').classList.add('open'); loadInsights(); });
 // Takvim öğesi üzerine gelince (tıklamadan) detay balonu göster
 function calTip() { let t = document.getElementById('igCalTip'); if (!t) { t = document.createElement('div'); t.id = 'igCalTip'; t.className = 'ig-cal-tip'; document.body.appendChild(t); } return t; }
 $('#igSchedList').addEventListener('mouseover', (e) => { const el = e.target.closest('[data-tip]'); if (!el) return; const t = calTip(); t.textContent = el.dataset.tip; t.classList.add('show'); });
