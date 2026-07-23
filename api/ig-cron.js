@@ -68,6 +68,13 @@ async function publishOne(format, images, videoUrl, caption) {
   await waitReady(containerId);
   const pub = await publishWithRetry(containerId);
   if (!ok(pub)) return { ok: false, error: errOf(pub) };
+  // Post/carousel → otomatik olarak story'de de paylaş (ilk görselden)
+  if ((format === 'post' || format === 'carousel') && images[0]) {
+    try {
+      const sc = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'photo', media_type: 'STORIES', image_url: images[0] });
+      if (ok(sc) && cid(sc)) { await waitReady(cid(sc)); await publishWithRetry(cid(sc)); }
+    } catch (_) { /* story başarısızsa ana gönderiyi bozma */ }
+  }
   return { ok: true, id: cid(pub) };
 }
 

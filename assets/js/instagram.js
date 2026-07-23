@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=94';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=95';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=94';
+} from './ui.js?v=95';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -205,9 +205,19 @@ function hashtags(p) {
   if (p.konut_tipi) t.add(tagize(p.konut_tipi));
   return [...t].join(' ');
 }
+// Caption'dan blok adı / daire numarasını temizle (yönetime özel bilgi, dışarı çıkmasın)
+function stripBD(text, p) {
+  if (!text) return text;
+  let t = String(text);
+  const rx = (s) => String(s).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  if (p.blok) t = t.replace(new RegExp(`\\b(blok\\s*[:\\-]?\\s*${rx(p.blok)}|${rx(p.blok)}\\s*blok)\\b`, 'gi'), '');
+  if (p.daire_no) t = t.replace(new RegExp(`\\b(daire\\s*(no)?\\s*[:\\-.]?\\s*${rx(p.daire_no)}|no\\s*[:\\-.]?\\s*${rx(p.daire_no)}|d\\s*${rx(p.daire_no)})\\b`, 'gi'), '');
+  // genel "Blok" / "Daire No" başıboş kelimelerini de sadeleştir (değer bitişikse yukarıda gitti)
+  return t.replace(/\s{2,}/g, ' ').replace(/\s+([·,.\-])/g, '$1').replace(/^[\s·,\-]+|[\s·,\-]+$/g, '').trim();
+}
 function buildCaption(p) {
   const L = [];
-  const title = pickTitle(p); if (title) L.push(title);
+  const title = stripBD(pickTitle(p), p); if (title) L.push(title);
   const l2 = [];
   if (p.oda_sayisi) l2.push(p.oda_sayisi);
   if (p.konut_tipi) l2.push(p.konut_tipi);
@@ -218,7 +228,7 @@ function buildCaption(p) {
   L.push('💰 ' + priceStr(p));
   if (p.esyali != null) L.push(p.esyali ? '🛋️ Eşyalı' : '🪑 Eşyasız');
   if (Array.isArray(p.ozellikler) && p.ozellikler.length) L.push('✨ ' + p.ozellikler.join(' · '));
-  if (p.aciklama) { L.push(''); L.push(p.aciklama); }
+  if (p.aciklama) { const a = stripBD(p.aciklama, p); if (a) { L.push(''); L.push(a); } }
   const c = creatorContact(p.ekleyen);
   L.push(''); L.push(`📞 ${c.name} — ${c.phone}`);
   L.push(''); L.push(hashtags(p));
