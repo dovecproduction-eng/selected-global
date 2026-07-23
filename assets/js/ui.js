@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=90';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=90';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=91';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=91';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -436,7 +436,8 @@ export async function downloadPropertyPhotos(rows, zipName, onProgress, folderNa
   try { await ensureJSZip(); } catch (e) { toast('İndirme aracı yüklenemedi', 'err'); return; }
   rows = (Array.isArray(rows) ? rows : [rows]).filter(Boolean);
   const zip = new window.JSZip();
-  const total = rows.reduce((n, r) => n + (opts.noCover ? 0 : 1) + ((r.fotograflar || []).length), 0);
+  const ownPhotos = (r) => (r.fotograflar || []).filter((u) => !isCommonPhoto(u));   // otomatik (ortak) foto hariç
+  const total = rows.reduce((n, r) => n + (opts.noCover ? 0 : 1) + ownPhotos(r).length, 0);
   let done = 0;
   for (const row of rows) {
     const base = folderNameFn ? folderNameFn(row) : (slugify(`${row.bolge || ''}-${pickTitle(row)}`) || 'daire');
@@ -449,8 +450,8 @@ export async function downloadPropertyPhotos(rows, zipName, onProgress, folderNa
       } catch (e) { /* kapak üretilemezse ham fotoğraflarla devam */ }
       done++; if (onProgress) onProgress(done, total);
     }
-    // Ham fotoğraflar
-    const photos = row.fotograflar || [];
+    // Ham fotoğraflar — SADECE dairenin kendi (manuel) fotoğrafları; otomatik ortak fotolar indirilmez
+    const photos = ownPhotos(row);
     for (let i = 0; i < photos.length; i++) {
       try {
         const jpeg = await fetchAsJpeg(photos[i]);

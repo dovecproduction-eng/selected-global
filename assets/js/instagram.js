@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET } from './config.js?v=90';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=91';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=90';
+} from './ui.js?v=91';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -15,10 +15,20 @@ async function init() {
   if (session) { myEmail = session.user?.email || ''; showApp(); } else showLogin();
 }
 function showLogin() { $('#loginScreen').classList.remove('hidden'); $('#app').classList.add('hidden'); }
+function isSuper() { return !!myEmail && myEmail.toLocaleLowerCase('tr') === String(SUPER_ADMIN_EMAIL).toLocaleLowerCase('tr'); }
 function showApp() {
   $('#loginScreen').classList.add('hidden');
   $('#app').classList.remove('hidden');
   $('#userName').textContent = nameFromEmail(myEmail) || '';
+  // Instagram yönetimi YALNIZ süper admine (Orçun) açık
+  if (!isSuper()) {
+    document.querySelector('.ig-main').innerHTML =
+      '<div style="text-align:center;padding:70px 20px"><h2 style="margin-bottom:10px">Bu sayfaya erişiminiz yok</h2>'
+      + '<p class="text-muted" style="margin-bottom:20px">Instagram yönetimi yalnız yetkili kişiye açıktır.</p>'
+      + '<a class="btn btn-primary" href="admin.html">← Panele dön</a></div>';
+    $('#footer').innerHTML = renderFooter();
+    return;
+  }
   $('#footer').innerHTML = renderFooter();
   loadProps();
   checkConnection();
