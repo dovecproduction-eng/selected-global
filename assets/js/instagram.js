@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=97';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=98';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=97';
+} from './ui.js?v=98';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -348,22 +348,6 @@ function setFormat(fmt) {
   renderPhotos(); updatePreview();
 }
 
-/* ---------- YOL HARİTASI ---------- */
-const ROADMAP_HTML = `
-  <p>Instagram <strong>İşletme hesabını</strong> bağlayınca bu sayfadan doğrudan paylaşım yapılır ve analizler dolar. Adımlar:</p>
-  <ol class="ig-road">
-    <li><strong>IG İşletme hesabı → Facebook Sayfası:</strong> Instagram → Ayarlar → Hesap → bir Facebook Sayfasına bağla.</li>
-    <li><strong>Meta Business Suite:</strong> business.facebook.com'da işletme portföyünü oluştur.</li>
-    <li><strong>Geliştirici uygulaması:</strong> developers.facebook.com → "Uygulama oluştur" → tür Business.</li>
-    <li><strong>Ürünler:</strong> Instagram Graph API + Facebook Login ekle.</li>
-    <li><strong>İzinler:</strong> instagram_basic, instagram_content_publish, pages_show_list, pages_read_engagement, instagram_manage_insights.</li>
-    <li><strong>Hızlı yol:</strong> uygulamayı geliştirme modunda tut + kendi hesabını test kullanıcısı ekle → uzun onay gerekmez.</li>
-    <li><strong>Token:</strong> uzun ömürlü erişim tokeni üret → bana güvenli şekilde ilet.</li>
-    <li><strong>Bağlantı (bende):</strong> siteye küçük bir sunucu ucu eklerim; media → media_publish (carousel/story/reels destekli).</li>
-    <li><strong>Analiz:</strong> insights uçlarıyla erişim, gösterim, profil ziyareti, demografi, en iyi saat.</li>
-  </ol>
-  <p class="text-muted" style="font-size:.86rem">Adım 1–7'yi sen başlat; her ekranı tarif ederim. Token gelince gerisini ben kurarım.</p>`;
-function openModal(sel) { $(sel).classList.add('open'); }
 function closeModal(el) { el.classList.remove('open'); }
 
 /* ---------- BACKEND (Composio) — bağlantı, yayınlama, analiz ---------- */
@@ -375,18 +359,17 @@ async function checkConnection() {
     const r = await fetch(`${IG_API}?action=userinfo`);
     const j = await r.json().catch(() => ({}));
     if (r.ok && j && j.data && j.data.username) {
-      igConnected = true; igUsername = j.data.username;
-      $('#igStatus').textContent = `● Bağlı: @${igUsername}`;
-      $('#igStatus').className = 'ig-badge on';
+      igConnected = true; igUsername = j.data.username; const d = j.data;
+      const fmt = (n) => Number(n || 0).toLocaleString('tr-TR');
+      $('#igUsername').textContent = '@' + igUsername;
+      $('#igStatus').textContent = '● Bağlı'; $('#igStatus').className = 'ig-badge on';
+      $('#igStats').innerHTML = `<b>${fmt(d.media_count)}</b> gönderi &nbsp; <b>${fmt(d.followers_count)}</b> takipçi &nbsp; <b>${fmt(d.follows_count)}</b> takip`;
       $('#igPublish').classList.remove('hidden');
       $('#igScheduleWrap').classList.remove('hidden');
       loadScheduled();
-      const cx = document.querySelector('.ig-connect-txt strong');
-      if (cx) cx.textContent = `Instagram bağlı: @${igUsername} — doğrudan paylaşabilir veya zamanlayabilirsin.`;
     } else {
       igConnected = false;
-      $('#igStatus').textContent = '● Bağlı değil';
-      $('#igStatus').className = 'ig-badge off';
+      $('#igStatus').textContent = '● Bağlı değil'; $('#igStatus').className = 'ig-badge off';
     }
   } catch (_) { igConnected = false; }
   loadInsights();
@@ -693,7 +676,6 @@ $('#igCaption').addEventListener('input', () => { updateCapCount(); updatePrevie
 $('#igDownload').addEventListener('click', doDownload);
 $('#igReel').addEventListener('click', doReel);
 $('#igCopyCap').addEventListener('click', copyCaption);
-$('#roadmapBtn').addEventListener('click', () => { $('#roadmapBody').innerHTML = ROADMAP_HTML; openModal('#roadmapModal'); });
 document.addEventListener('click', (e) => { if (e.target.closest('[data-close]')) closeModal(e.target.closest('.modal-overlay')); });
 document.addEventListener('click', (e) => { if (e.target.classList && e.target.classList.contains('modal-overlay')) closeModal(e.target); });
 

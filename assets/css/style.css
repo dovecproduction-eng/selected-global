@@ -1113,3 +1113,13 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 /* Instagram takvim — geçmiş günler (bugünden önce) koyu gri, seçilemez görünsün */
 .ig-cal-cell.past { background: #c2cad4; color: #6b7684; }
 .ig-cal-cell.past .d { color: #6b7684; opacity: .85; }
+
+/* Instagram profil başlığı (yol haritası yerine) */
+.ig-profile { align-items: center; gap: 18px; justify-content: flex-start; }
+.ig-avatar { width: 76px; height: 76px; flex: 0 0 76px; border-radius: 50%; padding: 3px; background: linear-gradient(45deg,#f09433,#e6683c,#dc2743,#cc2366,#bc1888); }
+.ig-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; background: #fff; border: 3px solid var(--bg-tint); display: block; }
+.ig-profile-info { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ig-profile-top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.ig-username { font-size: 1.15rem; font-weight: 800; color: var(--navy); }
+.ig-profile-stats { font-size: .88rem; color: var(--muted); }
+.ig-profile-stats b { color: var(--navy); font-weight: 700; }

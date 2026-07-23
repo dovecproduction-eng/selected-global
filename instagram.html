@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=97" />
+  <link rel="stylesheet" href="assets/css/style.css?v=98" />
 </head>
 <body class="admin-body">
 
@@ -68,16 +68,16 @@
 
     <main class="ig-main container">
 
-      <!-- Bağlantı & analiz şeridi -->
-      <div class="ig-connect">
-        <div class="ig-connect-txt">
-          <span class="ig-badge off" id="igStatus">● Bağlı değil</span>
-          <div>
-            <strong>Otomatik paylaşım & analiz henüz bağlı değil.</strong>
-            <p class="text-muted">Şimdilik aşağıdan fotoğraf + caption hazırla, elle paylaş. Instagram İşletme hesabını bağlayınca buradan <em>doğrudan paylaşır</em> ve Instagram'ın normalde göstermediği analizleri görürsün.</p>
+      <!-- Instagram profili başlığı -->
+      <div class="ig-connect ig-profile">
+        <div class="ig-avatar"><img src="assets/img/icon-512.png?v=2" alt="Selected Global" /></div>
+        <div class="ig-profile-info">
+          <div class="ig-profile-top">
+            <span class="ig-username" id="igUsername">selectedglobal</span>
+            <span class="ig-badge off" id="igStatus">● Bağlı değil</span>
           </div>
+          <div class="ig-profile-stats" id="igStats"><b>—</b> gönderi &nbsp; <b>—</b> takipçi &nbsp; <b>—</b> takip</div>
         </div>
-        <button class="btn btn-ghost btn-sm" id="roadmapBtn">🗺️ Kurulum yol haritası</button>
       </div>
 
       <div class="ig-grid">
@@ -189,14 +189,6 @@
     <div id="footer"></div>
   </div>
 
-  <!-- Yol haritası modalı -->
-  <div class="modal-overlay" id="roadmapModal">
-    <div class="modal" style="max-width:720px">
-      <div class="modal-head"><h3>🗺️ Instagram bağlantısı — yol haritası</h3><button class="icon-btn" data-close></button></div>
-      <div class="modal-body" id="roadmapBody"></div>
-    </div>
-  </div>
-
-  <script type="module" src="assets/js/instagram.js?v=97"></script>
+  <script type="module" src="assets/js/instagram.js?v=98"></script>
 </body>
 </html>
