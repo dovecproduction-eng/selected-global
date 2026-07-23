@@ -1089,7 +1089,7 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-cal-ev { display: block; height: 15px; line-height: 15px; border-radius: 3px; font-size: .58rem; font-weight: 800; color: #fff; text-align: center; white-space: nowrap; overflow: hidden; cursor: default; background: var(--fc, var(--navy)); }
 .ig-cal-ev.done { opacity: .5; }
 .ig-cal-more { font-size: .56rem; color: var(--muted); font-weight: 700; padding-left: 2px; cursor: default; }
-.ig-cal-legend .lg { --fc: var(--navy); background: var(--fc); border: 0; }
+.ig-cal-legend .lg { background: var(--fc, var(--navy)); border: 0; }
 
 /* Hover detay balonu */
 .ig-cal-tip { position: fixed; z-index: 9999; background: var(--navy); color: #fff; font-size: .74rem; padding: 7px 11px; border-radius: 9px; pointer-events: none; opacity: 0; transition: opacity .12s; max-width: 280px; box-shadow: 0 6px 18px rgba(0,0,0,.28); }
