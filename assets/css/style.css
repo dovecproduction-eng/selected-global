@@ -1073,3 +1073,39 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .sb.pend { background: #FBF0E1; color: #A6641A; }
 .sb.ok { background: #E7F6EE; color: #1A7F4B; }
 .sb.fail { background: #FBEAEA; color: var(--danger); }
+
+/* Instagram — format renkleri (takvim + butonlar + liste ortak) */
+.fmt-carousel { --fc: #2E6FE6; }
+.fmt-post { --fc: #7C4DFF; }
+.fmt-story { --fc: #E1306C; }
+.fmt-reels { --fc: #12B3A6; }
+
+/* Takvim hücresi: gün + renkli etkinlik çipleri */
+.ig-cal-cell { aspect-ratio: auto; min-height: 58px; display: block; }
+.ig-cal-cell.empty { min-height: 0; background: transparent; }
+.ig-cal-cell.has { background: var(--bg-soft); }
+.ig-cal-cell .d { font-weight: 600; font-size: .72rem; }
+.ig-cal-evs { display: flex; flex-direction: column; gap: 2px; margin-top: 3px; }
+.ig-cal-ev { display: block; height: 15px; line-height: 15px; border-radius: 3px; font-size: .58rem; font-weight: 800; color: #fff; text-align: center; white-space: nowrap; overflow: hidden; cursor: default; background: var(--fc, var(--navy)); }
+.ig-cal-ev.done { opacity: .5; }
+.ig-cal-more { font-size: .56rem; color: var(--muted); font-weight: 700; padding-left: 2px; cursor: default; }
+.ig-cal-legend .lg { --fc: var(--navy); background: var(--fc); border: 0; }
+
+/* Hover detay balonu */
+.ig-cal-tip { position: fixed; z-index: 9999; background: var(--navy); color: #fff; font-size: .74rem; padding: 7px 11px; border-radius: 9px; pointer-events: none; opacity: 0; transition: opacity .12s; max-width: 280px; box-shadow: 0 6px 18px rgba(0,0,0,.28); }
+.ig-cal-tip.show { opacity: 1; }
+
+/* Format seçici butonları renkli */
+.ig-format button[data-fmt]::before { content: ''; display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+.ig-format button[data-fmt="carousel"]::before { background: #2E6FE6; }
+.ig-format button[data-fmt="post"]::before { background: #7C4DFF; }
+.ig-format button[data-fmt="story"]::before { background: #E1306C; }
+.ig-format button[data-fmt="reels"]::before { background: #12B3A6; }
+.ig-format button[data-fmt="carousel"].active { background: #2E6FE6; border-color: #2E6FE6; }
+.ig-format button[data-fmt="post"].active { background: #7C4DFF; border-color: #7C4DFF; }
+.ig-format button[data-fmt="story"].active { background: #E1306C; border-color: #E1306C; }
+.ig-format button[data-fmt="reels"].active { background: #12B3A6; border-color: #12B3A6; }
+.ig-format button[data-fmt].active::before { background: #fff; }
+
+/* Liste format etiketi */
+.fmt-tag { font-size: .68rem; font-weight: 800; padding: 2px 8px; border-radius: 999px; color: #fff; background: var(--fc, var(--navy)); }

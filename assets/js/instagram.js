@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=92';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=93';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=92';
+} from './ui.js?v=93';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -518,6 +518,13 @@ async function scheduleNow() {
 }
 let schedRows = [];
 let schedMonth = new Date();
+// Format renk/etiketleri (takvim + butonlar ortak)
+const FMT_INFO = {
+  carousel: { cls: 'fmt-carousel', tr: 'Carousel', icon: '🗂' },
+  post: { cls: 'fmt-post', tr: 'Tek Gönderi', icon: '🖼' },
+  story: { cls: 'fmt-story', tr: 'Story', icon: '⭕' },
+  reels: { cls: 'fmt-reels', tr: 'Reels', icon: '🎬' },
+};
 async function loadScheduled() {
   const { data } = await supabase.from('scheduled_posts').select('*').order('publish_at', { ascending: true }).limit(200);
   schedRows = data || [];
@@ -535,16 +542,26 @@ function renderScheduler() {
   let cells = '';
   for (let i = 0; i < startDow; i++) cells += '<div class="ig-cal-cell empty"></div>';
   for (let day = 1; day <= daysInMonth; day++) {
-    const posts = byDay[day] || []; const cnt = posts.length;
-    const cls = cnt ? (posts.some((p) => p.status === 'failed') ? ' has fail' : posts.every((p) => p.status === 'published') ? ' has done' : ' has') : '';
-    cells += `<div class="ig-cal-cell${isToday(day) ? ' today' : ''}${cls}"><span class="d">${day}</span>${cnt ? `<span class="ig-cal-dot">${cnt}</span>` : ''}</div>`;
+    const posts = (byDay[day] || []).sort((a, b) => new Date(a.publish_at) - new Date(b.publish_at));
+    let evs = '';
+    posts.slice(0, 2).forEach((p) => {
+      const info = FMT_INFO[p.format] || { cls: '', tr: p.format, icon: '•' };
+      const t = new Date(p.publish_at).toLocaleTimeString('tr-TR', { hour: '2-digit', minute: '2-digit' });
+      const label = ((p.caption || '').split('\n')[0].trim() || info.tr).slice(0, 60);
+      const stt = p.status === 'pending' ? '⏳ Bekliyor' : p.status === 'published' ? '✓ Yayınlandı' : '✕ Hata';
+      const tip = `${info.icon} ${info.tr} · ${label} · ${t} · ${stt}`;
+      evs += `<span class="ig-cal-ev ${info.cls}${p.status !== 'pending' ? ' done' : ''}" data-tip="${esc(tip)}">${t}</span>`;
+    });
+    if (posts.length > 2) evs += `<span class="ig-cal-more" data-tip="${esc(posts.length + ' gönderi bu gün')}">+${posts.length - 2} daha</span>`;
+    cells += `<div class="ig-cal-cell${isToday(day) ? ' today' : ''}${posts.length ? ' has' : ''}"><span class="d">${day}</span><div class="ig-cal-evs">${evs}</div></div>`;
   }
   const monthName = schedMonth.toLocaleDateString('tr-TR', { month: 'long', year: 'numeric' });
   const dows = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+  const legend = Object.values(FMT_INFO).map((i) => `<span class="lg ${i.cls}"></span>${i.tr}`).join(' ');
   const cal = `<div class="ig-cal">
     <div class="ig-cal-head"><button type="button" class="ig-cal-nav" data-calnav="-1">‹</button><strong>${esc(monthName)}</strong><button type="button" class="ig-cal-nav" data-calnav="1">›</button></div>
     <div class="ig-cal-grid">${dows.map((d) => `<div class="ig-cal-dow">${d}</div>`).join('')}${cells}</div>
-    <div class="ig-cal-legend"><span class="lg pend"></span>bekliyor <span class="lg done"></span>yayınlandı <span class="lg fail"></span>hata</div>
+    <div class="ig-cal-legend">${legend}</div>
   </div>`;
   const sorted = [...schedRows].sort((a, b) => new Date(a.publish_at) - new Date(b.publish_at));
   const items = sorted.slice(0, 40).map((r) => {
@@ -554,9 +571,10 @@ function renderScheduler() {
     const badge = r.status === 'pending' ? '<span class="sb pend">⏳ Bekliyor</span>' : r.status === 'published' ? '<span class="sb ok">✓ Yayınlandı</span>' : '<span class="sb fail">✕ Hata</span>';
     const thumb = (Array.isArray(r.images) && r.images[0]) || '';
     const n = (Array.isArray(r.images) ? r.images.length : 0) || (r.video_url ? 1 : 0);
+    const fi = FMT_INFO[r.format] || { cls: '', tr: r.format };
     return `<div class="ig-sched2">
       <div class="ig-sched2-thumb"${thumb && !r.video_url ? ` style="background-image:url('${esc(thumb)}')"` : ''}>${r.video_url ? '🎬' : (thumb ? '' : '📷')}</div>
-      <div class="ig-sched2-info"><div class="w">${esc(dstr)} · ${esc(tstr)}</div><div class="mt">${esc(r.format)} · ${n} medya ${badge}</div>${r.status === 'failed' && r.result ? `<div class="er">${esc(String(r.result).slice(0, 60))}</div>` : ''}</div>
+      <div class="ig-sched2-info"><div class="w">${esc(dstr)} · ${esc(tstr)}</div><div class="mt"><span class="fmt-tag ${fi.cls}">${esc(fi.tr)}</span> · ${n} medya ${badge}</div>${r.status === 'failed' && r.result ? `<div class="er">${esc(String(r.result).slice(0, 60))}</div>` : ''}</div>
       ${r.status === 'pending' ? `<button class="icon-btn danger" data-schdel="${esc(r.id)}" title="İptal et">✕</button>` : ''}
     </div>`;
   }).join('');
@@ -665,6 +683,11 @@ document.addEventListener('click', (e) => { if (e.target.classList && e.target.c
 
 $('#igPublish').addEventListener('click', publishNow);
 $('#igScheduleBtn').addEventListener('click', scheduleNow);
+// Takvim öğesi üzerine gelince (tıklamadan) detay balonu göster
+function calTip() { let t = document.getElementById('igCalTip'); if (!t) { t = document.createElement('div'); t.id = 'igCalTip'; t.className = 'ig-cal-tip'; document.body.appendChild(t); } return t; }
+$('#igSchedList').addEventListener('mouseover', (e) => { const el = e.target.closest('[data-tip]'); if (!el) return; const t = calTip(); t.textContent = el.dataset.tip; t.classList.add('show'); });
+$('#igSchedList').addEventListener('mousemove', (e) => { const t = document.getElementById('igCalTip'); if (!t || !t.classList.contains('show')) return; const x = Math.min(e.clientX + 14, window.innerWidth - t.offsetWidth - 8); t.style.left = x + 'px'; t.style.top = (e.clientY + 14) + 'px'; });
+$('#igSchedList').addEventListener('mouseout', (e) => { if (e.target.closest('[data-tip]')) { const t = document.getElementById('igCalTip'); if (t) t.classList.remove('show'); } });
 $('#igSchedList').addEventListener('click', async (e) => {
   const nav = e.target.closest('[data-calnav]');
   if (nav) { schedMonth.setMonth(schedMonth.getMonth() + Number(nav.dataset.calnav)); renderScheduler(); return; }
