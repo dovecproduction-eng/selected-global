@@ -158,6 +158,19 @@ revoke all on public.scheduled_posts from anon;
 grant select, insert, delete on public.scheduled_posts to authenticated;
 create index if not exists idx_sched_due on public.scheduled_posts(status, publish_at);
 
+-- ZAMANLAYICI TETİĞİ (Supabase pg_cron) — her 5 dk'da bir sunucu ucunu çağırır, zamanı geleni yayınlar.
+-- Harici servis GEREKMEZ; tamamen Supabase içinde çalışır. Bir kez çalıştırın.
+create extension if not exists pg_cron;
+create extension if not exists pg_net;
+do $$ begin perform cron.unschedule('ig-scheduler'); exception when others then null; end $$;
+select cron.schedule('ig-scheduler', '*/5 * * * *', $ig$
+  select net.http_get(
+    url := 'https://selected-global-ashen.vercel.app/api/ig-cron',
+    headers := '{"Authorization": "Bearer 760b63b56654ca2185d214d552cc376a"}'::jsonb,
+    timeout_milliseconds := 60000
+  );
+$ig$);
+
 -- FOTOĞRAF deposu (bucket)
 insert into storage.buckets (id, name, public)
 values ('property-images', 'property-images', true)
