@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=99';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=100';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=99';
+} from './ui.js?v=100';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -100,10 +100,10 @@ function renderPropGrid() {
   box.innerHTML = list.map((p) => {
     const thumb = propThumb(p); const on = p.id === curId; const n = (p.fotograflar || []).length;
     const meta = [regionDisplay(p.bolge), p.proje].filter(Boolean).join(' · ');
-    return `<button type="button" class="ig-pcard${on ? ' on' : ''}" data-id="${esc(p.id)}">
+    return `<div class="ig-pcard${on ? ' on' : ''}" data-id="${esc(p.id)}" role="button" tabindex="0">
       <span class="ig-pcard-img"${thumb ? ` style="background-image:url('${esc(thumb)}')"` : ''}>${thumb ? '' : '📷'}${n ? `<span class="ig-pcard-n">📷 ${n}</span>` : ''}${on ? '<span class="ig-pcard-check">✓</span>' : ''}</span>
       <span class="ig-pcard-body"><span class="t">${esc(pickTitle(p) || 'Başlıksız')}</span><span class="m">${esc(meta || '—')}</span><span class="p">${esc(propPrice(p))}</span></span>
-    </button>`;
+    </div>`;
   }).join('');
 }
 function onPropChange(id) {
