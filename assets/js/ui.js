@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=100';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=100';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=101';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=101';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -630,7 +630,8 @@ export async function makeReel(row, opts = {}, onProgress) {
   const total = scenes.reduce((s, x) => s + x.dur, 0);
   const TR = 0.45;
 
-  const mimeTypes = ['video/mp4;codecs=h264', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
+  // MP4 (H.264) önce — Instagram Reels MP4 ister. Yeni Chrome avc1 codec'iyle MP4 üretir.
+  const mimeTypes = ['video/mp4;codecs=avc1.640028', 'video/mp4;codecs=avc1.42E01E', 'video/mp4;codecs=avc1', 'video/mp4;codecs=h264', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'];
   const mimeType = (window.MediaRecorder ? mimeTypes.find((m) => MediaRecorder.isTypeSupported(m)) : '') || '';
   if (!window.MediaRecorder) throw new Error('Bu tarayıcı video kaydını desteklemiyor');
   const stream = canvas.captureStream(FPS);

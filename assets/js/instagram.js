@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=100';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=101';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=100';
+} from './ui.js?v=101';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -458,7 +458,7 @@ async function publishNow() {
       const opts = igSource === 'daire' ? { contact: creatorContact(p.ekleyen) }
         : { plain: true, title: caption.split('\n')[0] || '', contact: creatorContact(nameFromEmail(myEmail)) };
       const { blob, ext } = await makeReel(p, opts, (pr) => setMsg(`Video üretiliyor… %${Math.round(pr * 100)}`));
-      if (ext !== 'mp4') { setMsg('⚠ Reels doğrudan paylaşım için MP4 gerekir — lütfen Safari kullan (Chrome WebM üretir). Videoyu indirip elle de paylaşabilirsin.'); btn.disabled = false; btn.innerHTML = orig; return; }
+      if (ext !== 'mp4') { setMsg('⚠ Bu tarayıcı Reels için MP4 üretemiyor. Güncel Chrome ya da Safari kullan. (Videoyu indirip elle de paylaşabilirsin.)'); btn.disabled = false; btn.innerHTML = orig; return; }
       setMsg('Video yükleniyor…');
       body = { format: 'reels', videoUrl: await uploadPublic(blob, 'mp4'), caption };
     } else {
@@ -519,7 +519,7 @@ async function scheduleNow() {
       const opts = igSource === 'daire' ? { contact: creatorContact(p.ekleyen) }
         : { plain: true, title: caption.split('\n')[0] || '', contact: creatorContact(nameFromEmail(myEmail)) };
       const { blob, ext } = await makeReel(p, opts, (pr) => setMsg(`Video üretiliyor… %${Math.round(pr * 100)}`));
-      if (ext !== 'mp4') { setMsg('⚠ Reels zamanlaması için MP4 gerekir — lütfen Safari kullan.'); btn.disabled = false; btn.textContent = orig; return; }
+      if (ext !== 'mp4') { setMsg('⚠ Bu tarayıcı Reels için MP4 üretemiyor. Güncel Chrome ya da Safari kullan (tarayıcını güncelle).'); btn.disabled = false; btn.textContent = orig; return; }
       setMsg('Video yükleniyor…'); video_url = await uploadPublic(blob, 'mp4');
     } else {
       setMsg('Görseller hazırlanıyor…'); images = await prepareImages(setMsg);
