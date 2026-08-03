@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=104';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=105';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=104';
+} from './ui.js?v=105';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -433,7 +433,9 @@ async function prepareImages(setMsg) {
       const cover = await renderCoverImage(p);
       if (cover) urls.push(await uploadPublic(cover, 'jpg'));
       if (igFormat === 'carousel') {
-        const sel = orderedSel();
+        let sel = orderedSel();
+        // Seçim yoksa dairenin kendi fotoğraflarını otomatik kullan (carousel en az 2 slayt ister)
+        if (!sel.length) sel = (p.fotograflar || []).filter((u) => !u.includes('/_ortak/'));
         for (let i = 0; i < sel.length && urls.length < 10; i++) urls.push(await fitUpload(sel[i], 'feed', setMsg, urls.length));
       }
     }
@@ -467,6 +469,7 @@ async function publishNow() {
     } else {
       const images = await prepareImages(setMsg);
       if (!images.length) { toast('Görsel yok', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      if (igFormat === 'carousel' && images.length < 2) { setMsg('⚠ Carousel için en az 2 görsel gerekir — daireden fotoğraf seç ya da "Tek Gönderi" kullan.'); toast('En az 2 görsel gerekir', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
       body = { format: igFormat, images, caption };
     }
     setMsg('Instagram\'a gönderiliyor…');
@@ -545,6 +548,7 @@ async function scheduleNow() {
     } else {
       setMsg('Görseller hazırlanıyor…'); images = await prepareImages(setMsg);
       if (!images.length) { toast('Görsel yok', 'err'); btn.disabled = false; btn.textContent = orig; return; }
+      if (igFormat === 'carousel' && images.length < 2) { setMsg('⚠ Carousel için en az 2 görsel gerekir.'); toast('En az 2 görsel gerekir', 'err'); btn.disabled = false; btn.textContent = orig; return; }
     }
     const { error } = await supabase.from('scheduled_posts').insert({ created_by: myEmail, format: igFormat, images, video_url, caption, publish_at: when.toISOString() });
     if (error) {
