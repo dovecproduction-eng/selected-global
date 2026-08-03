@@ -121,11 +121,30 @@ module.exports = async (req, res) => {
         containerId = cid(c);
       }
 
-      // Yayınlamadan ÖNCE container'ın hazır olmasını bekle (yarış durumunu önler), sonra gerekirse tekrar dene
+      // REELS: video işleme uzun sürer → container'ı döndür, client durum sorgular (serverless zaman aşımı olmasın)
+      if (format === 'reels') return res.json({ processing: true, creation_id: containerId });
+
+      // Foto/carousel/story: hazır olmasını bekle (hızlı), sonra yayınla
       await waitReady(containerId);
       const pub = await publishWithRetry(containerId);
       if (!ok(pub)) return res.status(400).json({ error: 'Yayınlanamadı: ' + errOf(pub), detail: pub });
       return res.json({ ok: true, id: cid(pub), format });
+    }
+
+    // Reels durum sorgusu: FINISHED ise yayınla, değilse "processing" döndür
+    if (action === 'reelstatus') {
+      const body = await readBody(req);
+      const creation_id = body.creation_id;
+      if (!creation_id) return res.status(400).json({ error: 'creation_id gerekli' });
+      const s = await exec('INSTAGRAM_GET_POST_STATUS', { ig_user_id: IG, creation_id });
+      const st = (s.data && (s.data.status_code || s.data.status)) || (s.data && s.data.data && (s.data.data.status_code || s.data.data.status)) || '';
+      if (st === 'FINISHED') {
+        const pub = await publishWithRetry(creation_id);
+        if (!ok(pub)) return res.status(400).json({ error: 'Yayınlanamadı: ' + errOf(pub) });
+        return res.json({ ok: true, id: cid(pub) });
+      }
+      if (st === 'ERROR' || st === 'EXPIRED') return res.status(400).json({ error: 'Video işlenemedi (' + st + ')' });
+      return res.json({ processing: true, status: st });
     }
 
     return res.status(400).json({ error: 'geçersiz action' });

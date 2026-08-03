@@ -84,23 +84,40 @@ module.exports = async (req, res) => {
   if (CRON_SECRET && auth !== `Bearer ${CRON_SECRET}` && key !== CRON_SECRET) return res.status(401).json({ error: 'unauthorized' });
   if (!KEY || !SKEY) return res.status(500).json({ error: 'env eksik (COMPOSIO_API_KEY / SUPABASE_SERVICE_KEY)' });
   const sh = { apikey: SKEY, Authorization: `Bearer ${SKEY}` };
+  const patch = (id, obj) => fetch(`${SUP}/rest/v1/scheduled_posts?id=eq.${id}`, { method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' }, body: JSON.stringify(obj) });
+  const statusOf = async (creation_id) => { const s = await exec('INSTAGRAM_GET_POST_STATUS', { ig_user_id: IG, creation_id }); return (s.data && (s.data.status_code || s.data.status)) || (s.data && s.data.data && (s.data.data.status_code || s.data.data.status)) || ''; };
   const now = new Date().toISOString();
   let due = [];
   try {
-    const r = await fetch(`${SUP}/rest/v1/scheduled_posts?status=eq.pending&publish_at=lte.${now}&order=publish_at.asc&limit=5`, { headers: sh });
+    // pending (yayınlanacak) + processing (işlenen reels'in takibi)
+    const r = await fetch(`${SUP}/rest/v1/scheduled_posts?status=in.(pending,processing)&publish_at=lte.${now}&order=publish_at.asc&limit=8`, { headers: sh });
     due = await r.json();
   } catch (e) { return res.status(500).json({ error: 'sorgu hatası: ' + (e.message || e) }); }
   if (!Array.isArray(due)) return res.status(500).json({ error: 'beklenmeyen yanıt', detail: due });
   const processed = [];
   for (const row of due) {
-    let out;
-    try { out = await publishOne(row.format, row.images || [], row.video_url, row.caption || ''); }
-    catch (e) { out = { ok: false, error: String(e.message || e) }; }
-    await fetch(`${SUP}/rest/v1/scheduled_posts?id=eq.${row.id}`, {
-      method: 'PATCH', headers: { ...sh, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
-      body: JSON.stringify({ status: out.ok ? 'published' : 'failed', result: out.ok ? 'ok' : String(out.error).slice(0, 300), ig_post_id: out.id || null }),
-    });
-    processed.push({ id: row.id, ok: out.ok, error: out.ok ? undefined : out.error });
+    try {
+      // İŞLENEN REELS: video hazır mı? hazırsa yayınla
+      if (row.status === 'processing') {
+        const st = await statusOf(row.ig_post_id);
+        if (st === 'FINISHED') { const pub = await publishWithRetry(row.ig_post_id); await patch(row.id, ok(pub) ? { status: 'published', result: 'ok', ig_post_id: cid(pub) } : { status: 'failed', result: errOf(pub).slice(0, 300) }); processed.push({ id: row.id, ok: ok(pub) }); }
+        else if (st === 'ERROR' || st === 'EXPIRED') { await patch(row.id, { status: 'failed', result: 'video işlenemedi ' + st }); processed.push({ id: row.id, ok: false }); }
+        // IN_PROGRESS → dokunma, sonraki turda tekrar bak
+        continue;
+      }
+      // PENDING REELS: container oluştur, işlenmeye bırak (sonraki tur yayınlar)
+      if (row.format === 'reels') {
+        const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'reel', video_url: row.video_url, caption: row.caption || '' });
+        if (ok(c) && cid(c)) await patch(row.id, { status: 'processing', ig_post_id: cid(c) });
+        else await patch(row.id, { status: 'failed', result: 'video yüklenemedi: ' + errOf(c).slice(0, 200) });
+        processed.push({ id: row.id, ok: ok(c) });
+        continue;
+      }
+      // PENDING foto/carousel/story: hemen yayınla
+      const out = await publishOne(row.format, row.images || [], row.video_url, row.caption || '');
+      await patch(row.id, out.ok ? { status: 'published', result: 'ok', ig_post_id: out.id || null } : { status: 'failed', result: String(out.error).slice(0, 300) });
+      processed.push({ id: row.id, ok: out.ok });
+    } catch (e) { await patch(row.id, { status: 'failed', result: String(e.message || e).slice(0, 300) }); }
   }
   return res.json({ checked: due.length, processed });
 };

@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=102';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=103';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=102';
+} from './ui.js?v=103';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -472,6 +472,24 @@ async function publishNow() {
     setMsg('Instagram\'a gönderiliyor…');
     const r = await fetch(`${IG_API}?action=publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     const j = await r.json().catch(() => ({}));
+
+    // REELS: Instagram videoyu işlerken (uzun sürer) client tarafında durumu sorgula — sunucu zaman aşımı olmasın
+    if (igFormat === 'reels') {
+      if (!j.creation_id) { setMsg('✕ ' + (j.error || 'Video oluşturulamadı')); toast('Yayınlanamadı', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      let done = false;
+      for (let i = 0; i < 48 && !done; i++) {
+        await new Promise((s) => setTimeout(s, 5000));
+        setMsg(`Instagram videoyu işliyor… (${(i + 1) * 5} sn — video işleme biraz sürer)`);
+        const sr = await fetch(`${IG_API}?action=reelstatus`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ creation_id: j.creation_id }) });
+        const sj = await sr.json().catch(() => ({}));
+        if (sj.ok) done = true;
+        else if (sj.error) { setMsg('✕ ' + sj.error); toast('Yayınlanamadı', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      }
+      if (done) { setMsg('✓ Reels yayınlandı! Instagram profilinde görebilirsin.'); toast('Reels yayınlandı 🎉', 'ok'); logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', 'Instagram Reels'); setTimeout(loadInsights, 6000); }
+      else { setMsg('✕ Video işleme çok uzun sürdü. Birazdan Instagram\'da görünebilir; çıkmazsa tekrar dene.'); toast('Zaman aşımı', 'err'); }
+      btn.disabled = false; btn.innerHTML = orig; return;
+    }
+
     if (r.ok && j.ok) {
       toast('Instagram\'da yayınlandı 🎉', 'ok');
       logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', `Instagram'da yayınlandı (${igFormat})`);
