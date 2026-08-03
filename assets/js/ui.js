@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=103';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=103';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=104';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=104';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -596,14 +596,7 @@ export async function makeReel(row, opts = {}, onProgress) {
     } else if (sc.type === 'photo') {
       botGrad(0.60);
       if (!opts.plain) {
-      // İlan açıklaması (lüks serif) — üst kısımda
-      const acik = (row.aciklama || '').trim();
-      if (acik) {
-        ctx.textAlign = 'center'; ctx.fillStyle = '#fff'; ctx.shadowColor = 'rgba(0,0,0,.55)'; ctx.shadowBlur = 12;
-        const font = "500 44px Fraunces, Georgia, serif"; const lines = wrapLines(acik, font, W - 150, 2);
-        let ty = H - 560; ctx.font = font; lines.forEach((l) => { ctx.fillText(l, W / 2, ty); ty += 58; });
-        ctx.shadowBlur = 0;
-      }
+      // (Daire açıklaması videoda gösterilmez — istek üzerine kaldırıldı)
       // Proje → FİYAT → specs — logonun hemen üstünde (biraz yukarıda); daire no/kat yok
       ctx.textAlign = 'center';
       let by = H - 440;

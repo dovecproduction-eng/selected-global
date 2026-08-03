@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=103';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=104';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=103';
+} from './ui.js?v=104';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -141,8 +141,8 @@ async function brandFitted(rawUrl, aspect) {
   const img = await _loadImg(rawUrl);
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#0A2540'; ctx.fillRect(0, 0, W, H);       // lacivert zemin (sığdırma boşlukları)
-  const s = Math.min(W / img.width, H / img.height);          // contain
+  ctx.fillStyle = '#0A2540'; ctx.fillRect(0, 0, W, H);       // lacivert zemin (nadir boşluklar için)
+  const s = Math.max(W / img.width, H / img.height);          // COVER — kadrajı doldur (yatay foto da dikey çerçeveyi doldurur)
   const dw = img.width * s, dh = img.height * s;
   ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
   const gh = Math.round(H * 0.28);
