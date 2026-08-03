@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=101';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=102';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=101';
+} from './ui.js?v=102';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -416,28 +416,31 @@ async function urlToJpegBlob(url) {
 }
 
 // Yayınlanacak görselleri hazırla → herkese açık URL dizisi
+// Herkese açık, Instagram oranına sığdırılmış (4:5 gönderi/carousel, 9:16 story) görsel URL'leri hazırla
+async function fitUpload(rawUrl, aspect, setMsg, i) { setMsg(`Görsel ${i} Instagram oranına ölçekleniyor…`); const f = await brandFitted(rawUrl, aspect); return uploadPublic(await (await fetch(f)).blob(), 'jpg'); }
 async function prepareImages(setMsg) {
   const urls = [];
+  const aspect = FMT_META[igFormat].aspect;   // story/reels → 9:16, gönderi/carousel → 4:5
   if (igSource === 'daire') {
     const p = currentProp();
-    setMsg('Kapak hazırlanıyor…');
-    const cover = await renderCoverImage(p);                 // markalı kapak = 1. slayt
-    if (cover) urls.push(await uploadPublic(cover, 'jpg'));
-    if (igFormat === 'carousel') {
-      const sel = orderedSel();
-      for (let i = 0; i < sel.length && urls.length < 10; i++) {
-        setMsg(`Görsel ${urls.length} yükleniyor…`);
-        urls.push(await uploadPublic(await urlToJpegBlob(sel[i]), 'jpg'));
+    if (igFormat === 'story') {
+      // Story: kapak fotoğrafını 9:16'ya sığdır (yatay foto olsa bile boşluklar lacivert + logo)
+      const cov = coverOf(p);
+      if (cov) urls.push(await fitUpload(cov, 'tall', setMsg, 1));
+    } else {
+      // Gönderi/carousel: markalı kapak (4:5) = 1. slayt, sonra fotoğraflar 4:5'e sığdırılır
+      setMsg('Kapak hazırlanıyor…');
+      const cover = await renderCoverImage(p);
+      if (cover) urls.push(await uploadPublic(cover, 'jpg'));
+      if (igFormat === 'carousel') {
+        const sel = orderedSel();
+        for (let i = 0; i < sel.length && urls.length < 10; i++) urls.push(await fitUpload(sel[i], 'feed', setMsg, urls.length));
       }
     }
   } else {
-    const sel = orderedSel(); const aspect = FMT_META[igFormat].aspect;
+    const sel = orderedSel();
     const max = igFormat === 'carousel' ? 10 : 1;
-    for (let i = 0; i < sel.length && urls.length < max; i++) {
-      setMsg(`Görsel ${i + 1} hazırlanıyor…`);
-      const fitted = await brandFitted(sel[i], aspect);
-      urls.push(await uploadPublic(await (await fetch(fitted)).blob(), 'jpg'));
-    }
+    for (let i = 0; i < sel.length && urls.length < max; i++) urls.push(await fitUpload(sel[i], aspect, setMsg, i + 1));
   }
   return urls;
 }
