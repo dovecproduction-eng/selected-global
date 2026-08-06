@@ -131,6 +131,27 @@ module.exports = async (req, res) => {
       return res.json({ ok: true, id: cid(pub), format });
     }
 
+    // Carousel: tek görsel için çocuk container oluştur (client tek tek çağırır → zaman aşımı olmaz)
+    if (action === 'container') {
+      const body = await readBody(req);
+      if (!body.image_url) return res.status(400).json({ error: 'image_url gerekli' });
+      const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'carousel_item', image_url: body.image_url });
+      if (!ok(c) || !cid(c)) return res.status(400).json({ error: 'Görsel yüklenemedi: ' + errOf(c) });
+      return res.json({ id: cid(c) });
+    }
+    // Carousel: çocuk id'leriyle carousel container oluştur + yayınla
+    if (action === 'carouselpublish') {
+      const body = await readBody(req);
+      const children = Array.isArray(body.children) ? body.children.filter(Boolean) : [];
+      if (children.length < 2) return res.status(400).json({ error: 'Carousel için en az 2 görsel gerekir.' });
+      const car = await exec('INSTAGRAM_CREATE_CAROUSEL_CONTAINER', { ig_user_id: IG, children, caption: body.caption || '' });
+      if (!ok(car) || !cid(car)) return res.status(400).json({ error: 'Carousel oluşturulamadı: ' + errOf(car) });
+      await waitReady(cid(car));
+      const pub = await publishWithRetry(cid(car));
+      if (!ok(pub)) return res.status(400).json({ error: 'Yayınlanamadı: ' + errOf(pub) });
+      return res.json({ ok: true, id: cid(pub) });
+    }
+
     // Reels durum sorgusu: FINISHED ise yayınla, değilse "processing" döndür
     if (action === 'reelstatus') {
       const body = await readBody(req);

@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=105';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=105';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=106';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=106';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -326,9 +326,14 @@ async function logAct(action, entity_type, entity_ref, detail) {
   } catch (_) { /* log tablosu yoksa/başarısızsa sessiz geç */ }
 }
 
+// Panele SADECE süper admin (Orçun) girebilir; diğer hesaplar oturumu kapatılıp reddedilir.
+function isAllowedEmail(email) { return !!email && asciiLower(email) === asciiLower(SUPER_ADMIN_EMAIL); }
+
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
-  if (session) { myEmail = session.user?.email || ''; showApp(); } else showLogin();
+  const email = session?.user?.email || '';
+  if (session && isAllowedEmail(email)) { myEmail = email; showApp(); }
+  else { if (session) await supabase.auth.signOut(); showLogin(); }
 }
 
 function showLogin() { $('#loginScreen').classList.remove('hidden'); $('#app').classList.add('hidden'); }
@@ -358,7 +363,13 @@ $('#loginForm').addEventListener('submit', async (e) => {
   });
   btn.disabled = false; btn.textContent = 'Giriş yap';
   if (error) { $('#loginErr').textContent = 'Giriş başarısız: e-posta veya şifre hatalı.'; return; }
-  myEmail = data.user?.email || '';
+  const email = data.user?.email || '';
+  if (!isAllowedEmail(email)) {
+    await supabase.auth.signOut();
+    $('#loginErr').textContent = 'Bu panele giriş yetkiniz yok.';
+    return;
+  }
+  myEmail = email;
   showApp();
 });
 

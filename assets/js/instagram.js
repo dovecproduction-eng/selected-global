@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=105';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=106';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=105';
+} from './ui.js?v=106';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -466,10 +466,33 @@ async function publishNow() {
       if (ext !== 'mp4') { setMsg('⚠ Bu tarayıcı Reels için MP4 üretemiyor. Güncel Chrome ya da Safari kullan. (Videoyu indirip elle de paylaşabilirsin.)'); btn.disabled = false; btn.innerHTML = orig; return; }
       setMsg('Video yükleniyor…');
       body = { format: 'reels', videoUrl: await uploadPublic(blob, 'mp4'), caption };
+    } else if (igFormat === 'carousel') {
+      // CAROUSEL: her görseli ayrı ayrı yükle (client orkestre eder → 30sn zaman aşımı olmaz), sonra tek seferde yayınla
+      const images = await prepareImages(setMsg);
+      if (images.length < 2) { setMsg('⚠ Carousel için en az 2 görsel gerekir — daireden fotoğraf seç ya da "Tek Gönderi" kullan.'); toast('En az 2 görsel gerekir', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      const children = [];
+      for (let i = 0; i < images.length; i++) {
+        setMsg(`Instagram'a yükleniyor… (${i + 1}/${images.length})`);
+        const cr = await fetch(`${IG_API}?action=container`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ image_url: images[i] }) });
+        const cj = await cr.json().catch(() => ({}));
+        if (!cj.id) { setMsg('✕ ' + (cj.error || 'Görsel yüklenemedi')); toast('Yayınlanamadı', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+        children.push(cj.id);
+      }
+      setMsg('Yayınlanıyor…');
+      const pr = await fetch(`${IG_API}?action=carouselpublish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ children, caption }) });
+      const pj = await pr.json().catch(() => ({}));
+      if (pj.ok) {
+        toast('Instagram\'da yayınlandı 🎉', 'ok');
+        logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', 'Instagram Carousel');
+        setMsg('✓ Yayınlandı — story olarak da paylaşılıyor…');
+        const okStory = await autoStory();
+        setMsg(okStory ? '✓ Carousel + Story paylaşıldı! Instagram\'da görebilirsin.' : '✓ Carousel paylaşıldı (story eklenemedi).');
+        setTimeout(loadInsights, 5000);
+      } else { setMsg('✕ ' + (pj.error || 'Yayınlanamadı')); toast('Yayınlanamadı', 'err'); }
+      btn.disabled = false; btn.innerHTML = orig; return;
     } else {
       const images = await prepareImages(setMsg);
       if (!images.length) { toast('Görsel yok', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
-      if (igFormat === 'carousel' && images.length < 2) { setMsg('⚠ Carousel için en az 2 görsel gerekir — daireden fotoğraf seç ya da "Tek Gönderi" kullan.'); toast('En az 2 görsel gerekir', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
       body = { format: igFormat, images, caption };
     }
     setMsg('Instagram\'a gönderiliyor…');
@@ -496,8 +519,8 @@ async function publishNow() {
     if (r.ok && j.ok) {
       toast('Instagram\'da yayınlandı 🎉', 'ok');
       logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', `Instagram'da yayınlandı (${igFormat})`);
-      // Gönderi / carousel → OTOMATİK olarak story'de de paylaş (story formatında ekstra bir şey yapılmaz)
-      if (igFormat === 'post' || igFormat === 'carousel') {
+      // Tek gönderi → OTOMATİK olarak story'de de paylaş (story formatında ekstra bir şey yapılmaz)
+      if (igFormat === 'post') {
         setMsg('✓ Yayınlandı — story olarak da paylaşılıyor…');
         const okStory = await autoStory();
         setMsg(okStory ? '✓ Gönderi + Story paylaşıldı! Instagram\'da görebilirsin.' : '✓ Gönderi paylaşıldı (story eklenemedi).');
