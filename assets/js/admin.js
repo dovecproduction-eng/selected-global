@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=106';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=106';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=107';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=107';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -566,7 +566,18 @@ function fillSelProjeOptions() {
 
 async function loadProps() {
   const { data, error } = await supabase.from('properties').select('*').order('created_at', { ascending: false });
-  if (error) { toast('Daireler yüklenemedi', 'err'); return; }
+  if (error) {
+    // Oturum süresi dolmuş/geçersizse (JWT expired vb.) sessiz boş liste gösterme → tekrar giriş iste
+    const m = (error.message || '').toLowerCase();
+    if (error.code === 'PGRST301' || error.code === '401' || m.includes('jwt') || m.includes('token') || m.includes('permission denied')) {
+      await supabase.auth.signOut();
+      showLogin();
+      $('#loginErr').textContent = 'Oturum süresi doldu, lütfen tekrar giriş yapın.';
+      return;
+    }
+    toast('Daireler yüklenemedi', 'err');
+    return;
+  }
   props = data || [];
   $('#propCount').textContent = props.length;
   fillPropProjeOptions();
