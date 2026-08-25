@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=107';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=107';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=108';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=108';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -326,8 +326,10 @@ async function logAct(action, entity_type, entity_ref, detail) {
   } catch (_) { /* log tablosu yoksa/başarısızsa sessiz geç */ }
 }
 
-// Panele SADECE süper admin (Orçun) girebilir; diğer hesaplar oturumu kapatılıp reddedilir.
-function isAllowedEmail(email) { return !!email && asciiLower(email) === asciiLower(SUPER_ADMIN_EMAIL); }
+// Panele yalnız izinli hesaplar girebilir; diğerlerinin oturumu kapatılıp reddedilir.
+// (Süper admin yetkisi ayrıdır — bkz. isSuperAdmin: yalnız Orçun.)
+const ALLOWED_LOGINS = [SUPER_ADMIN_EMAIL, 'janna@selectedglobal.com'];
+function isAllowedEmail(email) { return !!email && ALLOWED_LOGINS.some((a) => asciiLower(email) === asciiLower(a)); }
 
 async function init() {
   const { data: { session } } = await supabase.auth.getSession();
