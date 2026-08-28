@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=108';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=109';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=108';
+} from './ui.js?v=109';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -145,14 +145,20 @@ async function brandFitted(rawUrl, aspect) {
   const s = Math.max(W / img.width, H / img.height);          // COVER — kadrajı doldur (yatay foto da dikey çerçeveyi doldurur)
   const dw = img.width * s, dh = img.height * s;
   ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
-  const gh = Math.round(H * 0.28);
-  const g = ctx.createLinearGradient(0, H - gh, 0, H);
-  g.addColorStop(0, 'rgba(10,37,64,0)'); g.addColorStop(1, 'rgba(10,37,64,0.92)');
-  ctx.fillStyle = g; ctx.fillRect(0, H - gh, W, gh);
+  // Foto TAM görünür (alt lacivert şerit YOK → boşluk hissi olmaz). Logo ORTADA (kapaktaki beyaz logo),
+  // her zeminde okunur olsun diye yumuşak gölge + çok hafif karartma dairesi ile.
   if (_logo) {
     const ratio = (_logo.width ? _logo.height / _logo.width : 0.24) || 0.24;
-    const lw = Math.min(W * 0.46, 520); const lh = lw * ratio;
-    ctx.drawImage(_logo, (W - lw) / 2, H - lh - Math.round(H * 0.05), lw, lh);
+    const lw = Math.min(W * 0.44, 500); const lh = lw * ratio;
+    const cx = W / 2, cy = H / 2;
+    // Logonun arkasına çok hafif radyal karartma (parlak fotolarda beyaz logo kaybolmasın)
+    const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, lw * 0.72);
+    rg.addColorStop(0, 'rgba(10,37,64,0.34)'); rg.addColorStop(1, 'rgba(10,37,64,0)');
+    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+    ctx.save();
+    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 32; ctx.shadowOffsetY = 2;
+    ctx.drawImage(_logo, cx - lw / 2, cy - lh / 2, lw, lh);
+    ctx.restore();
   }
   const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92));
   const url = URL.createObjectURL(blob); fitCache[key] = url; return url;

@@ -152,12 +152,6 @@ module.exports = async (req, res) => {
       return res.json({ ok: true, id: cid(pub) });
     }
 
-    // DEBUG: son gönderilerin children (slayt) media_url'lerini döndür (oran teşhisi için)
-    if (action === 'children') {
-      const r = await exec('INSTAGRAM_GET_USER_MEDIA', { limit: 5, fields: 'id,media_type,media_url,children{media_url,media_type}' });
-      return res.status(ok(r) ? 200 : 400).json(r);
-    }
-
     // Reels durum sorgusu: FINISHED ise yayınla, değilse "processing" döndür
     if (action === 'reelstatus') {
       const body = await readBody(req);
