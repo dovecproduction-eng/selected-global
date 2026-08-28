@@ -79,6 +79,9 @@ create index if not exists idx_properties_ref on public.properties(ref_kodu);
 -- 1) Sahiplik: her kaydı kimin oluşturduğu (giriş e-postası). Yeni kayıtta panel otomatik yazar.
 alter table public.properties add column if not exists owner_email text;
 alter table public.portfolios add column if not exists owner_email text;
+-- Portföy "fiyatsız" gönderilebilsin: true ise müşteri sayfasında fiyatlar gizlenir
+alter table public.portfolios add column if not exists hide_price boolean not null default false;
+notify pgrst, 'reload schema';
 
 -- 2) YETKİ (RLS): eski geniş "for all" politikalarını kaldır, sahip-bazlı politikalar kur.
 drop policy if exists "write_properties" on public.properties;

@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=109';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=109';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=110';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=110';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -101,7 +101,7 @@ export function logoMark(onDark = false) {
 }
 
 // ---------- Markalı kapak: foto + gradyenli alt geçiş (logo ortada, bilgiler iki yanda) ----------
-export function brandedCover(row) {
+export function brandedCover(row, hidePrice = false) {
   const cover = coverUrl(row);
   const isSale = row.tip === 'satilik';
   // Sağ bilgi: daire tipi · eşya durumu
@@ -118,7 +118,7 @@ export function brandedCover(row) {
       ${row.proje ? `<span class="proje-tag">${esc(row.proje)}</span>` : ''}
       ${cover ? `<img src="${esc(cover)}" alt="${esc(pickTitle(row))}" loading="lazy" />` : `<span class="ph ph-empty">${ICON.camera}<span>${getLang() === 'tr' ? 'Görsel eklenmedi' : 'No image added'}</span></span>`}
       <div class="cover-overlay">
-        <div class="ov-price">${fmtPrice(row.fiyat, row.para_birimi, row.tip)}</div>
+        <div class="ov-price">${fmtPrice(hidePrice ? null : row.fiyat, row.para_birimi, row.tip)}</div>
         <div class="ov-logo">${logoMark(true)}</div>
         ${(leftHtml || rightHtml) ? `<div class="ov-info${(leftHtml && rightHtml) ? '' : ' single'}">${leftHtml}${rightHtml ? `<span class="info">${rightHtml}</span>` : ''}</div>` : ''}
       </div>

@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=109';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=109';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=110';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=110';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -1194,7 +1194,7 @@ function renderPortList() {
       <div class="port-card-top">
         <div class="port-icon">${ICON.link}</div>
         <div class="port-meta">
-          <div class="port-title">${esc(p.baslik || 'Başlıksız portföy')}</div>
+          <div class="port-title">${esc(p.baslik || 'Başlıksız portföy')}${p.hide_price ? ' <span class="tag" style="background:#eef1f5;color:#5a6b7b;font-size:.7rem;font-weight:700;padding:2px 8px;border-radius:999px;vertical-align:middle">🔒 Fiyatsız</span>' : ''}</div>
           <div class="port-sub">${count} daire · ${date}${p.olusturan ? ' · Hazırlayan: ' + esc(p.olusturan) : ''}</div>
         </div>
         ${editable ? `<button class="icon-btn" data-editport="${p.kod}" title="Düzenle">${ICON.edit}</button>
@@ -1317,26 +1317,43 @@ $('#sf_proje').addEventListener('change', (e) => { fSel.proje = e.target.value; 
 $('#sf_furn').addEventListener('change', (e) => { fSel.furn = e.target.value; renderSelectGrid(); });
 $('#sf_q').addEventListener('input', (e) => { fSel.q = e.target.value.trim(); renderSelectGrid(); });
 
-$('#savePortBtn').addEventListener('click', async () => {
+// "Link oluştur"a basınca ÖNCE fiyat görünürlüğü onayı çıkar, sonra kaydet.
+$('#savePortBtn').addEventListener('click', () => {
   if (!selected.size) { toast('En az bir daire seçin', 'err'); return; }
+  const cur = editPortKod ? ports.find((p) => p.kod === editPortKod) : null;
+  $('#priceModalHint').textContent = cur ? (cur.hide_price ? 'Şu anki ayar: Fiyatsız' : 'Şu anki ayar: Fiyatlı') : '';
+  openModal('#priceModal');
+});
+$('#priceShowBtn').addEventListener('click', () => { closeModal($('#priceModal')); doSavePortfolio(false); });
+$('#priceHideBtn').addEventListener('click', () => { closeModal($('#priceModal')); doSavePortfolio(true); });
+
+async function doSavePortfolio(hidePrice) {
   const btn = $('#savePortBtn'); const origLabel = editPortKod ? 'Güncelle' : 'Link oluştur';
   btn.disabled = true; btn.textContent = editPortKod ? 'Güncelleniyor…' : 'Oluşturuluyor…';
   // seçim sırası: props listesindeki sıra
   const ids = props.filter((p) => selected.has(p.id)).map((p) => p.id);
   const creator = $('#port_creator').value.trim() || null;
   if (creator) localStorage.setItem('sg_creator', creator);
-  const payload = { baslik: $('#port_title').value.trim() || null, property_ids: ids, olusturan: creator };
+  const payload = { baslik: $('#port_title').value.trim() || null, property_ids: ids, olusturan: creator, hide_price: !!hidePrice };
 
   let error, kod;
   if (editPortKod) {
     kod = editPortKod;
     ({ error } = await supabase.from('portfolios').update(payload).eq('kod', kod));
+    if (error && /hide_price|schema cache|column/i.test(error.message || '')) {   // hide_price sütunu henüz yoksa onsuz dene
+      const { hide_price, ...rest } = payload;
+      ({ error } = await supabase.from('portfolios').update(rest).eq('kod', kod));
+    }
   } else {
     kod = Math.random().toString(36).slice(2, 9);
     const full = { kod, ...payload, owner_email: myEmail || null };
     ({ error } = await supabase.from('portfolios').insert(full));
-    if (error && /owner_email|schema cache|column/i.test(error.message || '')) {
-      const { owner_email, ...rest } = full;              // owner_email sütunu henüz yoksa onsuz dene
+    if (error && /hide_price|schema cache|column/i.test(error.message || '')) {   // hide_price yoksa onsuz dene
+      const { hide_price, ...rest } = full;
+      ({ error } = await supabase.from('portfolios').insert(rest));
+    }
+    if (error && /owner_email/i.test(error.message || '')) {                       // owner_email de yoksa onsuz dene
+      const { owner_email, hide_price, ...rest } = full;
       ({ error } = await supabase.from('portfolios').insert(rest));
     }
   }
@@ -1346,10 +1363,10 @@ $('#savePortBtn').addEventListener('click', async () => {
   const wasEdit = !!editPortKod;
   editPortKod = null;
   closeModal($('#portModal'));
-  if (wasEdit) { toast('Portföy güncellendi (link aynı)', 'ok'); } else { showLink(kod); }
-  logAct(wasEdit ? 'update' : 'portfolio_create', 'portfolio', payload.baslik || kod, `${ids.length} daire`);
+  if (wasEdit) { toast(`Portföy güncellendi (${hidePrice ? 'fiyatsız' : 'fiyatlı'}, link aynı)`, 'ok'); } else { showLink(kod); }
+  logAct(wasEdit ? 'update' : 'portfolio_create', 'portfolio', payload.baslik || kod, `${ids.length} daire · ${hidePrice ? 'fiyatsız' : 'fiyatlı'}`);
   loadPorts();
-});
+}
 
 function showLink(kod) {
   const url = portUrl(kod);

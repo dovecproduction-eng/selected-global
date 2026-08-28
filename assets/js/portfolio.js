@@ -1,10 +1,10 @@
 // Selected Global — Portföy linki sayfası (müşteriye gönderilen seçki)
-import { supabase, ALL_LISTINGS_URL, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=109';
-import { t, applyI18n, getLang } from './i18n.js?v=109';
+import { supabase, ALL_LISTINGS_URL, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=110';
+import { t, applyI18n, getLang } from './i18n.js?v=110';
 import {
   ICON, fmtPrice, esc, pickTitle, slugify, brandedCover,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, wireCallPrice,
-} from './ui.js?v=109';
+} from './ui.js?v=110';
 
 // "Fiyat için arayınız" → alttaki iletişim kartına kaydır
 wireCallPrice(() => document.getElementById('pContact'));
@@ -38,19 +38,21 @@ function card(row, i) {
   const title = pickTitle(row);
   const tel = contact ? `&tel=${contact.phoneRaw}` : '';
   const hasPhotos = (row.fotograflar || []).length;
+  const hidePrice = !!(portfolio && portfolio.hide_price);   // portföy "fiyatsız" olarak gönderildiyse fiyat gizli
+  const np = hidePrice ? '&np=1' : '';                        // detay sayfasında da fiyatı gizle
   return `
   <div class="pcard reveal" style="animation-delay:${Math.min(i*0.05,0.4)}s">
     ${hasPhotos
-      ? `<div class="pcard-cover zoomable" data-lb="${row.id}">${brandedCover(row)}<span class="zoom-hint">${ICON.camera}</span></div>`
-      : `<a href="daire?id=${row.id}${tel}" style="display:block">${brandedCover(row)}</a>`}
+      ? `<div class="pcard-cover zoomable" data-lb="${row.id}">${brandedCover(row, hidePrice)}<span class="zoom-hint">${ICON.camera}</span></div>`
+      : `<a href="daire?id=${row.id}${tel}${np}" style="display:block">${brandedCover(row, hidePrice)}</a>`}
     <div class="pcard-body">
       ${title ? `<h3 class="pcard-title">${esc(title)}</h3>` : ''}
       <div class="pcard-row">
-        <span class="price">${fmtPrice(row.fiyat, row.para_birimi, row.tip)}</span>
+        <span class="price">${fmtPrice(hidePrice ? null : row.fiyat, row.para_birimi, row.tip)}</span>
         ${row.metrekare ? `<span class="text-muted" style="font-weight:600;font-size:.88rem">${esc(row.metrekare)} m²</span>` : ''}
       </div>
       <div style="display:flex;gap:8px">
-        <a class="btn btn-ghost btn-sm" href="daire?id=${row.id}${tel}" style="flex:1">${ICON.camera}<span data-i18n="view_photos">${t('view_photos')}</span></a>
+        <a class="btn btn-ghost btn-sm" href="daire?id=${row.id}${tel}${np}" style="flex:1">${ICON.camera}<span data-i18n="view_photos">${t('view_photos')}</span></a>
         ${photos ? `<button class="btn btn-primary btn-sm" data-dl="${row.id}" title="${t('download_photos')}">${ICON.download}</button>` : ''}
       </div>
     </div>

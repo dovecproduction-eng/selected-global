@@ -1,10 +1,10 @@
 // Selected Global — Daire detay sayfası
-import { supabase, BRAND, CURRENCY, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=109';
-import { t, applyI18n, getLang } from './i18n.js?v=109';
+import { supabase, BRAND, CURRENCY, creatorContact, PUBLIC_PROPERTY_COLS } from './config.js?v=110';
+import { t, applyI18n, getLang } from './i18n.js?v=110';
 import {
   ICON, fmtPrice, esc, pickTitle, pickDesc, slugify, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast, downloadPropertyPhotos, openLightbox, logoMark, wireCallPrice,
-} from './ui.js?v=109';
+} from './ui.js?v=110';
 
 // "Fiyat için arayınız" → Ara/WhatsApp butonlarına kaydır
 wireCallPrice(() => document.querySelector('.detail-cta') || document.querySelector('.contact-row'));
@@ -14,6 +14,7 @@ document.getElementById('footer').innerHTML = renderFooter();
 
 const id = new URLSearchParams(location.search).get('id');
 const telParam = new URLSearchParams(location.search).get('tel');
+const noPrice = new URLSearchParams(location.search).get('np') === '1';   // portföy "fiyatsız" ise fiyatı gizle
 // İletişim: portföyden gelen hazırlayan (tel) öncelikli, yoksa daireyi ekleyen, yoksa genel
 let contactRaw = telParam || BRAND.phoneRaw;
 let row = null;
@@ -69,7 +70,7 @@ function render() {
       <div class="detail-panel">
         ${row.bolge ? `<div class="detail-region">${esc(regionDisplay(row.bolge))}</div>` : ''}
         <h1 class="detail-title">${esc(pickTitle(row) || t('not_specified'))}</h1>
-        <div class="detail-price">${fmtPrice(row.fiyat, row.para_birimi, row.tip)}</div>
+        <div class="detail-price">${fmtPrice(noPrice ? null : row.fiyat, row.para_birimi, row.tip)}</div>
         <div class="spec-table">${specRows()}</div>
         ${features.length ? `<div class="feature-chips">${features.map((f)=>`<span class="chip">${esc(f)}</span>`).join('')}</div>` : ''}
         ${desc ? `<h4 style="font-size:1.05rem;margin-bottom:6px" data-i18n="description">${t('description')}</h4><p class="detail-desc">${esc(desc)}</p>` : ''}
