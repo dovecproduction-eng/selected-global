@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=110';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=110';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=111';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=111';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -184,6 +184,27 @@ function applyProjectAmenities(proje) {
   if (!acEl.value.trim() || acEl.value.trim() === lastAutoAciklama) { acEl.value = acStr; lastAutoAciklama = acStr; }
   updateCoverPreview();
 }
+
+// Otomatik BAŞLIK: proje seçilince oluşur; oda, konut tipi ve eşya durumu varsa eklenir.
+let lastAutoTitle = '';
+function buildAutoTitle() {
+  const proje = $('#f_proje').value.trim();
+  if (!proje) return '';                                  // başlık ancak proje seçilince üretilir
+  const oda = $('#f_oda').value.trim();
+  const konut = $('#f_konut').value.trim();
+  const esya = $('#f_esyali').value;                      // '', 'true', 'false'
+  const spec = [oda, konut].filter(Boolean).join(' ');    // "2+1 Villa" / "2+1" / "Villa" / ""
+  let title = spec ? `${proje} — ${spec}` : proje;
+  if (esya === 'true') title += ' (Eşyalı)';
+  else if (esya === 'false') title += ' (Eşyasız)';
+  return title;
+}
+function applyAutoTitle() {
+  const el = $('#f_baslik'); if (!el) return;
+  const t = buildAutoTitle(); if (!t) return;
+  // Boşsa ya da önceki otomatik başlıksa doldur/güncelle; elle yazılmışsa dokunma
+  if (!el.value.trim() || el.value.trim() === lastAutoTitle) { el.value = t; lastAutoTitle = t; }
+}
 // Proje ORTAK ALAN fotoğrafları — proje seçilince galeriye otomatik eklenir.
 // Yeni proje görselleri eklemek için: Supabase'e yükle, URL'leri buraya ekle.
 const FS_COMMON_PHOTOS = [
@@ -272,7 +293,11 @@ $('#f_proje').addEventListener('change', () => {
   applyProjectPreset($('#f_proje').value);
   applyProjectAmenities($('#f_proje').value);
   applyProjectPhotos($('#f_proje').value);
+  applyAutoTitle();
 });
+// Oda / eşya değişince başlığı güncelle (elle yazılmadıysa)
+$('#f_oda').addEventListener('change', applyAutoTitle);
+$('#f_esyali').addEventListener('change', applyAutoTitle);
 
 // Bir select'te olmayan değeri (eski/serbest) koruyarak seç
 function setSelectValue(selId, val) {
@@ -290,7 +315,7 @@ function updateKatVisibility() {
   $('#katField').classList.toggle('hidden', isHouse);
   if (isHouse) $('#f_kat').value = '';
 }
-$('#f_konut').addEventListener('change', updateKatVisibility);
+$('#f_konut').addEventListener('change', () => { updateKatVisibility(); applyAutoTitle(); });
 
 /* ============== AUTH ============== */
 let myEmail = '';
@@ -892,8 +917,9 @@ function openProp(id) {
   updateKatVisibility();
   $('#f_esyali').value = p?.esyali == null ? '' : String(p.esyali);
   $('#f_aciklama').value = p?.aciklama || '';
-  // Otomatik dolum izleyicisini sıfırla (mevcut değer korunsun, üzerine yazılmasın)
+  // Otomatik dolum izleyicilerini sıfırla (mevcut değer korunsun, üzerine yazılmasın)
   lastAutoAciklama = '';
+  lastAutoTitle = '';
   if (p?.fotograflar?.length) {
     const cov = Math.min(p.kapak_index || 0, p.fotograflar.length - 1);
     const ordered = [p.fotograflar[cov], ...p.fotograflar.filter((_, i) => i !== cov)];
