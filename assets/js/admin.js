@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=111';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=111';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=112';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=112';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -185,19 +185,75 @@ function applyProjectAmenities(proje) {
   updateCoverPreview();
 }
 
-// Otomatik BAŞLIK: proje seçilince oluşur; oda, konut tipi ve eşya durumu varsa eklenir.
+// Otomatik BAŞLIK — emlakçı ağzıyla 50 şablon. Proje seçilince biri uygulanır;
+// {proje} ve {unit} (eşya + oda + konut tipi) otomatik yerleşir. Aynı proje+daire tipi
+// için hep aynı şablon seçilir (tutarlı), proje/tip değişince şablon da değişir.
 let lastAutoTitle = '';
+const TITLE_TEMPLATES = [
+  '{proje} projesinde seçkin {unit}',
+  '{proje} ayrıcalığıyla {unit}',
+  '{proje} imzasıyla {unit}',
+  '{proje} güvencesiyle {unit}',
+  '{proje} projesinde kaçırılmayacak {unit}',
+  'Yatırımlık {unit} — {proje}',
+  '{proje} projesinde hayalinizdeki {unit}',
+  'Deniz esintili {proje} yaşamı: {unit}',
+  '{proje} projesinde lüksün adresi: {unit}',
+  'Prestijli {proje} projesinde {unit}',
+  'Seçkin {proje} projesinde {unit}',
+  '{proje} projesinde huzurlu bir yaşam: {unit}',
+  'Modern mimarisiyle {proje} projesinde {unit}',
+  '{proje} projesinde eşsiz fırsat: {unit}',
+  'Konforlu bir yaşam {proje} projesinde: {unit}',
+  '{proje} projesinde yatırımınıza değer katın: {unit}',
+  'Ayrıcalıklı {unit}, {proje} projesinde sizi bekliyor',
+  '{proje} projesinde eşsiz konumda {unit}',
+  'Hayalinizdeki eve bir adım: {proje} projesinde {unit}',
+  '{proje} projesinde manzaralı {unit}',
+  'Lüks ve konfor bir arada — {proje} projesinde {unit}',
+  '{proje} projesinde sizi bekleyen {unit}',
+  'Kaliteli yaşamın adresi {proje}: {unit}',
+  '{proje} projesinde lüks {unit}',
+  'Doğayla iç içe {proje} projesinde {unit}',
+  '{proje} projesinde ferah ve modern {unit}',
+  'Yatırımın geleceği {proje} projesinde: {unit}',
+  '{proje} projesinde huzur dolu {unit}',
+  'Seçkin yaşam {proje} projesinde başlıyor: {unit}',
+  '{proje} projesinde konforun yeni tanımı: {unit}',
+  'Denize yakın {proje} projesinde {unit}',
+  '{proje} projesinde ayrıcalıklı bir yaşam sizi bekliyor: {unit}',
+  'Prestij ve konfor {proje} projesinde buluşuyor — {unit}',
+  '{proje} projesinde ferah {unit}',
+  'Hem yatırım hem yaşam: {proje} projesinde {unit}',
+  '{proje} projesinde göz kamaştıran {unit}',
+  'Kaçırılmayacak fırsat — {proje} projesinde {unit}',
+  '{proje} projesinde sıcak bir yuva: {unit}',
+  'Prestijli projede yerinizi alın — {proje} projesinde {unit}',
+  '{proje} projesinde keyifli bir yaşam: {unit}',
+  'Yeni bir başlangıç {proje} projesinde: {unit}',
+  '{proje} projesinde eşsiz bir fırsat: {unit}',
+  'Sıcak yuvanız {proje} projesinde sizi bekliyor: {unit}',
+  '{proje} projesinde yatırımlık ferah {unit}',
+  'Lüksün ve doğanın buluştuğu {proje} projesinde {unit}',
+  '{proje} projesinde hayalinizdeki yaşam: {unit}',
+  'Değerine değer katan {proje} projesinde {unit}',
+  '{proje} projesinde modern ve şık {unit}',
+  'Konumuyla öne çıkan {proje} projesinde {unit}',
+  '{proje} projesinde sizi bekleyen ayrıcalıklı {unit}',
+];
+function _hashIdx(s, mod) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return Math.abs(h) % mod; }
+function _capFirst(s) { return s ? s.charAt(0).toLocaleUpperCase('tr') + s.slice(1) : s; }
 function buildAutoTitle() {
   const proje = $('#f_proje').value.trim();
   if (!proje) return '';                                  // başlık ancak proje seçilince üretilir
   const oda = $('#f_oda').value.trim();
   const konut = $('#f_konut').value.trim();
   const esya = $('#f_esyali').value;                      // '', 'true', 'false'
-  const spec = [oda, konut].filter(Boolean).join(' ');    // "2+1 Villa" / "2+1" / "Villa" / ""
-  let title = spec ? `${proje} — ${spec}` : proje;
-  if (esya === 'true') title += ' (Eşyalı)';
-  else if (esya === 'false') title += ' (Eşyasız)';
-  return title;
+  const esyaAdj = esya === 'true' ? 'eşyalı ' : esya === 'false' ? 'eşyasız ' : '';
+  const unit = (esyaAdj + [oda, konut || 'daire'].filter(Boolean).join(' ')).trim();  // "eşyalı 2+1 Villa"
+  // Aynı proje+oda+konut → hep aynı şablon (tutarlı); değişince farklı şablon
+  const tpl = TITLE_TEMPLATES[_hashIdx(`${proje}|${oda}|${konut}`, TITLE_TEMPLATES.length)];
+  return _capFirst(tpl.replace('{proje}', proje).replace('{unit}', unit));
 }
 function applyAutoTitle() {
   const el = $('#f_baslik'); if (!el) return;
