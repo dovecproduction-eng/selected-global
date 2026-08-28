@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=113';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=113';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=114';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=114';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -191,7 +191,7 @@ function applyProjectAmenities(proje) {
 let lastAutoTitle = '';
 // DENİZİ OLAN PROJELER — yalnız bunlara deniz temalı başlıklar da uygulanır.
 // (Bir projede deniz varsa buraya adını ekle; yoksa deniz cümleleri hiç çıkmaz.)
-const SEA_PROJECTS = new Set(['Four Season 1', 'Four Season 2', 'Four Season 3', 'Courtyard Long Beach', 'Panorama']);
+const SEA_PROJECTS = new Set(['Four Season 1', 'Four Season 2', 'Four Season 3', 'Panorama']);
 // Genel şablonlar — HER projede kullanılabilir (deniz geçmez).
 const TITLE_TEMPLATES = [
   '{proje} projesinde seçkin {unit}',
