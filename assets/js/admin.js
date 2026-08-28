@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=112';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=112';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=113';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=113';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -189,6 +189,10 @@ function applyProjectAmenities(proje) {
 // {proje} ve {unit} (eşya + oda + konut tipi) otomatik yerleşir. Aynı proje+daire tipi
 // için hep aynı şablon seçilir (tutarlı), proje/tip değişince şablon da değişir.
 let lastAutoTitle = '';
+// DENİZİ OLAN PROJELER — yalnız bunlara deniz temalı başlıklar da uygulanır.
+// (Bir projede deniz varsa buraya adını ekle; yoksa deniz cümleleri hiç çıkmaz.)
+const SEA_PROJECTS = new Set(['Four Season 1', 'Four Season 2', 'Four Season 3', 'Courtyard Long Beach', 'Panorama']);
+// Genel şablonlar — HER projede kullanılabilir (deniz geçmez).
 const TITLE_TEMPLATES = [
   '{proje} projesinde seçkin {unit}',
   '{proje} ayrıcalığıyla {unit}',
@@ -197,7 +201,6 @@ const TITLE_TEMPLATES = [
   '{proje} projesinde kaçırılmayacak {unit}',
   'Yatırımlık {unit} — {proje}',
   '{proje} projesinde hayalinizdeki {unit}',
-  'Deniz esintili {proje} yaşamı: {unit}',
   '{proje} projesinde lüksün adresi: {unit}',
   'Prestijli {proje} projesinde {unit}',
   'Seçkin {proje} projesinde {unit}',
@@ -209,18 +212,15 @@ const TITLE_TEMPLATES = [
   'Ayrıcalıklı {unit}, {proje} projesinde sizi bekliyor',
   '{proje} projesinde eşsiz konumda {unit}',
   'Hayalinizdeki eve bir adım: {proje} projesinde {unit}',
-  '{proje} projesinde manzaralı {unit}',
   'Lüks ve konfor bir arada — {proje} projesinde {unit}',
   '{proje} projesinde sizi bekleyen {unit}',
   'Kaliteli yaşamın adresi {proje}: {unit}',
   '{proje} projesinde lüks {unit}',
-  'Doğayla iç içe {proje} projesinde {unit}',
   '{proje} projesinde ferah ve modern {unit}',
   'Yatırımın geleceği {proje} projesinde: {unit}',
   '{proje} projesinde huzur dolu {unit}',
   'Seçkin yaşam {proje} projesinde başlıyor: {unit}',
   '{proje} projesinde konforun yeni tanımı: {unit}',
-  'Denize yakın {proje} projesinde {unit}',
   '{proje} projesinde ayrıcalıklı bir yaşam sizi bekliyor: {unit}',
   'Prestij ve konfor {proje} projesinde buluşuyor — {unit}',
   '{proje} projesinde ferah {unit}',
@@ -240,6 +240,52 @@ const TITLE_TEMPLATES = [
   '{proje} projesinde modern ve şık {unit}',
   'Konumuyla öne çıkan {proje} projesinde {unit}',
   '{proje} projesinde sizi bekleyen ayrıcalıklı {unit}',
+  '{proje} projesinde huzurun ve konforun adresi: {unit}',
+  'Geleceğe yatırım: {proje} projesinde {unit}',
+  '{proje} projesinde şık ve kullanışlı {unit}',
+  'Ailenizle huzurlu bir yaşam: {proje} projesinde {unit}',
+  '{proje} projesinde her detayı düşünülmüş {unit}',
+  'Yatırımınızın karşılığını fazlasıyla alın — {proje} projesinde {unit}',
+  '{proje} projesinde konfor ve prestij bir arada: {unit}',
+  'Şehrin gözde projesi {proje}: {unit}',
+  '{proje} projesinde keyifli komşuluk, ferah yaşam: {unit}',
+  'Fırsatı kaçırmayın — {proje} projesinde {unit}',
+  '{proje} projesinde yaşamın ayrıcalıklı hali: {unit}',
+  'Kaliteli malzeme, modern tasarım — {proje} projesinde {unit}',
+  '{proje} projesinde huzurun kapıları aralanıyor: {unit}',
+  'Yatırımlık ve yaşamlık: {proje} projesinde {unit}',
+  '{proje} projesinde ayrıcalığı yaşayın: {unit}',
+  'Değerlenen bölgede fırsat — {proje} projesinde {unit}',
+  '{proje} projesinde konforlu ve modern {unit}',
+  'Hayaliniz gerçek oluyor: {proje} projesinde {unit}',
+  '{proje} projesinde sizi bekleyen huzur: {unit}',
+];
+// Deniz temalı şablonlar — YALNIZ SEA_PROJECTS içindeki projelere uygulanır.
+const SEA_TEMPLATES = [
+  'Deniz esintili {proje} yaşamı: {unit}',
+  'Denize yakın {proje} projesinde {unit}',
+  '{proje} projesinde deniz manzaralı {unit}',
+  'Maviyle iç içe {proje} projesinde {unit}',
+  '{proje} projesinde denize sıfır konumda {unit}',
+  'Deniz manzarasıyla {proje} projesinde {unit}',
+  '{proje} projesinde denizin kıyısında {unit}',
+  'Sahil keyfi {proje} projesinde: {unit}',
+  '{proje} projesinde deniz havası, ferah yaşam: {unit}',
+  'Deniz manzaralı ayrıcalık — {proje} projesinde {unit}',
+  '{proje} projesinde mavi manzaraya uyanın: {unit}',
+  'Denizle kucaklaşan {proje} projesinde {unit}',
+  '{proje} projesinde sahile birkaç adım: {unit}',
+  'Deniz esintisi ve huzur — {proje} projesinde {unit}',
+  '{proje} projesinde deniz manzaralı prestijli {unit}',
+  'Sahil kenarında yaşam: {proje} projesinde {unit}',
+  '{proje} projesinde denize nazır {unit}',
+  'Mavinin ve konforun buluştuğu {proje} projesinde {unit}',
+  '{proje} projesinde deniz manzaralı lüks {unit}',
+  'Deniz kenarında ayrıcalıklı yaşam — {proje} projesinde {unit}',
+  '{proje} projesinde denizin serinliğiyle {unit}',
+  'Sahilin hemen yanında: {proje} projesinde {unit}',
+  '{proje} projesinde deniz ufkuna karşı {unit}',
+  'Deniz, güneş ve konfor — {proje} projesinde {unit}',
 ];
 function _hashIdx(s, mod) { let h = 0; for (let i = 0; i < s.length; i++) { h = (h * 31 + s.charCodeAt(i)) | 0; } return Math.abs(h) % mod; }
 function _capFirst(s) { return s ? s.charAt(0).toLocaleUpperCase('tr') + s.slice(1) : s; }
@@ -251,8 +297,10 @@ function buildAutoTitle() {
   const esya = $('#f_esyali').value;                      // '', 'true', 'false'
   const esyaAdj = esya === 'true' ? 'eşyalı ' : esya === 'false' ? 'eşyasız ' : '';
   const unit = (esyaAdj + [oda, konut || 'daire'].filter(Boolean).join(' ')).trim();  // "eşyalı 2+1 Villa"
+  // Deniz projesiyse deniz şablonları da havuza girer; değilse yalnız genel şablonlar
+  const pool = SEA_PROJECTS.has(proje) ? TITLE_TEMPLATES.concat(SEA_TEMPLATES) : TITLE_TEMPLATES;
   // Aynı proje+oda+konut → hep aynı şablon (tutarlı); değişince farklı şablon
-  const tpl = TITLE_TEMPLATES[_hashIdx(`${proje}|${oda}|${konut}`, TITLE_TEMPLATES.length)];
+  const tpl = pool[_hashIdx(`${proje}|${oda}|${konut}`, pool.length)];
   return _capFirst(tpl.replace('{proje}', proje).replace('{unit}', unit));
 }
 function applyAutoTitle() {
@@ -1148,6 +1196,9 @@ $('#savePropBtn').addEventListener('click', async () => {
     return;
   }
   $('#f_il').style.borderColor = '';
+
+  // GÜVENCE: başlık boş ama proje seçiliyse, kaydetmeden önce otomatik başlık üret
+  if (!$('#f_baslik').value.trim() && $('#f_proje').value.trim()) applyAutoTitle();
 
   // Satış danışmanı atama — yalnız süper admin (Orçun). Seçilen danışman daireyi "sahiplenir".
   let assignName = null, assignEmail = null;
