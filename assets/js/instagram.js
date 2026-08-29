@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=118';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=119';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=118';
+} from './ui.js?v=119';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -323,12 +323,9 @@ async function doDownload() {
       await downloadPropertyPhotos([{ ...p, fotograflar: urls }], name, (d, t) => { btn.textContent = `Hazırlanıyor… ${d}/${t}`; });
       logAct('photo_download', pickTitle(p) || 'daire', `Instagram ${igFormat} · ${urls.length} görsel`);
     } else {
-      // Her görseli seçilen orana sığdır + gradyen/logo bas, sonra indir
-      const aspect = FMT_META[igFormat].aspect;
-      const fitted = [];
-      for (const u of urls) fitted.push(await brandFitted(u, aspect));
+      // SERBEST: logo/yazı YOK — görselleri olduğu gibi indir
       const name = 'selected-global-gonderi-' + new Date().toISOString().slice(0, 10);
-      await downloadPropertyPhotos([{ fotograflar: fitted, baslik: 'gonderi', bolge: '' }], name, (d, t) => { btn.textContent = `Hazırlanıyor… ${d}/${t}`; }, null, { noCover: true });
+      await downloadPropertyPhotos([{ fotograflar: urls, baslik: 'gonderi', bolge: '' }], name, (d, t) => { btn.textContent = `Hazırlanıyor… ${d}/${t}`; }, null, { noCover: true });
       logAct('photo_download', 'Serbest gönderi', `Instagram ${igFormat} · ${urls.length} görsel`);
     }
     toast(`${urls.length} görsel indirildi (JPEG)`, 'ok');
