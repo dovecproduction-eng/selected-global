@@ -1139,3 +1139,9 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-onoff { border: 1px solid var(--line); background: #fff; border-radius: 999px; padding: 7px 15px; font-weight: 700; font-size: .82rem; cursor: pointer; color: var(--navy); white-space: nowrap; }
 .ig-onoff:hover { background: var(--bg-soft); }
 @media (max-width: 560px) { .ig-profile-actions { flex-direction: row; align-items: center; width: 100%; } }
+
+/* Instagram üst gezinme (takvim/otomasyon geçişi) */
+.ig-topnav { display: flex; gap: 4px; margin-left: auto; }
+.ig-topnav a { color: rgba(255,255,255,.85); font-size: .82rem; font-weight: 700; padding: 7px 13px; border-radius: 999px; transition: .18s var(--ease); }
+.ig-topnav a:hover { color: #fff; background: rgba(255,255,255,.12); }
+@media (max-width: 720px){ .ig-topnav{ order: 3; width: 100%; justify-content: center; margin: 6px 0 0; } .admin-topbar .header-inner{ flex-wrap: wrap; } }

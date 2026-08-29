@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Otomasyon — Selected Global</title>
+  <link rel="manifest" href="manifest.json?v=2" />
+  <meta name="theme-color" content="#0A2540" />
+  <link rel="apple-touch-icon" href="assets/img/icon-180.png?v=2" />
+  <link rel="preconnect" href="https://kimwdxymgdnkvivbvmtk.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css?v=122" />
+  <link rel="stylesheet" href="assets/css/planner.css?v=122" />
+</head>
+<body class="admin-body">
+
+  <div class="login-screen hidden" id="loginScreen">
+    <div class="login-card">
+      <div class="brand" style="justify-content:center">
+        <span class="logo-mark">
+          <img class="logo-img" src="assets/img/logo.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+          <span class="logo-word" style="display:none;color:var(--navy)">SELECTED<i>·</i>GLOBAL</span>
+        </span>
+      </div>
+      <h2>Otomasyon</h2>
+      <p class="muted">Devam etmek için giriş yapın</p>
+      <form id="loginForm">
+        <div class="field"><label>E-posta</label><input type="email" id="loginEmail" required autocomplete="username" placeholder="ornek@selectedglobal.com" /></div>
+        <div class="field"><label>Şifre</label><input type="password" id="loginPass" required autocomplete="current-password" placeholder="••••••••" /></div>
+        <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Giriş yap</button>
+        <p id="loginErr" class="hint" style="color:var(--danger);text-align:center;margin-top:12px"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="site-header admin-topbar">
+      <div class="container header-inner">
+        <div class="brand">
+          <span class="logo-mark">
+            <img class="logo-img" src="assets/img/logo-white.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+            <span class="logo-word" style="display:none;color:#fff">SELECTED<i>·</i>GLOBAL</span>
+          </span>
+        </div>
+        <nav class="pl-topnav">
+          <a href="instagram.html">📸 Instagram</a>
+          <a href="takvim.html">🗓️ Takvim</a>
+          <a href="otomasyon.html" class="active">⚙️ Otomasyon</a>
+        </nav>
+        <div class="header-actions">
+          <span id="userName" style="color:#fff;font-size:.85rem;opacity:.9"></span>
+          <button class="btn btn-ghost btn-sm" id="logoutBtn">Çıkış</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="pl-hero">
+      <div class="container">
+        <div class="pl-hero-row">
+          <div>
+            <span class="pl-eyebrow">Otomatik Planlama</span>
+            <h1>Otomasyon</h1>
+            <p>İçerik kaynaklarını ve ritmi seç; sistem tüm ayı otomatik zamanlasın. Hiçbir şey hemen yayınlanmaz — takvimden görüp düzenleyebilirsin.</p>
+          </div>
+          <a class="btn btn-ghost" href="takvim.html">🗓️ Takvimi Gör</a>
+        </div>
+      </div>
+    </div>
+
+    <main class="container pl-main au-main">
+      <div class="au-grid">
+        <!-- SOL: ayarlar -->
+        <section class="au-panel">
+          <h3 class="au-h">1 · İçerik Kaynakları</h3>
+          <div class="au-src" id="auSrc">
+            <label class="au-source">
+              <input type="checkbox" id="auUseDaire" checked />
+              <span class="au-source-b"><span class="au-source-t">🏠 Daireler</span><span class="au-source-c" id="auDaireCount">…</span><span class="au-source-s">Dairenin kendi fotoğrafları (kapak ilk, en fazla 10) — ham, markasız</span></span>
+            </label>
+            <label class="au-source">
+              <input type="checkbox" id="auUseEdu" checked />
+              <span class="au-source-b"><span class="au-source-t">📚 Eğitici Seri</span><span class="au-source-c" id="auEduCount">20</span><span class="au-source-s">Otomasyon klasörünün 7 slaytlık hazır carousel'leri + 9:16 story</span></span>
+            </label>
+          </div>
+
+          <h3 class="au-h">2 · Ritim & Saatler</h3>
+          <div class="au-field" data-for="daire">
+            <label>🏠 Günde kaç daire carousel'i?</label>
+            <div class="au-inline"><input type="number" id="auDairePerDay" min="1" max="6" value="2" /><span class="au-hint">carousel / gün</span></div>
+          </div>
+          <div class="au-field" data-for="daire">
+            <label>🏠 Daire yayın saatleri (KKTC)</label>
+            <div class="au-times" id="auDaireTimes"></div>
+          </div>
+          <div class="au-field" data-for="edu">
+            <label>📚 Eğitici carousel — kaç günde bir?</label>
+            <div class="au-inline"><input type="number" id="auEduEvery" min="1" max="14" value="3" /><span class="au-hint">günde 1</span></div>
+          </div>
+          <div class="au-field" data-for="edu">
+            <label>📚 Eğitici yayın saati (KKTC)</label>
+            <div class="au-inline"><input type="time" id="auEduTime" value="10:00" /><label class="au-check" style="margin-left:auto"><input type="checkbox" id="auEduStory" checked /> Story de ekle</label></div>
+          </div>
+
+          <h3 class="au-h">3 · Başlangıç</h3>
+          <div class="au-field">
+            <label>İlk yayın günü</label>
+            <input type="date" id="auStart" />
+          </div>
+          <label class="au-check au-danger"><input type="checkbox" id="auClear" checked /> Oluşturmadan önce mevcut zamanlı planı temizle</label>
+
+          <button class="btn btn-gold btn-block au-cta" id="auGenerate">⚡ Planı Oluştur</button>
+          <p class="au-note">Yayın, senin "Instagram'dan paylaş" akışının aynısıyla otomatik yapılır (pg_cron). Her şeyi takvimden görüp silebilirsin.</p>
+        </section>
+
+        <!-- SAĞ: canlı önizleme -->
+        <aside class="au-preview">
+          <div class="au-preview-card">
+            <span class="pl-eyebrow">Önizleme</span>
+            <div class="au-sum" id="auSum"></div>
+            <div class="au-range" id="auRange"></div>
+            <h4 class="au-mini-h">İlk günler</h4>
+            <div class="au-mini" id="auMini"></div>
+          </div>
+          <div class="au-result hidden" id="auResult"></div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div class="ig-toast-wrap" id="toastWrap"></div>
+  <script type="module" src="assets/js/otomasyon.js?v=122"></script>
+</body>
+</html>

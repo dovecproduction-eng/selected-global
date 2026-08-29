@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>İçerik Takvimi — Selected Global</title>
+  <link rel="manifest" href="manifest.json?v=2" />
+  <meta name="theme-color" content="#0A2540" />
+  <link rel="apple-touch-icon" href="assets/img/icon-180.png?v=2" />
+  <link rel="preconnect" href="https://kimwdxymgdnkvivbvmtk.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css?v=122" />
+  <link rel="stylesheet" href="assets/css/planner.css?v=122" />
+</head>
+<body class="admin-body">
+
+  <div class="login-screen hidden" id="loginScreen">
+    <div class="login-card">
+      <div class="brand" style="justify-content:center">
+        <span class="logo-mark">
+          <img class="logo-img" src="assets/img/logo.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+          <span class="logo-word" style="display:none;color:var(--navy)">SELECTED<i>·</i>GLOBAL</span>
+        </span>
+      </div>
+      <h2>İçerik Takvimi</h2>
+      <p class="muted">Devam etmek için giriş yapın</p>
+      <form id="loginForm">
+        <div class="field"><label>E-posta</label><input type="email" id="loginEmail" required autocomplete="username" placeholder="ornek@selectedglobal.com" /></div>
+        <div class="field"><label>Şifre</label><input type="password" id="loginPass" required autocomplete="current-password" placeholder="••••••••" /></div>
+        <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Giriş yap</button>
+        <p id="loginErr" class="hint" style="color:var(--danger);text-align:center;margin-top:12px"></p>
+      </form>
+    </div>
+  </div>
+
+  <div id="app" class="hidden">
+    <header class="site-header admin-topbar">
+      <div class="container header-inner">
+        <div class="brand">
+          <span class="logo-mark">
+            <img class="logo-img" src="assets/img/logo-white.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+            <span class="logo-word" style="display:none;color:#fff">SELECTED<i>·</i>GLOBAL</span>
+          </span>
+        </div>
+        <nav class="pl-topnav">
+          <a href="instagram.html">📸 Instagram</a>
+          <a href="takvim.html" class="active">🗓️ Takvim</a>
+          <a href="otomasyon.html">⚙️ Otomasyon</a>
+        </nav>
+        <div class="header-actions">
+          <span id="userName" style="color:#fff;font-size:.85rem;opacity:.9"></span>
+          <button class="btn btn-ghost btn-sm" id="logoutBtn">Çıkış</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="pl-hero">
+      <div class="container">
+        <div class="pl-hero-row">
+          <div>
+            <span class="pl-eyebrow">İçerik Planı</span>
+            <h1>İçerik Takvimi</h1>
+            <p>Zamanlanmış Instagram gönderilerinin tamamı — önizleme, caption ve yayın saati.</p>
+          </div>
+          <a class="btn btn-gold" href="otomasyon.html">⚙️ Otomatik Plan Oluştur</a>
+        </div>
+        <div class="pl-stats" id="plStats"></div>
+      </div>
+    </div>
+
+    <main class="container pl-main">
+      <div class="pl-toolbar">
+        <div class="pl-legend" id="plLegend"></div>
+        <div class="pl-viewtabs" id="plViewTabs">
+          <button type="button" data-view="month" class="active">Takvim</button>
+          <button type="button" data-view="list">Liste</button>
+        </div>
+      </div>
+
+      <!-- AY GÖRÜNÜMÜ -->
+      <section id="plMonthView">
+        <div class="pl-monthbar">
+          <button class="pl-navbtn" id="plPrev" aria-label="Önceki ay">‹</button>
+          <h2 id="plMonthLabel">—</h2>
+          <button class="pl-navbtn" id="plNext" aria-label="Sonraki ay">›</button>
+          <button class="btn btn-ghost btn-sm" id="plToday" style="margin-left:auto">Bugün</button>
+        </div>
+        <div class="pl-weekhead" id="plWeekHead"></div>
+        <div class="pl-grid" id="plGrid"></div>
+      </section>
+
+      <!-- LİSTE GÖRÜNÜMÜ -->
+      <section id="plListView" class="hidden">
+        <div class="pl-agenda" id="plAgenda"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- GÖNDERİ DETAY -->
+  <div class="pl-drawer-overlay" id="plDrawer">
+    <aside class="pl-drawer" role="dialog" aria-modal="true" aria-labelledby="plDrawerTitle">
+      <div class="pl-drawer-head">
+        <h3 id="plDrawerTitle">Gönderi</h3>
+        <button class="pl-x" id="plDrawerClose" aria-label="Kapat">✕</button>
+      </div>
+      <div class="pl-drawer-body" id="plDrawerBody"></div>
+    </aside>
+  </div>
+
+  <div class="ig-toast-wrap" id="toastWrap"></div>
+
+  <script type="module" src="assets/js/takvim.js?v=122"></script>
+</body>
+</html>
