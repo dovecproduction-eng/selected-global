@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=117" />
+  <link rel="stylesheet" href="assets/css/style.css?v=118" />
 </head>
 <body class="admin-body">
 
@@ -110,11 +110,20 @@
           </div>
 
           <div class="field hidden" id="igFreeField">
-            <label>Görselleri yükle <span class="text-muted">— kendi fotoğrafların/görsellerin</span></label>
+            <label>Görselleri yükle <span class="text-muted">— olduğu gibi paylaşılır, logo/yazı eklenmez</span></label>
             <div class="ig-upload" id="igUpload">
               📤 Görselleri buraya sürükle ya da <strong>tıklayıp seç</strong>
               <input type="file" id="igFreeInput" accept="image/*" multiple hidden />
             </div>
+          </div>
+
+          <div class="field hidden" id="igFreeStoryField">
+            <label>Story görselleri <span class="text-muted">— opsiyonel · gönderiyle birlikte story olarak (olduğu gibi) paylaşılır</span></label>
+            <div class="ig-upload" id="igStoryUpload">
+              🎞️ Story görsellerini sürükle ya da <strong>tıklayıp seç</strong> <span class="text-muted">(9:16 IG formatı)</span>
+              <input type="file" id="igStoryInput" accept="image/*" multiple hidden />
+            </div>
+            <div class="ig-story-thumbs" id="igStoryThumbs"></div>
           </div>
 
           <div class="field">
@@ -196,6 +205,6 @@
     </div>
   </div>
 
-  <script type="module" src="assets/js/instagram.js?v=117"></script>
+  <script type="module" src="assets/js/instagram.js?v=118"></script>
 </body>
 </html>

@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=117';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=118';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=117';
+} from './ui.js?v=118';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -63,6 +63,7 @@ let igSource = 'daire';       // 'daire' | 'free'
 let igPropView = 'gallery';   // daire seçici görünümü: 'gallery' | 'list'
 let igSelected = new Set();   // seçili görsel url'leri (sıra korunur)
 let freePhotos = [];          // serbest mod: [{url(objectURL), file}]
+let freeStoryPhotos = [];     // serbest mod story kutusu: gönderiyle birlikte story olarak paylaşılır (olduğu gibi)
 const coverCache = {};        // property.id -> markalı kapak objectURL
 
 async function loadProps() {
@@ -124,9 +125,11 @@ function setSource(src) {
   $('#igFreeField').classList.toggle('hidden', src !== 'free');
   $('#igAutoCap').style.display = src === 'daire' ? '' : 'none';
   igSelected = new Set();     // başlangıçta hiçbir görsel seçili değil
+  freeStoryPhotos = []; renderStoryThumbs();   // kaynak değişince story kutusunu temizle
   if (src !== 'free') { curId = ''; renderPropGrid(); }
   $('#igCaption').value = '';
   setFormat(igFormat);   // reels alanının görünürlüğü kaynağa bağlı
+  updateFreeStoryVisibility();
   renderPhotos(); updateCapCount(); updatePreview();
 }
 // Serbest görseli SEÇİLEN ORANA sığdır (contain: tüm görsel görünür, oran bozulmaz) + alt gradyen + logo
@@ -172,6 +175,39 @@ async function addFreeFiles(files) {
   }
   renderPhotos(); updatePreview();
   toast(`${imgs.length} görsel eklendi — aşağıdan seç`, 'ok');
+}
+// SERBEST story kutusu — eklenen görseller gönderiyle birlikte story olarak (olduğu gibi) paylaşılır
+async function addFreeStoryFiles(files) {
+  const imgs = [...files].filter((f) => f.type && f.type.startsWith('image/'));
+  if (!imgs.length) return;
+  for (const f of imgs) freeStoryPhotos.push({ url: URL.createObjectURL(f), file: f });
+  renderStoryThumbs();
+  toast(`${imgs.length} story görseli eklendi`, 'ok');
+}
+function renderStoryThumbs() {
+  const box = $('#igStoryThumbs'); if (!box) return;
+  box.innerHTML = freeStoryPhotos.map((s, i) =>
+    `<div class="ig-strow"><img src="${esc(s.url)}" alt="" /><button type="button" class="ig-strm" data-si="${i}" title="Kaldır">✕</button></div>`).join('');
+}
+// Serbest gönderi sonrası: story kutusundaki görselleri olduğu gibi story olarak paylaş. Döner: paylaşılan story sayısı
+async function publishFreeStories(setMsg) {
+  if (igSource !== 'free' || !freeStoryPhotos.length) return 0;
+  let ok = 0;
+  for (let i = 0; i < freeStoryPhotos.length; i++) {
+    setMsg(`Story paylaşılıyor… (${i + 1}/${freeStoryPhotos.length})`);
+    try {
+      const url = await uploadRaw(freeStoryPhotos[i].url);
+      const r = await fetch(`${IG_API}?action=publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ format: 'story', images: [url], caption: '' }) });
+      const j = await r.json().catch(() => ({}));
+      if (r.ok && j.ok) ok++;
+    } catch (_) { /* bir story başarısızsa diğerlerine devam */ }
+  }
+  return ok;
+}
+// Story kutusu yalnız SERBEST modda ve gönderi/carousel formatında görünür
+function updateFreeStoryVisibility() {
+  const show = igSource === 'free' && (igFormat === 'post' || igFormat === 'carousel');
+  $('#igFreeStoryField')?.classList.toggle('hidden', !show);
 }
 
 /* ---------- GÖRSEL IZGARASI ---------- */
@@ -262,8 +298,8 @@ async function updatePreview() {
   } else {
     const raw = orderedSel()[0] || (freePhotos[0] && freePhotos[0].url) || null;
     if (raw) {
-      if (igFormat === 'reels') { bg = raw; overlay = '<span class="ig-play">▶</span>'; }   // reels ham görsel (video kendi logosunu ekler)
-      else { bg = await brandFitted(raw, FMT_META[igFormat].aspect); overlay = igSelected.size > 1 ? `<span class="ig-count">1/${igSelected.size}</span>` : ''; }
+      // SERBEST: logo/yazı YOK → önizleme de ham görsel
+      bg = raw; overlay = (igFormat !== 'reels' && igSelected.size > 1) ? `<span class="ig-count">1/${igSelected.size}</span>` : (igFormat === 'reels' ? '<span class="ig-play">▶</span>' : '');
     }
   }
   if (bg) {
@@ -351,6 +387,7 @@ function setFormat(fmt) {
   $('#igDownload').classList.toggle('hidden', isReels);
   $('#igPhotoHint').textContent = isReels ? '' : `— ${FMT_META[fmt].hint}`;
   $('#igFmtLabel').textContent = FMT_META[fmt].label;
+  updateFreeStoryVisibility();
   renderPhotos(); updatePreview();
 }
 
@@ -424,6 +461,9 @@ async function urlToJpegBlob(url) {
 // Yayınlanacak görselleri hazırla → herkese açık URL dizisi
 // Herkese açık, Instagram oranına sığdırılmış (4:5 gönderi/carousel, 9:16 story) görsel URL'leri hazırla
 async function fitUpload(rawUrl, aspect, setMsg, i) { setMsg(`Görsel ${i} Instagram oranına ölçekleniyor…`); const f = await brandFitted(rawUrl, aspect); return uploadPublic(await (await fetch(f)).blob(), 'jpg'); }
+// SERBEST gönderi: görseli OLDUĞU GİBİ yükle — logo/yazı/ölçekleme YOK (kullanıcı IG formatında verir)
+function _extOf(blob) { const t = (blob.type || '').toLowerCase(); if (t.includes('png')) return 'png'; if (t.includes('webp')) return 'webp'; return 'jpg'; }
+async function uploadRaw(objectUrl) { const blob = await (await fetch(objectUrl)).blob(); return uploadPublic(blob, _extOf(blob)); }
 async function prepareImages(setMsg) {
   const urls = [];
   const aspect = FMT_META[igFormat].aspect;   // story/reels → 9:16, gönderi/carousel → 4:5
@@ -446,9 +486,10 @@ async function prepareImages(setMsg) {
       }
     }
   } else {
+    // SERBEST: logo/yazı/ölçekleme YOK — görseller olduğu gibi yüklenir
     const sel = orderedSel();
     const max = igFormat === 'carousel' ? 10 : 1;
-    for (let i = 0; i < sel.length && urls.length < max; i++) urls.push(await fitUpload(sel[i], aspect, setMsg, i + 1));
+    for (let i = 0; i < sel.length && urls.length < max; i++) { setMsg(`Görsel yükleniyor… (${i + 1}/${Math.min(sel.length, max)})`); urls.push(await uploadRaw(sel[i])); }
   }
   return urls;
 }
@@ -490,9 +531,15 @@ async function publishNow() {
       if (pj.ok) {
         toast('Instagram\'da yayınlandı 🎉', 'ok');
         logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', 'Instagram Carousel');
-        setMsg('✓ Yayınlandı — story olarak da paylaşılıyor…');
-        const okStory = await autoStory();
-        setMsg(okStory ? '✓ Carousel + Story paylaşıldı! Instagram\'da görebilirsin.' : '✓ Carousel paylaşıldı (story eklenemedi).');
+        if (igSource === 'free') {
+          // Serbest: OTOMATİK story YOK — yalnız story kutusundaki görseller (varsa) olduğu gibi story olur
+          const n = await publishFreeStories(setMsg);
+          setMsg(n ? `✓ Carousel + ${n} story paylaşıldı!` : '✓ Carousel paylaşıldı.');
+        } else {
+          setMsg('✓ Yayınlandı — story olarak da paylaşılıyor…');
+          const okStory = await autoStory();
+          setMsg(okStory ? '✓ Carousel + Story paylaşıldı! Instagram\'da görebilirsin.' : '✓ Carousel paylaşıldı (story eklenemedi).');
+        }
         setTimeout(loadInsights, 5000);
       } else { setMsg('✕ ' + (pj.error || 'Yayınlanamadı')); toast('Yayınlanamadı', 'err'); }
       btn.disabled = false; btn.innerHTML = orig; return;
@@ -525,8 +572,11 @@ async function publishNow() {
     if (r.ok && j.ok) {
       toast('Instagram\'da yayınlandı 🎉', 'ok');
       logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', `Instagram'da yayınlandı (${igFormat})`);
-      // Tek gönderi → OTOMATİK olarak story'de de paylaş (story formatında ekstra bir şey yapılmaz)
-      if (igFormat === 'post') {
+      // Tek gönderi → story paylaşımı: DAİREde otomatik markalı story; SERBESTte yalnız story kutusu (varsa)
+      if (igFormat === 'post' && igSource === 'free') {
+        const n = await publishFreeStories(setMsg);
+        setMsg(n ? `✓ Gönderi + ${n} story paylaşıldı!` : '✓ Gönderi paylaşıldı.');
+      } else if (igFormat === 'post') {
         setMsg('✓ Yayınlandı — story olarak da paylaşılıyor…');
         const okStory = await autoStory();
         setMsg(okStory ? '✓ Gönderi + Story paylaşıldı! Instagram\'da görebilirsin.' : '✓ Gönderi paylaşıldı (story eklenemedi).');
@@ -743,6 +793,13 @@ $('#igFreeInput').addEventListener('change', (e) => { addFreeFiles([...e.target.
 $('#igUpload').addEventListener('dragover', (e) => { e.preventDefault(); $('#igUpload').classList.add('drag'); });
 $('#igUpload').addEventListener('dragleave', () => $('#igUpload').classList.remove('drag'));
 $('#igUpload').addEventListener('drop', (e) => { e.preventDefault(); $('#igUpload').classList.remove('drag'); addFreeFiles([...(e.dataTransfer?.files || [])]); });
+// SERBEST story kutusu — yükleme + sürükle-bırak + kaldır
+$('#igStoryUpload')?.addEventListener('click', () => $('#igStoryInput').click());
+$('#igStoryInput')?.addEventListener('change', (e) => { addFreeStoryFiles([...e.target.files]); e.target.value = ''; });
+$('#igStoryUpload')?.addEventListener('dragover', (e) => { e.preventDefault(); $('#igStoryUpload').classList.add('drag'); });
+$('#igStoryUpload')?.addEventListener('dragleave', () => $('#igStoryUpload').classList.remove('drag'));
+$('#igStoryUpload')?.addEventListener('drop', (e) => { e.preventDefault(); $('#igStoryUpload').classList.remove('drag'); addFreeStoryFiles([...(e.dataTransfer?.files || [])]); });
+$('#igStoryThumbs')?.addEventListener('click', (e) => { const b = e.target.closest('[data-si]'); if (!b) return; freeStoryPhotos.splice(Number(b.dataset.si), 1); renderStoryThumbs(); });
 $('#igFormat').addEventListener('click', (e) => { const b = e.target.closest('button[data-fmt]'); if (b) setFormat(b.dataset.fmt); });
 $('#igPhotos').addEventListener('click', (e) => { const b = e.target.closest('.ig-ph[data-u]'); if (b) togglePhoto(b.dataset.u); });
 $('#igSelectAll').addEventListener('click', () => {

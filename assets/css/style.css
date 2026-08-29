@@ -978,6 +978,11 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-upload:hover { border-color: var(--navy-500); color: var(--navy); }
 .ig-upload.drag { border-color: var(--gold); background: var(--bg-tint); color: var(--navy); }
 .ig-upload strong { color: var(--navy); }
+.ig-story-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.ig-strow { position: relative; width: 62px; height: 62px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
+.ig-strow img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ig-strm { position: absolute; top: 2px; right: 2px; width: 20px; height: 20px; border: none; border-radius: 50%; background: rgba(10,37,64,.82); color: #fff; font-size: .72rem; line-height: 1; cursor: pointer; display: grid; place-items: center; }
+.ig-strm:hover { background: #b3261e; }
 
 /* Instagram — daire seçici (galeri/liste kartları) */
 .ig-prop-view { display: inline-flex; gap: 4px; }
