@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=119';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=120';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=119';
+} from './ui.js?v=120';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -148,20 +148,31 @@ async function brandFitted(rawUrl, aspect) {
   const s = Math.max(W / img.width, H / img.height);          // COVER — kadrajı doldur (yatay foto da dikey çerçeveyi doldurur)
   const dw = img.width * s, dh = img.height * s;
   ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
-  // Foto TAM görünür (alt lacivert şerit YOK → boşluk hissi olmaz). Logo ORTADA (kapaktaki beyaz logo),
-  // her zeminde okunur olsun diye yumuşak gölge + çok hafif karartma dairesi ile.
+  // Logo: STORY (tall/9:16) → ALTTA ORTADA + hafif alt gradyen; Carousel/Gönderi (feed/4:5) → ORTADA
   if (_logo) {
     const ratio = (_logo.width ? _logo.height / _logo.width : 0.24) || 0.24;
     const lw = Math.min(W * 0.44, 500); const lh = lw * ratio;
-    const cx = W / 2, cy = H / 2;
-    // Logonun arkasına çok hafif radyal karartma (parlak fotolarda beyaz logo kaybolmasın)
-    const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, lw * 0.72);
-    rg.addColorStop(0, 'rgba(10,37,64,0.34)'); rg.addColorStop(1, 'rgba(10,37,64,0)');
-    ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
-    ctx.save();
-    ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 32; ctx.shadowOffsetY = 2;
-    ctx.drawImage(_logo, cx - lw / 2, cy - lh / 2, lw, lh);
-    ctx.restore();
+    if (aspect === 'tall') {
+      // Alt gradyen (okunurluk) + logo altta ortada
+      const gh = Math.round(H * 0.24);
+      const g = ctx.createLinearGradient(0, H - gh, 0, H);
+      g.addColorStop(0, 'rgba(10,37,64,0)'); g.addColorStop(1, 'rgba(10,37,64,0.6)');
+      ctx.fillStyle = g; ctx.fillRect(0, H - gh, W, gh);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 24;
+      ctx.drawImage(_logo, (W - lw) / 2, H - lh - Math.round(H * 0.06), lw, lh);
+      ctx.restore();
+    } else {
+      // Foto tam görünür; logo ORTADA — parlak zeminde okunsun diye hafif radyal karartma + gölge
+      const cx = W / 2, cy = H / 2;
+      const rg = ctx.createRadialGradient(cx, cy, 0, cx, cy, lw * 0.72);
+      rg.addColorStop(0, 'rgba(10,37,64,0.34)'); rg.addColorStop(1, 'rgba(10,37,64,0)');
+      ctx.fillStyle = rg; ctx.fillRect(0, 0, W, H);
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.55)'; ctx.shadowBlur = 32; ctx.shadowOffsetY = 2;
+      ctx.drawImage(_logo, cx - lw / 2, cy - lh / 2, lw, lh);
+      ctx.restore();
+    }
   }
   const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92));
   const url = URL.createObjectURL(blob); fitCache[key] = url; return url;
@@ -539,6 +550,28 @@ async function publishNow() {
         }
         setTimeout(loadInsights, 5000);
       } else { setMsg('✕ ' + (pj.error || 'Yayınlanamadı')); toast('Yayınlanamadı', 'err'); }
+      btn.disabled = false; btn.innerHTML = orig; return;
+    } else if (igFormat === 'story') {
+      // STORY: seçilen HER görsel AYRI story olur. Serbest → olduğu gibi; daire → markalı (logo altta).
+      let storyUrls = [];
+      if (igSource === 'free') {
+        const sel = orderedSel();
+        for (let i = 0; i < sel.length; i++) { setMsg(`Görsel yükleniyor… (${i + 1}/${sel.length})`); storyUrls.push(await uploadRaw(sel[i])); }
+      } else {
+        let sel = orderedSel();
+        if (!sel.length) { const cov = coverOf(currentProp()); if (cov) sel = [cov]; }   // seçim yoksa kapak
+        for (let i = 0; i < sel.length; i++) { setMsg(`Story hazırlanıyor… (${i + 1}/${sel.length})`); storyUrls.push(await fitUpload(sel[i], 'tall', setMsg, i + 1)); }
+      }
+      if (!storyUrls.length) { toast('Görsel yok', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+      let okN = 0;
+      for (let i = 0; i < storyUrls.length; i++) {
+        setMsg(`Story paylaşılıyor… (${i + 1}/${storyUrls.length})`);
+        const r = await fetch(`${IG_API}?action=publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ format: 'story', images: [storyUrls[i]], caption: '' }) });
+        const j = await r.json().catch(() => ({}));
+        if (r.ok && j.ok) okN++;
+      }
+      if (okN) { toast(`${okN} story paylaşıldı 🎉`, 'ok'); logAct('media_create', igSource === 'daire' ? (pickTitle(currentProp()) || 'daire') : 'Serbest gönderi', `Instagram Story ×${okN}`); setMsg(`✓ ${okN}/${storyUrls.length} story paylaşıldı!`); setTimeout(loadInsights, 5000); }
+      else { setMsg('✕ Story paylaşılamadı'); toast('Yayınlanamadı', 'err'); }
       btn.disabled = false; btn.innerHTML = orig; return;
     } else {
       const images = await prepareImages(setMsg);
