@@ -1,5 +1,5 @@
 // Selected Global — Takvim (sade, sadece ay görünümü)
-import { initAuth, supabase, toast, classify, FMT, fmtTime, fmtDay, fmtFull, dayKey, esc, openPostDrawer, wirePostDrawer } from './planner-common.js?v=123';
+import { initAuth, supabase, toast, classify, FMT, fmtTime, fmtDay, fmtFull, dayKey, esc, openPostDrawer, wirePostDrawer } from './planner-common.js?v=124';
 
 const $ = (s) => document.querySelector(s);
 const WD = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -52,8 +52,18 @@ function renderMonth() {
 function openDay(key) {
   const items = (byDay[key] || []).slice().sort((a, b) => a.publish_at.localeCompare(b.publish_at));
   if (!items.length) return;
+  // Gün özeti: kaç carousel · kaç görsel (toplam foto) · kaç hikaye
+  const carousels = items.filter((p) => p.format === 'carousel');
+  const stories = items.filter((p) => p.format === 'story');
+  const feed = items.filter((p) => p.format !== 'story');
+  const totalImgs = feed.reduce((n, p) => n + ((p.images || []).length), 0);
+  const summary = `<div class="pl-day-sum">
+    <span class="pl-day-sm"><b>${carousels.length}</b> carousel</span>
+    <span class="pl-day-sm"><b>${totalImgs}</b> görsel</span>
+    <span class="pl-day-sm"><b>${stories.length}</b> hikaye</span>
+  </div>`;
   $('#plDrawerTitle').innerHTML = `<span class="pl-day-title">${esc(fmtDay(items[0].publish_at))}</span>`;
-  $('#plDrawerBody').innerHTML = `<div class="pl-day-list">${items.map((p) => {
+  $('#plDrawerBody').innerHTML = summary + `<div class="pl-day-list">${items.map((p) => {
     const kind = classify(p); const f = FMT[kind]; const thumb = (p.images && p.images[0]) || '';
     return `<button class="pl-day-row" data-id="${esc(p.id)}">
       <span class="pl-day-th"${thumb ? ` style="background-image:url('${esc(thumb)}')"` : ''}></span>
