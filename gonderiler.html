@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Takvim — Selected Global</title>
+  <title>Gönderiler — Selected Global</title>
   <link rel="manifest" href="manifest.json?v=2" />
   <meta name="theme-color" content="#0A2540" />
   <link rel="apple-touch-icon" href="assets/img/icon-180.png?v=2" />
@@ -21,7 +21,7 @@
       <div class="brand" style="justify-content:center">
         <span class="logo-mark"><img class="logo-img" src="assets/img/logo.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" /><span class="logo-word" style="display:none;color:var(--navy)">SELECTED<i>·</i>GLOBAL</span></span>
       </div>
-      <h2>Takvim</h2>
+      <h2>Gönderiler</h2>
       <p class="muted">Devam etmek için giriş yapın</p>
       <form id="loginForm">
         <div class="field"><label>E-posta</label><input type="email" id="loginEmail" required autocomplete="username" placeholder="ornek@selectedglobal.com" /></div>
@@ -39,8 +39,8 @@
         <nav class="pl-topnav">
           <a href="instagram.html">◆ Merkez</a>
           <a href="paylas.html">✏️ Yeni Gönderi</a>
-          <a href="takvim.html" class="active">🗓️ Takvim</a>
-          <a href="gonderiler.html">📋 Gönderiler</a>
+          <a href="takvim.html">🗓️ Takvim</a>
+          <a href="gonderiler.html" class="active">📋 Gönderiler</a>
           <a href="otomasyon.html">⚙️ Otomasyon</a>
         </nav>
         <div class="header-actions">
@@ -50,18 +50,25 @@
       </div>
     </header>
 
-    <main class="container pl-main pl-cal-main">
-      <div class="pl-calbar">
-        <div class="pl-monthnav">
-          <button class="pl-navbtn" id="plPrev" aria-label="Önceki ay">‹</button>
-          <h1 id="plMonthLabel">—</h1>
-          <button class="pl-navbtn" id="plNext" aria-label="Sonraki ay">›</button>
-          <button class="btn btn-ghost btn-sm" id="plToday">Bugün</button>
-        </div>
-        <div class="pl-legend" id="plLegend"></div>
+    <div class="pl-hero">
+      <div class="container">
+        <span class="pl-eyebrow">Zamanlanmış İçerik</span>
+        <h1>Gönderiler</h1>
+        <p>Tüm zamanlı gönderiler — güne göre sıralı. Türe göre filtrele, tıklayıp düzenle.</p>
       </div>
-      <div class="pl-weekhead" id="plWeekHead"></div>
-      <div class="pl-grid" id="plGrid"></div>
+    </div>
+
+    <main class="container pl-main">
+      <div class="pl-toolbar">
+        <div class="gd-filters" id="gdFilters">
+          <button data-f="all" class="active">Tümü <em id="gdcAll"></em></button>
+          <button data-f="daire">🏠 Daire <em id="gdcDaire"></em></button>
+          <button data-f="egitici">📚 Eğitici <em id="gdcEgitici"></em></button>
+          <button data-f="story">⚡ Story <em id="gdcStory"></em></button>
+        </div>
+        <label class="gd-past"><input type="checkbox" id="gdPast" /> Geçmişi de göster</label>
+      </div>
+      <div class="pl-agenda" id="plAgenda"></div>
     </main>
   </div>
 
@@ -73,6 +80,6 @@
   </div>
 
   <div class="ig-toast-wrap" id="toastWrap"></div>
-  <script type="module" src="assets/js/takvim.js?v=123"></script>
+  <script type="module" src="assets/js/gonderiler.js?v=123"></script>
 </body>
 </html>

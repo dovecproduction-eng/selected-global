@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Yeni Gönderi — Selected Global</title>
+  <link rel="manifest" href="manifest.json?v=2" />
+  <meta name="theme-color" content="#0A2540" />
+  <link rel="apple-touch-icon" href="assets/img/icon-180.png?v=2" />
+  <link rel="preconnect" href="https://kimwdxymgdnkvivbvmtk.supabase.co" crossorigin />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/style.css?v=123" />
+</head>
+<body class="admin-body">
+
+  <!-- GİRİŞ EKRANI (oturum kontrolü bitene kadar gizli — giriş ekranı çakması olmasın) -->
+  <div class="login-screen hidden" id="loginScreen">
+    <div class="login-card">
+      <div class="brand" style="justify-content:center">
+        <span class="logo-mark">
+          <img class="logo-img" src="assets/img/logo.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+          <span class="logo-word" style="display:none;color:var(--navy)">SELECTED<i>·</i>GLOBAL</span>
+        </span>
+      </div>
+      <h2>Instagram</h2>
+      <p class="muted">Devam etmek için giriş yapın</p>
+      <form id="loginForm">
+        <div class="field">
+          <label>E-posta</label>
+          <input type="email" id="loginEmail" required autocomplete="username" placeholder="ornek@selectedglobal.com" />
+        </div>
+        <div class="field">
+          <label>Şifre</label>
+          <input type="password" id="loginPass" required autocomplete="current-password" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Giriş yap</button>
+        <p id="loginErr" class="hint" style="color:var(--danger);text-align:center;margin-top:12px"></p>
+      </form>
+    </div>
+  </div>
+
+  <!-- SAYFA -->
+  <div id="app" class="hidden">
+    <header class="site-header admin-topbar">
+      <div class="container header-inner">
+        <div class="brand">
+          <span class="logo-mark">
+            <img class="logo-img" src="assets/img/logo-white.svg" alt="Selected Global" onerror="this.style.display='none';this.nextElementSibling.style.display='inline-block';" />
+            <span class="logo-word" style="display:none;color:#fff">SELECTED<i>·</i>GLOBAL</span>
+          </span>
+        </div>
+        <nav class="ig-topnav">
+          <a href="instagram.html">◆ Merkez</a>
+          <a href="paylas.html" class="active">✏️ Yeni Gönderi</a>
+          <a href="takvim.html">🗓️ Takvim</a>
+          <a href="gonderiler.html">📋 Gönderiler</a>
+          <a href="otomasyon.html">⚙️ Otomasyon</a>
+        </nav>
+        <div class="header-actions">
+          <span id="userName" style="color:#fff;font-size:.85rem;opacity:.9"></span>
+          <button class="btn btn-ghost btn-sm" id="logoutBtn">Çıkış</button>
+        </div>
+      </div>
+    </header>
+
+    <div class="ig-titlebar">
+      <div class="container">
+        <h1>✏️ Yeni Gönderi</h1>
+        <p>Dairelerini gönderi, carousel, story veya reels olarak hazırla ve paylaş.</p>
+      </div>
+    </div>
+
+    <main class="ig-main container">
+
+      <!-- Instagram profili başlığı -->
+      <div class="ig-connect ig-profile">
+        <div class="ig-avatar"><img src="assets/img/icon-512.png?v=2" alt="Selected Global" /></div>
+        <div class="ig-profile-info">
+          <div class="ig-profile-top">
+            <span class="ig-username" id="igUsername">selectedglobal</span>
+            <span class="ig-status-dot off" id="igDot" title="Bağlantı durumu"></span>
+            <span class="ig-badge off" id="igStatus">● Çevrimdışı</span>
+          </div>
+          <div class="ig-profile-stats" id="igStats"><b>—</b> gönderi &nbsp; <b>—</b> takipçi &nbsp; <b>—</b> takip</div>
+        </div>
+        <div class="ig-profile-actions">
+          <button class="ig-onoff" id="igOnOff" type="button">🟢 Aktif</button>
+          <button class="btn btn-ghost btn-sm" id="igAnalizBtn">📊 Analiz</button>
+        </div>
+      </div>
+
+      <div class="ig-grid">
+        <!-- SOL: hazırla -->
+        <section class="ig-compose">
+          <h3>Gönderi hazırla</h3>
+
+          <div class="field">
+            <label>Kaynak</label>
+            <div class="ig-format" id="igSource">
+              <button type="button" data-src="daire" class="active">🏠 Daire</button>
+              <button type="button" data-src="free">✏️ Serbest gönderi</button>
+            </div>
+          </div>
+
+          <div class="field" id="igDaireField">
+            <label>Daire seç
+              <span class="ig-prop-view" id="igPropView" style="float:right">
+                <button type="button" data-pview="gallery" class="active" title="Galeri görünümü">▦ Galeri</button>
+                <button type="button" data-pview="list" title="Liste görünümü">☰ Liste</button>
+              </span>
+            </label>
+            <input id="igSearch" type="search" placeholder="Ara: başlık, bölge, proje…" autocomplete="off" />
+            <div class="ig-prop-grid gallery" id="igPropGrid"></div>
+          </div>
+
+          <div class="field hidden" id="igFreeField">
+            <label>Görselleri yükle <span class="text-muted">— olduğu gibi paylaşılır, logo/yazı eklenmez</span></label>
+            <div class="ig-upload" id="igUpload">
+              📤 Görselleri buraya sürükle ya da <strong>tıklayıp seç</strong>
+              <input type="file" id="igFreeInput" accept="image/*" multiple hidden />
+            </div>
+          </div>
+
+          <div class="field hidden" id="igFreeStoryField">
+            <label>Story görselleri <span class="text-muted">— opsiyonel · gönderiyle birlikte story olarak (olduğu gibi) paylaşılır</span></label>
+            <div class="ig-upload" id="igStoryUpload">
+              🎞️ Story görsellerini sürükle ya da <strong>tıklayıp seç</strong> <span class="text-muted">(9:16 IG formatı)</span>
+              <input type="file" id="igStoryInput" accept="image/*" multiple hidden />
+            </div>
+            <div class="ig-story-thumbs" id="igStoryThumbs"></div>
+          </div>
+
+          <div class="field">
+            <label>Format</label>
+            <div class="ig-format" id="igFormat">
+              <button type="button" data-fmt="carousel" class="active">Carousel</button>
+              <button type="button" data-fmt="post">Tek Gönderi</button>
+              <button type="button" data-fmt="story">Story</button>
+              <button type="button" data-fmt="reels">Reels (video)</button>
+            </div>
+          </div>
+
+          <div class="field" id="igPhotosField">
+            <label>
+              Fotoğraflar <span class="text-muted" id="igPhotoHint"></span>
+              <button type="button" class="link-quiet" id="igSelectAll" style="float:right">Tümünü seç</button>
+            </label>
+            <div class="ig-photos" id="igPhotos"><p class="text-muted" style="grid-column:1/-1">Önce daire seç.</p></div>
+          </div>
+
+          <div class="field ig-reels-note hidden" id="igReelsField">
+            🎬 Reels formatında dairenin fotoğraflarından otomatik dikey video oluşturulur (en fazla 15 fotoğraf). Aşağıdan <strong>"Reels videosu oluştur"</strong>a bas.
+          </div>
+
+          <div class="field">
+            <label>
+              Caption
+              <button type="button" class="link-quiet" id="igAutoCap" style="float:right">✨ Otomatik oluştur</button>
+            </label>
+            <textarea id="igCaption" rows="9" placeholder="Açıklama ve hashtag'ler…"></textarea>
+            <div class="ig-capmeta"><span id="igCapCount">0</span> karakter · Instagram sınırı 2.200</div>
+          </div>
+
+          <div class="ig-actions">
+            <button class="btn ig-publish-btn hidden" id="igPublish">🚀 Şimdi Paylaş</button>
+            <button class="btn btn-ghost" id="igDownload">⬇ Seçili fotoğrafları indir</button>
+            <button class="btn btn-gold hidden" id="igReel">🎬 Reels videosu oluştur</button>
+            <button class="btn btn-ghost" id="igCopyCap">📋 Caption'ı kopyala</button>
+            <a class="btn btn-ghost" href="https://www.instagram.com/" target="_blank" rel="noopener">↗ Instagram'ı aç</a>
+          </div>
+          <div id="igPublishMsg" class="ig-publish-msg"></div>
+
+          <div class="ig-schedule hidden" id="igScheduleWrap">
+            <label>🕒 Zamanla <span class="text-muted">— ileri bir tarih/saat seç, o an otomatik paylaşılsın</span></label>
+            <div class="ig-schedule-row">
+              <input type="datetime-local" id="igSchedule" />
+              <button class="btn btn-ghost" id="igScheduleBtn">🕒 Zamanla</button>
+            </div>
+            <div id="igSchedList" class="ig-sched-list"></div>
+          </div>
+          <p class="ig-tip">💡 <strong>Elle paylaşım:</strong> Fotoğrafları indir → "Instagram'ı aç" → yeni gönderi/story → indirdiğin fotoğrafları seç → caption'ı yapıştır. (Bağlantı kurulunca tek butonla doğrudan paylaşılacak.)</p>
+        </section>
+
+        <!-- SAĞ: önizleme -->
+        <aside class="ig-preview">
+          <div class="ig-phone">
+            <div class="ig-phone-top"><span class="ig-dot"></span><span class="ig-handle">selectedglobal</span></div>
+            <div class="ig-phone-media" id="igPhoneMedia"><span class="ig-ph-empty">Önizleme</span></div>
+            <div class="ig-phone-cap" id="igPhoneCap"></div>
+          </div>
+          <div class="ig-fmt-label" id="igFmtLabel">Story · 9:16</div>
+        </aside>
+      </div>
+
+    </main>
+
+    <div id="footer"></div>
+  </div>
+
+  <!-- Analiz popup -->
+  <div class="modal-overlay" id="analizModal">
+    <div class="modal" style="max-width:920px">
+      <div class="modal-head">
+        <h3>📊 Detaylı analiz</h3>
+        <button class="btn btn-ghost btn-sm" id="igInsRefresh" style="margin-left:auto">🔄 Yenile</button>
+        <button class="icon-btn" data-close></button>
+      </div>
+      <div class="modal-body"><div id="igInsights"><p class="text-muted" style="padding:10px">Yükleniyor…</p></div></div>
+    </div>
+  </div>
+
+  <script type="module" src="assets/js/instagram.js?v=123"></script>
+</body>
+</html>

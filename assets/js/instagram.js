@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=122';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=123';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=122';
+} from './ui.js?v=123';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -837,6 +837,8 @@ $('#igPublish').addEventListener('click', publishNow);
 $('#igScheduleBtn').addEventListener('click', scheduleNow);
 $('#igOnOff').addEventListener('click', toggleOnline);
 $('#igAnalizBtn').addEventListener('click', () => { $('#analizModal').classList.add('open'); loadInsights(); });
+// Merkez menüden ?analiz=1 ile gelindiyse analizi otomatik aç
+if (new URLSearchParams(location.search).get('analiz') === '1') { setTimeout(() => { if (!$('#app').classList.contains('hidden')) $('#igAnalizBtn').click(); }, 800); }
 // Takvim öğesi üzerine gelince (tıklamadan) detay balonu göster
 function calTip() { let t = document.getElementById('igCalTip'); if (!t) { t = document.createElement('div'); t.id = 'igCalTip'; t.className = 'ig-cal-tip'; document.body.appendChild(t); } return t; }
 $('#igSchedList').addEventListener('mouseover', (e) => { const el = e.target.closest('[data-tip]'); if (!el) return; const t = calTip(); t.textContent = el.dataset.tip; t.classList.add('show'); });

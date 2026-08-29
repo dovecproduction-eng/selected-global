@@ -1,5 +1,5 @@
 // Selected Global — Planlayıcı ortak modülü (auth, toast, tür sınıflandırma, saat)
-import { supabase, SUPER_ADMIN_EMAIL, nameFromEmail } from './config.js?v=122';
+import { supabase, SUPER_ADMIN_EMAIL, nameFromEmail } from './config.js?v=123';
 export { supabase };
 
 const $ = (s) => document.querySelector(s);
@@ -78,4 +78,47 @@ export function initAuth(onReady) {
     showApp();
   });
   $('#logoutBtn')?.addEventListener('click', async () => { await supabase.auth.signOut(); showLogin(); });
+}
+
+// ---- Ortak yardımcı ----
+export function esc(s) { return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+function toLocalInput(iso) { const d = new Date(iso); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; }
+
+// ---- Gönderi detay paneli (takvim + gönderiler ortak) ----
+export function closePostDrawer() { document.querySelector('#plDrawer')?.classList.remove('open'); }
+export function wirePostDrawer() {
+  const dr = document.querySelector('#plDrawer'); if (!dr) return;
+  document.querySelector('#plDrawerClose')?.addEventListener('click', closePostDrawer);
+  dr.addEventListener('click', (e) => { if (e.target === dr) closePostDrawer(); });
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closePostDrawer(); });
+}
+export function openPostDrawer(p, onRefresh) {
+  const kind = classify(p); const f = FMT[kind]; const st = ST[p.status] || ST.pending;
+  const imgs = p.images || [];
+  document.querySelector('#plDrawerTitle').innerHTML = `<span class="pl-dtag" style="background:${f.soft};color:${f.color}">${f.icon} ${f.label}</span>`;
+  document.querySelector('#plDrawerBody').innerHTML = `
+    <div class="pl-preview">${imgs[0] ? `<img src="${esc(imgs[0])}" alt="önizleme" />` : '<div class="pl-noimg">görsel yok</div>'}${imgs.length > 1 ? `<span class="pl-preview-n">1 / ${imgs.length}</span>` : ''}</div>
+    ${imgs.length > 1 ? `<div class="pl-thumbs">${imgs.map((u) => `<span style="background-image:url('${esc(u)}')"></span>`).join('')}</div>` : ''}
+    <dl class="pl-meta">
+      <div><dt>Yayın</dt><dd>${esc(fmtFull(p.publish_at))} <span class="text-muted">(KKTC)</span></dd></div>
+      <div><dt>Durum</dt><dd><span class="pl-badge ${st.cls}">${st.label}</span>${p.result ? ` <span class="text-muted">— ${esc(String(p.result).slice(0, 120))}</span>` : ''}</dd></div>
+      <div><dt>Biçim</dt><dd>${p.format === 'story' ? 'Story' : `Carousel · ${imgs.length} görsel`}</dd></div>
+    </dl>
+    ${p.caption ? `<div class="pl-capbox"><label>Caption</label><p>${esc(p.caption)}</p></div>` : ''}
+    <div class="pl-resched"><label for="plReDate">Yeniden zamanla</label>
+      <div class="pl-resched-row"><input type="datetime-local" id="plReDate" value="${esc(toLocalInput(p.publish_at))}" /><button class="btn btn-primary btn-sm" id="plReSave">Kaydet</button></div></div>
+    <button class="btn btn-danger-o btn-block" id="plDelete">🗑 Planı sil</button>`;
+  document.querySelector('#plDelete').onclick = async () => {
+    if (!confirm('Bu zamanlanmış gönderi silinsin mi? (Yayınlanmadan iptal edilir)')) return;
+    const { error } = await supabase.from('scheduled_posts').delete().eq('id', p.id);
+    if (error) { toast('Silinemedi: ' + error.message, 'err'); return; }
+    toast('Plan silindi', 'ok'); closePostDrawer(); onRefresh && onRefresh();
+  };
+  document.querySelector('#plReSave').onclick = async () => {
+    const v = document.querySelector('#plReDate').value; if (!v) { toast('Tarih seç', 'err'); return; }
+    const { error } = await supabase.from('scheduled_posts').update({ publish_at: new Date(v).toISOString() }).eq('id', p.id);
+    if (error) { toast('Güncellenemedi: ' + error.message, 'err'); return; }
+    toast('Yeniden zamanlandı', 'ok'); closePostDrawer(); onRefresh && onRefresh();
+  };
+  document.querySelector('#plDrawer').classList.add('open');
 }

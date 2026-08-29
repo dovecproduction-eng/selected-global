@@ -1144,4 +1144,5 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-topnav { display: flex; gap: 4px; margin-left: auto; }
 .ig-topnav a { color: rgba(255,255,255,.85); font-size: .82rem; font-weight: 700; padding: 7px 13px; border-radius: 999px; transition: .18s var(--ease); }
 .ig-topnav a:hover { color: #fff; background: rgba(255,255,255,.12); }
+.ig-topnav a.active { color: var(--navy); background: #fff; }
 @media (max-width: 720px){ .ig-topnav{ order: 3; width: 100%; justify-content: center; margin: 6px 0 0; } .admin-topbar .header-inner{ flex-wrap: wrap; } }
