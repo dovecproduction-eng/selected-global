@@ -96,7 +96,7 @@ module.exports = async (req, res) => {
       if (format === 'carousel') {
         if (images.length < 2) return res.status(400).json({ error: 'Carousel için en az 2 görsel gerekir.' });
         const children = [];
-        for (const img of images.slice(0, 20)) {
+        for (const img of images.slice(0, 10)) {
           const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'carousel_item', image_url: img });
           if (!ok(c) || !cid(c)) return res.status(400).json({ error: 'Görsel yüklenemedi: ' + errOf(c) });
           children.push(cid(c));

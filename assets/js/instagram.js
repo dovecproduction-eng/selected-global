@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=116';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=117';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=116';
+} from './ui.js?v=117';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -58,7 +58,7 @@ async function logAct(action, entity_ref, detail) {
 let props = [];
 let curId = '';
 let igFormat = 'carousel';
-function formatCap() { return igFormat === 'post' ? 1 : igFormat === 'carousel' ? 20 : 20; }
+function formatCap() { return igFormat === 'post' ? 1 : igFormat === 'carousel' ? 10 : 20; }
 let igSource = 'daire';       // 'daire' | 'free'
 let igPropView = 'gallery';   // daire seçici görünümü: 'gallery' | 'list'
 let igSelected = new Set();   // seçili görsel url'leri (sıra korunur)
@@ -334,7 +334,7 @@ async function copyCaption() {
 /* ---------- FORMAT ---------- */
 const FMT_META = {
   story:    { label: 'Story · 9:16',        aspect: 'tall', hint: 'her görsel ayrı story karesi olur' },
-  carousel: { label: 'Carousel · 4:5',      aspect: 'feed', hint: '2–20 görsel, seçtiğin sırayla' },
+  carousel: { label: 'Carousel · 4:5',      aspect: 'feed', hint: '2–10 görsel (Instagram sınırı), seçtiğin sırayla' },
   post:     { label: 'Tek Gönderi · 4:5',   aspect: 'feed', hint: '1 görsel (ilk seçili kapak olur)' },
   reels:    { label: 'Reels · 9:16 video',  aspect: 'tall', hint: 'görsellerden otomatik video' },
 };
@@ -442,12 +442,12 @@ async function prepareImages(setMsg) {
         let sel = orderedSel();
         // Seçim yoksa dairenin kendi fotoğraflarını otomatik kullan (carousel en az 2 slayt ister)
         if (!sel.length) sel = (p.fotograflar || []).filter((u) => !u.includes('/_ortak/'));
-        for (let i = 0; i < sel.length && urls.length < 20; i++) urls.push(await fitUpload(sel[i], 'feed', setMsg, urls.length));
+        for (let i = 0; i < sel.length && urls.length < 10; i++) urls.push(await fitUpload(sel[i], 'feed', setMsg, urls.length));
       }
     }
   } else {
     const sel = orderedSel();
-    const max = igFormat === 'carousel' ? 20 : 1;
+    const max = igFormat === 'carousel' ? 10 : 1;
     for (let i = 0; i < sel.length && urls.length < max; i++) urls.push(await fitUpload(sel[i], aspect, setMsg, i + 1));
   }
   return urls;
