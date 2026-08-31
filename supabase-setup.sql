@@ -185,6 +185,12 @@ create policy "update_images" on storage.objects for update to authenticated usi
 create policy "delete_images" on storage.objects for delete to authenticated using (bucket_id = 'property-images');
 
 -- ============== E-POSTA BİLDİRİMLERİ ==============
+-- Ayar tablosu (RESEND anahtarı vb. burada; yalnız service_role okur — anahtar repoda tutulmaz)
+create table if not exists public.app_config (key text primary key, value text);
+alter table public.app_config enable row level security;
+revoke all on public.app_config from anon, authenticated;
+-- (Değerler REST ile service_role tarafından yazılır: RESEND_API_KEY, NOTIFY_SECRET, NOTIFY_TO)
+
 -- Kullanıcı işlemleri: activity_log'a kayıt eklenince /api/notify'a POST (mail atar)
 create or replace function public.notify_activity() returns trigger as $$
 begin

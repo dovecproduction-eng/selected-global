@@ -1,19 +1,34 @@
-// Selected Global — E-posta bildirimleri (Resend). Anahtar SADECE Vercel env'inde.
+// Selected Global — E-posta bildirimleri (Resend). Ayarlar Supabase app_config'te (env'e de düşer).
 // Uçlar: ?action=send (POST) | activity (Supabase webhook) | daily (pg_cron GET)
-const RESEND = process.env.RESEND_API_KEY;
-const TO = (process.env.NOTIFY_TO || 'orcun.karagoz@dovecgroup.com').split(',').map((s) => s.trim()).filter(Boolean);
-const FROM = process.env.NOTIFY_FROM || 'Selected Global <onboarding@resend.dev>';
-const SECRET = process.env.NOTIFY_SECRET;
 const SUP = process.env.SUPABASE_URL || 'https://kimwdxymgdnkvivbvmtk.supabase.co';
 const SKEY = process.env.SUPABASE_SERVICE_KEY;
 const TZ = 'Europe/Nicosia';
 
+// Config: önce app_config tablosu, yoksa env
+let _cfg = null;
+async function loadCfg() {
+  if (_cfg) return _cfg;
+  _cfg = {};
+  try {
+    const r = await fetch(`${SUP}/rest/v1/app_config?select=key,value`, { headers: { apikey: SKEY, Authorization: `Bearer ${SKEY}` } });
+    const rows = await r.json(); if (Array.isArray(rows)) rows.forEach((x) => { _cfg[x.key] = x.value; });
+  } catch (_) { /* tablo yoksa env'e düş */ }
+  const g = (k) => _cfg[k] || process.env[k] || null;
+  _cfg = {
+    RESEND: g('RESEND_API_KEY'),
+    SECRET: g('NOTIFY_SECRET'),
+    TO: (g('NOTIFY_TO') || 'dovecproduction@gmail.com').split(',').map((s) => s.trim()).filter(Boolean),
+    FROM: g('NOTIFY_FROM') || 'Selected Global <onboarding@resend.dev>',
+  };
+  return _cfg;
+}
+
 async function sendMail(subject, innerHtml) {
-  if (!RESEND) return { ok: false, error: 'RESEND_API_KEY tanımlı değil' };
-  const html = shell(subject, innerHtml);
+  const c = await loadCfg();
+  if (!c.RESEND) return { ok: false, error: 'RESEND_API_KEY tanımlı değil (app_config veya env)' };
   const r = await fetch('https://api.resend.com/emails', {
-    method: 'POST', headers: { Authorization: `Bearer ${RESEND}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ from: FROM, to: TO, subject, html }),
+    method: 'POST', headers: { Authorization: `Bearer ${c.RESEND}`, 'content-type': 'application/json' },
+    body: JSON.stringify({ from: c.FROM, to: c.TO, subject, html: shell(subject, innerHtml) }),
   });
   const j = await r.json().catch(() => ({}));
   return { ok: r.ok, detail: j };
@@ -36,18 +51,18 @@ async function readBody(req) {
   if (req.body && typeof req.body === 'object') return req.body;
   return await new Promise((resolve) => { let d = ''; req.on('data', (c) => (d += c)); req.on('end', () => { try { resolve(JSON.parse(d || '{}')); } catch { resolve({}); } }); });
 }
-const authed = (req) => {
-  const s = SECRET; if (!s) return true;
+async function authed(req) {
+  const c = await loadCfg(); const s = c.SECRET; if (!s) return true;
   const hdr = req.headers['x-notify-secret'] || (req.headers.authorization || '').replace(/^Bearer\s+/i, '');
   const key = (req.query && req.query.key) || '';
   return hdr === s || key === s;
-};
+}
 
 const ACTS = { create: 'Ekledi', update: 'Düzenledi', delete: 'Sildi', price_change: 'Fiyat değiştirdi', photo_add: 'Fotoğraf ekledi', photo_download: 'Fotoğraf indirdi', portfolio_create: 'Portföy oluşturdu', media_create: 'Instagram gönderisi', excel: 'Excel işlemi' };
 
 module.exports = async (req, res) => {
   const action = (req.query && req.query.action) || 'send';
-  if (!authed(req)) return res.status(401).json({ error: 'unauthorized' });
+  if (!(await authed(req))) return res.status(401).json({ error: 'unauthorized' });
   try {
     // 1) Genel gönderim (cron buradan çağırır)
     if (action === 'send') {

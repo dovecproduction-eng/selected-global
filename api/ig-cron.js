@@ -7,19 +7,29 @@ const SKEY = process.env.SUPABASE_SERVICE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const BASE = 'https://backend.composio.dev/api/v3';
 
-// E-posta bildirimi (notify ucuna gönderir; NOTIFY_SECRET yoksa sessiz geçer)
+// E-posta bildirimi (notify ucuna gönderir; secret app_config veya env'den, yoksa sessiz geçer)
 const NOTIFY_URL = (process.env.PUBLIC_URL || 'https://selected-global-ashen.vercel.app') + '/api/notify?action=send';
-const NOTIFY_SECRET = process.env.NOTIFY_SECRET;
+let _notifySecret;
+async function notifySecret() {
+  if (_notifySecret !== undefined) return _notifySecret;
+  _notifySecret = process.env.NOTIFY_SECRET || null;
+  try {
+    const r = await fetch(`${SUP}/rest/v1/app_config?select=value&key=eq.NOTIFY_SECRET`, { headers: { apikey: SKEY, Authorization: `Bearer ${SKEY}` } });
+    const rows = await r.json(); if (Array.isArray(rows) && rows[0]) _notifySecret = rows[0].value;
+  } catch (_) {}
+  return _notifySecret;
+}
 const kindLabel = (row) => row.format === 'story' ? '⚡ Story' : (((row.images || [])[0] || '').includes('/_ig/auto/') ? '📚 Eğitici carousel' : '🏠 Daire carousel');
 async function mailPost(row, okFlag, errMsg) {
-  if (!NOTIFY_SECRET) return;
+  const secret = await notifySecret();
+  if (!secret) return;
   const when = new Date(row.publish_at).toLocaleString('tr-TR', { timeZone: 'Europe/Nicosia', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
   const cap = (row.caption || '').split('\n')[0].slice(0, 90);
   const subject = okFlag ? `✅ Yayınlandı — ${kindLabel(row)}` : `⚠️ Yayınlanamadı — ${kindLabel(row)}`;
   const html = okFlag
     ? `<h1 style="margin:0 0 12px;font-size:20px;color:#0A2540">✅ Instagram'da yayınlandı</h1><table style="width:100%;border-collapse:collapse"><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px;width:110px">Tür</td><td style="padding:6px 0;color:#0A2540;font-weight:600">${kindLabel(row)}</td></tr><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px">Saat</td><td style="padding:6px 0;color:#0A2540;font-weight:600">${when}</td></tr>${cap ? `<tr><td style="padding:6px 0;color:#8A97A6;font-size:13px">İçerik</td><td style="padding:6px 0;color:#0A2540">${cap}</td></tr>` : ''}</table><p style="margin:18px 0 0"><a href="https://www.instagram.com/selected.sales.janna" style="color:#B8924A;font-weight:700">Instagram'da gör →</a></p>`
     : `<h1 style="margin:0 0 12px;font-size:20px;color:#B23A3A">⚠️ Yayınlanamadı</h1><table style="width:100%;border-collapse:collapse"><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px;width:110px">Tür</td><td style="padding:6px 0;color:#0A2540;font-weight:600">${kindLabel(row)}</td></tr><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px">Saat</td><td style="padding:6px 0;color:#0A2540;font-weight:600">${when}</td></tr><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px">Hata</td><td style="padding:6px 0;color:#B23A3A">${String(errMsg || '').slice(0, 200)}</td></tr></table><p style="margin:14px 0 0;color:#5B6B7B;font-size:13px">Takvim/Gönderiler sayfasından tekrar deneyebilirsin.</p>`;
-  try { await fetch(NOTIFY_URL, { method: 'POST', headers: { 'content-type': 'application/json', 'x-notify-secret': NOTIFY_SECRET }, body: JSON.stringify({ subject, html }) }); } catch (_) { /* sessiz */ }
+  try { await fetch(NOTIFY_URL, { method: 'POST', headers: { 'content-type': 'application/json', 'x-notify-secret': secret }, body: JSON.stringify({ subject, html }) }); } catch (_) { /* sessiz */ }
 }
 
 async function exec(tool, args) {
