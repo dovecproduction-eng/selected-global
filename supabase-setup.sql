@@ -183,3 +183,27 @@ create policy "read_images"   on storage.objects for select using (bucket_id = '
 create policy "upload_images" on storage.objects for insert to authenticated with check (bucket_id = 'property-images');
 create policy "update_images" on storage.objects for update to authenticated using (bucket_id = 'property-images');
 create policy "delete_images" on storage.objects for delete to authenticated using (bucket_id = 'property-images');
+
+-- ============== E-POSTA BİLDİRİMLERİ ==============
+-- Kullanıcı işlemleri: activity_log'a kayıt eklenince /api/notify'a POST (mail atar)
+create or replace function public.notify_activity() returns trigger as $$
+begin
+  perform net.http_post(
+    url := 'https://selected-global-ashen.vercel.app/api/notify?action=activity',
+    headers := '{"Content-Type":"application/json","x-notify-secret":"214ed5fab4204cb2e490c6cb5f10e370"}'::jsonb,
+    body := jsonb_build_object('record', to_jsonb(NEW))
+  );
+  return NEW;
+end; $$ language plpgsql security definer;
+drop trigger if exists trg_notify_activity on public.activity_log;
+create trigger trg_notify_activity after insert on public.activity_log
+  for each row execute function public.notify_activity();
+
+-- Günlük özet: her akşam 21:00 KKTC (18:00 UTC) tek mail
+do $$ begin perform cron.unschedule('ig-daily-summary'); exception when others then null; end $$;
+select cron.schedule('ig-daily-summary', '0 18 * * *', $d$
+  select net.http_get(
+    url := 'https://selected-global-ashen.vercel.app/api/notify?action=daily&key=214ed5fab4204cb2e490c6cb5f10e370',
+    timeout_milliseconds := 30000
+  );
+$d$);
