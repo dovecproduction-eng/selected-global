@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=137';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=137';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=138';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=138';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -1069,7 +1069,7 @@ $('#addPropBtn').addEventListener('click', () => openProp(null));
 /* ---------- YAZARAK DAİRE EKLE — serbest metni çözümle, formu ön-dolu aç ---------- */
 function parseDaireText(raw) {
   const t = ' ' + String(raw || '').toLocaleLowerCase('tr').replace(/ı/g, 'i') + ' ';   // I→ı düzelt (La Isla vb.)
-  const out = { proje: '', tip: '', oda: '', fiyat: null, cur: '', konut: '', m2: '' };
+  const out = { proje: '', tip: '', oda: '', fiyat: null, cur: '', konut: '', m2: '', blok: '', daire_no: '' };
   const has = (w) => t.includes(w);
   // Proje (yazım hatalarına toleranslı: "four"/"season" + sayı)
   if (has('four') || has('season') || has('fours') || has('fs ')) { const m = t.match(/(?:season|four\w*|fs)\s*([123])/) || t.match(/\b([123])\b/); if (m) out.proje = 'Four Season ' + m[1]; }
@@ -1081,20 +1081,28 @@ function parseDaireText(raw) {
   // Tip (yazım hatalarına toleranslı: "sat…" → satılık, "kira…" → kiralık)
   if (/\bsat/.test(t)) out.tip = 'satilik';
   else if (/kira/.test(t)) out.tip = 'kiralik';
-  // Oda (+, ', ’ ayraçlarını kabul et — ör. "4+2", "4'2")
-  const odaM = t.match(/(\d)\s*[+'’]\s*(\d)/);
-  if (odaM) { const o = odaM[1] + '+' + odaM[2]; if (ODA_TIPLERI.includes(o)) out.oda = o; }
-  else if (/st[üu]dyo/.test(t)) out.oda = 'Stüdyo';
+  // Oda (+, ', ’, &, -, /, x ayraçlarını kabul et — "4+2", "4'2", "2&1", "2-1"; ilk GEÇERLİ kombinasyon)
+  for (const mm of t.matchAll(/(\d)\s*[+'’&\-\/xX]\s*(\d)/g)) { const o = mm[1] + '+' + mm[2]; if (ODA_TIPLERI.includes(o)) { out.oda = o; break; } }
+  if (!out.oda && /st[üu]dyo/.test(t)) out.oda = 'Stüdyo';
+  // Blok — önce "A blok", sonra "blok A"
+  const bm = t.match(/\b([a-z]\d{0,2})\s*blok\b/) || t.match(/blok\s*:?\s*([a-z]\d{0,3}|\d{1,3}[a-z]?)/);
+  if (bm) out.blok = bm[1].toUpperCase();
+  // Daire no — "daire no 12" / "no 12" (arkasında oda gelmiyorsa) / "5 no"
+  const dm = t.match(/(?:daire\s*no|d\.?\s*no|\bno)\s*:?\s*(\d{1,4})(?!\s*[+'’&\-\/xX]\s*\d)/) || t.match(/(\d{1,4})\s*(?:no\b|numara)/);
+  if (dm) out.daire_no = dm[1];
   // Konut tipi
   const KMAP = [['ikiz', 'İkiz Villa'], ['villa', 'Villa'], ['penthouse', 'Penthouse'], ['dubleks', 'Dubleks'], ['müstakil', 'Müstakil Ev'], ['mustakil', 'Müstakil Ev'], ['loft', 'Loft'], ['rezidans', 'Rezidans'], ['arsa', 'Arsa'], ['dükkan', 'İşyeri / Dükkan'], ['dukkan', 'İşyeri / Dükkan'], ['işyeri', 'İşyeri / Dükkan'], ['daire', 'Daire']];
   for (const [k, v] of KMAP) { if (t.includes(k)) { out.konut = v; break; } }
   // Para birimi
   out.cur = /stg|sterlin|gbp|£|pound/.test(t) ? 'GBP' : /eur|euro|€/.test(t) ? 'EUR' : /usd|dolar|\$/.test(t) ? 'USD' : (/\btl\b|try|lira|₺/.test(t) ? 'TRY' : 'GBP');
-  // Fiyat (oda ve m² desenini çıkarıp bul)
-  const s = t.replace(/\d\s*\+\s*\d/g, ' ').replace(/\d{2,4}\s*m[²2]/g, ' ');
-  let pm = s.match(/(\d{1,3}(?:[.\s]\d{3})+|\d{4,})\s*(k|bin)?/);
-  if (!pm) pm = s.match(/(\d{2,4})\s*(?:stg|sterlin|gbp|£|eur|euro|€|usd|dolar|\$|tl|try|lira|₺)/);
-  if (pm) { let n = parseInt(pm[1].replace(/[.\s]/g, ''), 10); if (pm[2]) n *= 1000; if (!isNaN(n)) out.fiyat = n; }
+  // Fiyat — oda/m²/blok/daire desenlerini çıkar, kalan en büyük sayıyı (≥100) al. "100.000" = "100000".
+  let s = t.replace(/\d\s*[+'’&\-\/xX]\s*\d/g, ' ').replace(/\d{2,4}\s*m[²2]/g, ' ')
+    .replace(/\b[a-z]\d{0,2}\s*blok\b/g, ' ').replace(/blok\s*:?\s*[a-z]?\d{0,3}/g, ' ')
+    .replace(/(?:daire\s*no|\bno)\s*:?\s*\d{1,4}/g, ' ').replace(/\d{1,4}\s*(?:no\b|numara)/g, ' ');
+  let n = null; const km = s.match(/(\d{1,4})\s*(?:k|bin)\b/); if (km) n = parseInt(km[1], 10) * 1000;
+  const nums = [...s.matchAll(/\d{1,3}(?:[.\s]\d{3})+|\d+/g)].map((m) => parseInt(m[0].replace(/[.\s]/g, ''), 10)).filter((x) => x >= 100);
+  if (nums.length) n = Math.max(n || 0, ...nums);
+  if (n) out.fiyat = n;
   // m²
   const mm = t.match(/(\d{2,4})\s*m[²2]/); if (mm) out.m2 = mm[1];
   return out;
@@ -1108,19 +1116,22 @@ function renderTaPreview() {
     chip('Tip', p.tip === 'satilik' ? 'Satılık' : 'Kiralık', !!p.tip) +
     chip('Oda', p.oda, !!p.oda) +
     chip('Fiyat', (p.fiyat != null ? Number(p.fiyat).toLocaleString('tr-TR') : '') + ' ' + curL, p.fiyat != null) +
-    (p.konut ? chip('Konut', p.konut, true) : '') + (p.m2 ? chip('m²', p.m2, true) : '');
+    (p.konut ? chip('Konut', p.konut, true) : '') +
+    (p.blok ? chip('Blok', p.blok, true) : '') + (p.daire_no ? chip('Daire No', p.daire_no, true) : '') +
+    (p.m2 ? chip('m²', p.m2, true) : '');
 }
-function applyParsedToForm(p) {
-  openProp(null);
+// Çözümlenen alanları (gizli) forma yerleştir — proje seçilmiş gibi otomatik dolum
+function setParsedFields(p) {
   if (p.proje) setSelectValue('#f_proje', p.proje);
   if (p.oda) setSelectValue('#f_oda', p.oda);
   if (p.konut) setSelectValue('#f_konut', p.konut);
   if (p.tip) $('#f_tip').value = p.tip;
-  if (p.cur) $('#f_cur').value = p.cur;
+  $('#f_cur').value = p.cur || 'GBP';
   if (p.fiyat != null) $('#f_fiyat').value = Number(p.fiyat).toLocaleString('tr-TR');
   if (p.m2) $('#f_m2').value = p.m2;
-  // proje seçilmiş gibi otomatik dolum (il/ilçe + olanaklar + ortak fotoğraflar + başlık)
-  if (p.proje) $('#f_proje').dispatchEvent(new Event('change'));
+  if (p.blok) $('#f_blok').value = p.blok;
+  if (p.daire_no) $('#f_daire_no').value = p.daire_no;
+  if (p.proje) $('#f_proje').dispatchEvent(new Event('change'));   // il/ilçe + olanaklar + ortak fotoğraflar + başlık
   else applyAutoTitle();
   updateKatVisibility();
 }
@@ -1130,9 +1141,18 @@ $('#taGo').addEventListener('click', () => {
   const txt = $('#taInput').value.trim();
   if (!txt) { toast('Önce daireyi yaz', 'err'); return; }
   const parsed = parseDaireText(txt);
+  openProp(null);          // durumu sıfırla (editId=null, photos=[], varsayılan danışman)
+  setParsedFields(parsed);
+  const hasRegion = !!($('#f_il').value || $('#f_bolge').value);
   closeModal($('#textAddModal'));
-  applyParsedToForm(parsed);
-  toast('Alanlar dolduruldu — kontrol edip kaydet', 'ok');
+  if (hasRegion) {
+    // Yazıldığı gibi DİREKT ekle — form penceresi açılmaz
+    closeModal($('#propModal'));
+    $('#savePropBtn').click();
+  } else {
+    // Proje/bölge çıkmadıysa formu açık bırak, bölgeyi seçip kaydetsin
+    toast('Bölge belirlenemedi — bölgeyi seçip kaydet', 'err');
+  }
 });
 
 function openProp(id) {
