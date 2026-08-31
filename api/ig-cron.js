@@ -85,7 +85,7 @@ module.exports = async (req, res) => {
   let due = [];
   try {
     // pending (yayınlanacak) + processing (işlenen reels'in takibi)
-    const r = await fetch(`${SUP}/rest/v1/scheduled_posts?status=in.(pending,processing)&publish_at=lte.${now}&order=publish_at.asc&limit=8`, { headers: sh });
+    const r = await fetch(`${SUP}/rest/v1/scheduled_posts?status=in.(pending,processing)&publish_at=lte.${now}&order=publish_at.asc&limit=1`, { headers: sh });
     due = await r.json();
   } catch (e) { return res.status(500).json({ error: 'sorgu hatası: ' + (e.message || e) }); }
   if (!Array.isArray(due)) return res.status(500).json({ error: 'beklenmeyen yanıt', detail: due });
@@ -96,7 +96,7 @@ module.exports = async (req, res) => {
       if (row.status === 'processing') {
         const st = await statusOf(row.ig_post_id);
         if (st === 'FINISHED') { const pub = await publishWithRetry(row.ig_post_id); await patch(row.id, ok(pub) ? { status: 'published', result: 'ok', ig_post_id: cid(pub) } : { status: 'failed', result: errOf(pub).slice(0, 300) }); processed.push({ id: row.id, ok: ok(pub) }); }
-        else if (st === 'ERROR' || st === 'EXPIRED') { await patch(row.id, { status: 'failed', result: 'video işlenemedi ' + st }); processed.push({ id: row.id, ok: false }); }
+        else if (st === 'ERROR' || st === 'EXPIRED') { await patch(row.id, { status: 'failed', result: 'medya işlenemedi ' + st }); processed.push({ id: row.id, ok: false }); }
         // IN_PROGRESS → dokunma, sonraki turda tekrar bak
         continue;
       }
@@ -108,7 +108,25 @@ module.exports = async (req, res) => {
         processed.push({ id: row.id, ok: ok(c) });
         continue;
       }
-      // PENDING foto/carousel/story: hemen yayınla
+      // PENDING CAROUSEL: iki aşamalı — çocuk container'ları + carousel container'ı oluştur, işlenmeye bırak (sonraki tur yayınlar)
+      // Böylece tek turda 10 görsel + carousel oluşturma ~35sn'de kalır, waitReady+publish sonraki tura devreder → 60sn aşılmaz.
+      if (row.format === 'carousel') {
+        const imgs = (row.images || []).filter(Boolean).slice(0, 10);
+        if (imgs.length < 2) { await patch(row.id, { status: 'failed', result: 'carousel için en az 2 görsel gerekir' }); processed.push({ id: row.id, ok: false }); continue; }
+        const children = []; let bad = null;
+        for (const img of imgs) {
+          const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'carousel_item', image_url: img });
+          if (!ok(c) || !cid(c)) { bad = errOf(c); break; }
+          children.push(cid(c));
+        }
+        if (bad) { await patch(row.id, { status: 'failed', result: ('görsel yüklenemedi: ' + bad).slice(0, 300) }); processed.push({ id: row.id, ok: false }); continue; }
+        const car = await exec('INSTAGRAM_CREATE_CAROUSEL_CONTAINER', { ig_user_id: IG, children, caption: row.caption || '' });
+        if (ok(car) && cid(car)) await patch(row.id, { status: 'processing', ig_post_id: cid(car) });
+        else await patch(row.id, { status: 'failed', result: ('carousel oluşturulamadı: ' + errOf(car)).slice(0, 300) });
+        processed.push({ id: row.id, ok: ok(car) });
+        continue;
+      }
+      // PENDING foto/story: hemen yayınla (hızlı)
       const out = await publishOne(row.format, row.images || [], row.video_url, row.caption || '');
       await patch(row.id, out.ok ? { status: 'published', result: 'ok', ig_post_id: out.id || null } : { status: 'failed', result: String(out.error).slice(0, 300) });
       processed.push({ id: row.id, ok: out.ok });
