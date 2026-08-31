@@ -114,7 +114,10 @@
 .pl-capbox { margin-top: 18px; background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .pl-capbox label { font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .pl-capbox p { margin-top: 8px; font-size: .88rem; line-height: 1.55; white-space: pre-wrap; color: var(--navy); }
-.pl-resched { margin-top: 20px; }
+.pl-resched { margin: 0 0 22px; padding: 16px; background: var(--bg-tint); border: 1px solid var(--line); border-radius: 12px; }
+.pl-resched-cur { margin: 10px 0 0; font-size: .8rem; color: var(--navy); }
+.pl-resched-row input[type="date"] { flex: 1.4; }
+.pl-resched-row input[type="time"] { flex: .9; }
 .pl-resched label { display: block; font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 8px; }
 .pl-resched-row { display: flex; gap: 8px; }
 .pl-resched-row input { flex: 1; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; font-family: var(--font-body); font-size: .9rem; color: var(--navy); }

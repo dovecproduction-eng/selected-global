@@ -1,5 +1,5 @@
 // Selected Global — Planlayıcı ortak modülü (auth, toast, tür sınıflandırma, saat)
-import { supabase, SUPER_ADMIN_EMAIL, nameFromEmail } from './config.js?v=128';
+import { supabase, SUPER_ADMIN_EMAIL, nameFromEmail } from './config.js?v=129';
 export { supabase };
 
 const $ = (s) => document.querySelector(s);
@@ -97,16 +97,16 @@ export function openPostDrawer(p, onRefresh) {
   const imgs = p.images || [];
   document.querySelector('#plDrawerTitle').innerHTML = `<span class="pl-dtag" style="background:${f.soft};color:${f.color}">${f.icon} ${f.label}</span>`;
   document.querySelector('#plDrawerBody').innerHTML = `
+    <div class="pl-resched"><label for="plReDate">Yeniden zamanla</label>
+      <div class="pl-resched-row"><input type="date" id="plReDay" value="${esc(toLocalInput(p.publish_at).slice(0, 10))}" /><input type="time" id="plReTime" value="${esc(toLocalInput(p.publish_at).slice(11, 16))}" /><button class="btn btn-primary btn-sm" id="plReSave">Kaydet</button></div>
+      <p class="pl-resched-cur">Şu an: <b>${esc(fmtFull(p.publish_at))}</b> <span class="text-muted">(KKTC)</span></p></div>
     <div class="pl-preview">${imgs[0] ? `<img src="${esc(imgs[0])}" alt="önizleme" />` : '<div class="pl-noimg">görsel yok</div>'}${imgs.length > 1 ? `<span class="pl-preview-n">1 / ${imgs.length}</span>` : ''}</div>
     ${imgs.length > 1 ? `<div class="pl-thumbs">${imgs.map((u) => `<span style="background-image:url('${esc(u)}')"></span>`).join('')}</div>` : ''}
     <dl class="pl-meta">
-      <div><dt>Yayın</dt><dd>${esc(fmtFull(p.publish_at))} <span class="text-muted">(KKTC)</span></dd></div>
       <div><dt>Durum</dt><dd><span class="pl-badge ${st.cls}">${st.label}</span>${p.result ? ` <span class="text-muted">— ${esc(String(p.result).slice(0, 120))}</span>` : ''}</dd></div>
       <div><dt>Biçim</dt><dd>${p.format === 'story' ? 'Story' : `Carousel · ${imgs.length} görsel`}</dd></div>
     </dl>
     ${p.caption ? `<div class="pl-capbox"><label>Caption</label><p>${esc(p.caption)}</p></div>` : ''}
-    <div class="pl-resched"><label for="plReDate">Yeniden zamanla</label>
-      <div class="pl-resched-row"><input type="datetime-local" id="plReDate" value="${esc(toLocalInput(p.publish_at))}" /><button class="btn btn-primary btn-sm" id="plReSave">Kaydet</button></div></div>
     <button class="btn btn-danger-o btn-block" id="plDelete">🗑 Planı sil</button>`;
   document.querySelector('#plDelete').onclick = async () => {
     if (!confirm('Bu zamanlanmış gönderi silinsin mi? (Yayınlanmadan iptal edilir)')) return;
@@ -115,7 +115,9 @@ export function openPostDrawer(p, onRefresh) {
     toast('Plan silindi', 'ok'); closePostDrawer(); onRefresh && onRefresh();
   };
   document.querySelector('#plReSave').onclick = async () => {
-    const v = document.querySelector('#plReDate').value; if (!v) { toast('Tarih seç', 'err'); return; }
+    const day = document.querySelector('#plReDay').value; const time = document.querySelector('#plReTime').value;
+    if (!day || !time) { toast('Tarih ve saat seç', 'err'); return; }
+    const v = `${day}T${time}`;
     const { data, error } = await supabase.from('scheduled_posts').update({ publish_at: new Date(v).toISOString() }).eq('id', p.id).select();
     if (error) { toast('Güncellenemedi: ' + error.message, 'err'); return; }
     if (!data || !data.length) { toast('Güncellenemedi — yetki (RLS) eksik olabilir', 'err'); return; }
