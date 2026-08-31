@@ -1,7 +1,7 @@
 // Selected Global — Otomasyon (kampanya oluşturucu)
-import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=135';
-import { SUPABASE_URL, CURRENCY, STORAGE_BUCKET } from './config.js?v=135';
-import { renderCoverImage } from './ui.js?v=135';
+import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=136';
+import { SUPABASE_URL, CURRENCY, STORAGE_BUCKET } from './config.js?v=136';
+import { renderCoverImage } from './ui.js?v=136';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -203,8 +203,8 @@ function toggleSourceFields() {
 }
 
 initAuth(async () => {
-  // varsayılan başlangıç: yarın
-  const t = new Date(); t.setDate(t.getDate() + 1); const p = (x) => String(x).padStart(2, '0');
+  // varsayılan başlangıç: BUGÜN
+  const t = new Date(); const p = (x) => String(x).padStart(2, '0');
   $('#auStart').value = `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`;
   renderDaireTimes();
   await loadDaireler();
