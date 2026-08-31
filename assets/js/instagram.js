@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=132';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=133';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=132';
+} from './ui.js?v=133';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -517,9 +517,9 @@ async function prepareImages(setMsg) {
       const cover = await renderCoverImage(p);
       if (cover) urls.push(await uploadPublic(cover, 'jpg'));
       if (igFormat === 'carousel') {
+        // Seçim yoksa OTOMATİK düzen: kapak fotoğrafı + kendi fotoğraflar + en son 2 _ortak (otomatik) foto, max 10
         let sel = orderedSel();
-        // Seçim yoksa dairenin kendi fotoğraflarını otomatik kullan (carousel en az 2 slayt ister)
-        if (!sel.length) sel = (p.fotograflar || []).filter((u) => !u.includes('/_ortak/'));
+        if (!sel.length) sel = buildPhotoSlides(p);
         for (let i = 0; i < sel.length && urls.length < 10; i++) urls.push(await fitUpload(sel[i], 'feed', setMsg, urls.length));
       }
     }

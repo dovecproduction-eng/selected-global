@@ -1,12 +1,58 @@
 // Selected Global — Otomasyon (kampanya oluşturucu)
-import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=132';
-import { SUPABASE_URL, CURRENCY } from './config.js?v=132';
+import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=133';
+import { SUPABASE_URL, CURRENCY, STORAGE_BUCKET } from './config.js?v=133';
+import { renderCoverImage } from './ui.js?v=133';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const AUTO = `${SUPABASE_URL}/storage/v1/object/public/property-images/_ig/auto`;
 const SYM = CURRENCY;
 const isCommon = (u) => u.includes('/_ortak/');
+
+/* ---------- markalama (kapak KARTI + 4:5 foto slaytları) ---------- */
+let _logo = null; const _fitCache = {};
+function _loadImg(src) { return new Promise((res, rej) => { const im = new Image(); im.crossOrigin = 'anonymous'; im.onload = () => res(im); im.onerror = rej; im.src = src; }); }
+async function brandFitted(rawUrl) {   // foto → 4:5 + altta ortada logo (feed)
+  if (_fitCache[rawUrl]) return _fitCache[rawUrl];
+  if (!_logo) { try { _logo = await _loadImg('assets/img/logo-white.svg'); } catch (_) { _logo = null; } }
+  const W = 1080, H = 1350; const img = await _loadImg(rawUrl);
+  const c = document.createElement('canvas'); c.width = W; c.height = H; const ctx = c.getContext('2d');
+  ctx.fillStyle = '#0A2540'; ctx.fillRect(0, 0, W, H);
+  const s = Math.max(W / img.width, H / img.height); const dw = img.width * s, dh = img.height * s;
+  ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  if (_logo) {
+    const ratio = (_logo.width ? _logo.height / _logo.width : 0.24) || 0.24;
+    const lw = Math.min(W * 0.44, 500); const lh = lw * ratio; const gh = Math.round(H * 0.22);
+    const g = ctx.createLinearGradient(0, H - gh, 0, H); g.addColorStop(0, 'rgba(10,37,64,0)'); g.addColorStop(1, 'rgba(10,37,64,0.6)');
+    ctx.fillStyle = g; ctx.fillRect(0, H - gh, W, gh);
+    ctx.save(); ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 24; ctx.drawImage(_logo, (W - lw) / 2, H - lh - Math.round(H * 0.05), lw, lh); ctx.restore();
+  }
+  const blob = await new Promise((r) => c.toBlob(r, 'image/jpeg', 0.92)); const url = URL.createObjectURL(blob); _fitCache[rawUrl] = url; return url;
+}
+async function uploadPublic(blob, ext) {
+  const path = `_ig/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType: blob.type || 'image/jpeg' });
+  if (error) throw new Error('Yükleme hatası: ' + error.message);
+  return supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+// Kapak KARTINDAN sonraki foto slaytları: kapak fotoğrafı + kendi fotoğraflar + en son 2 _ortak (max 9)
+function buildPhotoSlides(p) {
+  const all = (p.fotograflar || []).filter(Boolean); if (!all.length) return [];
+  const ki = Math.min(Math.max(p.kapak_index || 0, 0), all.length - 1); const cover = all[ki];
+  const own = all.filter((u) => !isCommon(u)); const auto = all.filter((u) => isCommon(u));
+  const tail = [...new Set(auto.slice(-2))].filter((u) => u && u !== cover);
+  let body = [...new Set([cover, ...own.filter((u) => u !== cover)])].filter((u) => u && !tail.includes(u));
+  body = body.slice(0, Math.max(0, 9 - tail.length));
+  return [...body, ...tail].slice(0, 9);
+}
+async function brandDaire(p) {   // → [kart, ...4:5 foto] (en fazla 10)
+  const imgs = [];
+  let card = null; try { card = await renderCoverImage(p); } catch (_) {}
+  if (card) imgs.push(await uploadPublic(card, 'jpg'));
+  const photos = buildPhotoSlides(p);
+  for (const u of photos) { if (imgs.length >= 10) break; const f = await brandFitted(u); imgs.push(await uploadPublic(await (await fetch(f)).blob(), 'jpg')); }
+  return imgs;
+}
 
 const DCAPS = [
   "{TITLE}\n\n📍 {BOLGE}{FIYAT}\nDetaylı bilgi ve tüm fotoğraflar için DM 📩",
@@ -28,23 +74,15 @@ let dairePosts = [];        // { images, caption }
 let daireTimes = ['13:00', '19:00'];
 
 /* ---------- veri ---------- */
-function daireImages(p) {
-  const arr = p.fotograflar || []; const own = arr.filter((u) => !isCommon(u));
-  const ki = Math.min(p.kapak_index || 0, arr.length - 1);
-  const cover = own.length ? (isCommon(arr[ki]) ? own[0] : arr[ki]) : arr[0];
-  const seen = new Set(); const out = [];
-  for (const u of [cover, ...own, ...arr]) { if (u && !seen.has(u)) { seen.add(u); out.push(u); } if (out.length >= 10) break; }
-  return out;
-}
 async function loadDaireler() {
-  const { data, error } = await supabase.from('properties').select('id,baslik,tip,bolge,fiyat,para_birimi,kapak_index,fotograflar,created_at').order('created_at', { ascending: false });
+  const { data, error } = await supabase.from('properties').select('id,baslik,tip,bolge,fiyat,para_birimi,kapak_index,fotograflar,oda_sayisi,esyali,konut_tipi,created_at').order('created_at', { ascending: false });
   if (error) { toast('Daireler yüklenemedi', 'err'); return; }
   dairePosts = (data || []).map((p) => {
-    const imgs = daireImages(p);
-    if (imgs.length < 2) return null;
+    const photos = buildPhotoSlides(p);        // önizleme için ham foto listesi; asıl markalama oluşturma anında
+    if (!photos.length) return null;
     const title = (p.baslik || 'Selected Global').split('\n')[0];
     const fiyat = p.fiyat ? ` · ${(SYM[p.para_birimi] || '')}${Number(p.fiyat).toLocaleString('tr-TR')}` : '';
-    return { images: imgs, title, bolge: p.bolge || 'Kuzey Kıbrıs', fiyat };
+    return { p, photos, title, bolge: p.bolge || 'Kuzey Kıbrıs', fiyat };
   }).filter(Boolean);
   $('#auDaireCount').textContent = dairePosts.length;
 }
@@ -67,7 +105,8 @@ function computePlan() {
       const day = Math.floor(k / perDay), slot = k % perDay;
       const time = daireTimes[slot] || daireTimes[0];
       const cap = DCAPS[k % DCAPS.length].replace('{TITLE}', dp.title).replace('{BOLGE}', dp.bolge).replace('{FIYAT}', dp.fiyat) + DTAGS;
-      rows.push({ format: 'carousel', images: dp.images, video_url: null, caption: cap, publish_at: iso(addDays(start, day), time), status: 'pending', created_by: currentEmail() });
+      // images: önizlemede ham foto (kind=🏠 için); oluşturma anında markalanır (_prop)
+      rows.push({ format: 'carousel', images: dp.photos, video_url: null, caption: cap, publish_at: iso(addDays(start, day), time), status: 'pending', created_by: currentEmail(), _prop: dp.p });
       daire++;
     });
   }
@@ -127,6 +166,16 @@ async function generate() {
   if (!confirm(`${rows.length} gönderi zamanlanacak${clear ? ' (mevcut plan silinerek)' : ''}.\nHiçbiri hemen yayınlanmaz. Onaylıyor musun?`)) return;
   const btn = $('#auGenerate'); const orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = 'Oluşturuluyor…';
   try {
+    // 1) Daire gönderilerini markala (kapak KARTI + 4:5 foto slaytları). Silmeden ÖNCE yap ki hata olursa mevcut plan durmasın.
+    const daireRows = rows.filter((r) => r._prop);
+    let bi = 0;
+    for (const r of rows) {
+      if (!r._prop) continue;
+      bi++; btn.innerHTML = `Görseller hazırlanıyor… (${bi}/${daireRows.length})`;
+      try { const imgs = await brandDaire(r._prop); if (imgs.length) r.images = imgs; } catch (e) { console.error('markalama hatası', e); }
+    }
+    rows.forEach((r) => { delete r._prop; });   // DB'de olmayan alanı temizle
+    btn.innerHTML = 'Kaydediliyor…';
     if (clear) {
       const { error: de } = await supabase.from('scheduled_posts').delete().eq('status', 'pending');
       if (de) throw de;
