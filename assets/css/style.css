@@ -978,6 +978,19 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-upload:hover { border-color: var(--navy-500); color: var(--navy); }
 .ig-upload.drag { border-color: var(--gold); background: var(--bg-tint); color: var(--navy); }
 .ig-upload strong { color: var(--navy); }
+/* Özel Günler grid */
+.ig-ozel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; margin-top: 8px; }
+.ig-ocard { position: relative; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; cursor: pointer; transition: .15s; display: flex; flex-direction: column; }
+.ig-ocard:hover { border-color: var(--gold); box-shadow: 0 4px 14px rgba(10,37,64,.1); }
+.ig-ocard.on { border-color: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+.ig-ocard-img { display: block; width: 100%; aspect-ratio: 9/16; background-size: cover; background-position: center; background-color: #0A2540; position: relative; }
+.ig-ocard-ck { position: absolute; top: 8px; right: 8px; width: 26px; height: 26px; border-radius: 50%; background: var(--gold); color: #0A2540; font-weight: 800; display: flex; align-items: center; justify-content: center; font-size: .95rem; box-shadow: 0 2px 8px rgba(0,0,0,.3); }
+.ig-ocard-b { padding: 8px 10px 9px; display: flex; flex-direction: column; gap: 2px; }
+.ig-ocard-b b { font-size: .82rem; color: var(--navy); font-weight: 700; }
+.ig-ocard-b small { font-size: .72rem; color: var(--muted); }
+.ig-ocard-up { position: absolute; top: 8px; left: 8px; border: none; background: rgba(10,37,64,.82); color: #fff; font-size: .68rem; font-weight: 600; padding: 4px 8px; border-radius: 999px; cursor: pointer; opacity: 0; transition: .15s; }
+.ig-ocard:hover .ig-ocard-up { opacity: 1; }
+.ig-ocard-up:hover { background: var(--gold); color: #0A2540; }
 .ig-story-thumbs { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .ig-strow { position: relative; width: 62px; height: 62px; border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
 .ig-strow img { width: 100%; height: 100%; object-fit: cover; display: block; }

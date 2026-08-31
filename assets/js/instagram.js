@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=124';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=125';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=124';
+} from './ui.js?v=125';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -123,14 +123,51 @@ function setSource(src) {
   $$('#igSource button').forEach((b) => b.classList.toggle('active', b.dataset.src === src));
   $('#igDaireField').classList.toggle('hidden', src !== 'daire');
   $('#igFreeField').classList.toggle('hidden', src !== 'free');
+  $('#igOzelField').classList.toggle('hidden', src !== 'ozel');
   $('#igAutoCap').style.display = src === 'daire' ? '' : 'none';
   igSelected = new Set();     // başlangıçta hiçbir görsel seçili değil
   freeStoryPhotos = []; renderStoryThumbs();   // kaynak değişince story kutusunu temizle
   if (src !== 'free') { curId = ''; renderPropGrid(); }
   $('#igCaption').value = '';
+  // Özel Günler: format ve fotoğraf alanı yok — her zaman story
+  $('#igPhotosField').classList.toggle('hidden', src === 'ozel');
+  $('#igFormat').closest('.field').classList.toggle('hidden', src === 'ozel');
+  if (src === 'ozel') { igFormat = 'story'; renderOzelGrid(); }
   setFormat(igFormat);   // reels alanının görünürlüğü kaynağa bağlı
   updateFreeStoryVisibility();
   renderPhotos(); updateCapCount(); updatePreview();
+}
+
+/* ---------- ÖZEL GÜNLER ---------- */
+const OZEL = [
+  ['01-01', '1 Ocak', 'Yılbaşı'], ['01-13', '13 Ocak', 'Rauf Denktaş\'ı Anma'], ['02-14', '14 Şubat', 'Sevgililer Günü'],
+  ['02-18', 'Ramazan', 'Ramazan Başlangıcı'], ['03-08', '8 Mart', 'Kadınlar Günü'], ['03-16', 'Kadir Gecesi', 'Kadir Gecesi'],
+  ['03-18', '18 Mart', 'Çanakkale Zaferi'], ['03-20', 'Ramazan Bayramı', 'Ramazan Bayramı'], ['03-21', '21 Mart', 'Nevruz'],
+  ['04-23', '23 Nisan', 'Çocuk Bayramı'], ['05-01', '1 Mayıs', 'Emek ve Dayanışma'], ['05-10', '10 Mayıs', 'Anneler Günü'],
+  ['05-19', '19 Mayıs', 'Gençlik ve Spor'], ['05-27', 'Kurban Bayramı', 'Kurban Bayramı'], ['06-21', '21 Haziran', 'Babalar Günü'],
+  ['07-15', '15 Temmuz', 'Demokrasi Günü'], ['07-20', '20 Temmuz', 'Barış ve Özgürlük'], ['08-01', '1 Ağustos', 'Toplumsal Direniş'],
+  ['08-30', '30 Ağustos', 'Zafer Bayramı'], ['09-04', '4 Eylül', 'Fazıl Küçük\'ü Anma'], ['10-04', '4 Ekim', 'Hayvanları Koruma'],
+  ['10-29', '29 Ekim', 'Cumhuriyet Bayramı'], ['11-10', '10 Kasım', '10 Kasım'], ['11-15', '15 Kasım', 'KKTC Cumhuriyet Bayramı'],
+  ['11-24', '24 Kasım', 'Öğretmenler Günü'], ['11-27', 'Black Friday', 'Black Friday'], ['12-31', '31 Aralık', 'Yılbaşı Gecesi'],
+];
+let curOzel = '';
+const _ozelBust = {};
+function ozelUrl(md) { return supabase.storage.from(STORAGE_BUCKET).getPublicUrl(`_ig/ozel/${md}.webp`).data.publicUrl + (_ozelBust[md] ? '?t=' + _ozelBust[md] : ''); }
+function renderOzelGrid() {
+  const box = $('#igOzelGrid'); if (!box) return;
+  box.innerHTML = OZEL.map(([md, dt, tt]) => `<div class="ig-ocard${md === curOzel ? ' on' : ''}" data-md="${md}">
+    <span class="ig-ocard-img" style="background-image:url('${ozelUrl(md)}')">${md === curOzel ? '<span class="ig-ocard-ck">✓</span>' : ''}</span>
+    <span class="ig-ocard-b"><b>${dt}</b><small>${tt}</small></span>
+    <button type="button" class="ig-ocard-up" data-up="${md}">değiştir</button></div>`).join('');
+}
+async function publishOzel(setMsg, btn, orig) {
+  if (!curOzel) { toast('Önce bir özel gün seç', 'err'); btn.disabled = false; btn.innerHTML = orig; return; }
+  setMsg('Story paylaşılıyor…');
+  const r = await fetch(`${IG_API}?action=publish`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ format: 'story', images: [ozelUrl(curOzel)], caption: '' }) });
+  const j = await r.json().catch(() => ({}));
+  if (r.ok && j.ok) { toast('Özel gün story paylaşıldı 🎉', 'ok'); logAct('media_create', OZEL.find((o) => o[0] === curOzel)?.[2] || 'Özel gün', 'Instagram Story (özel gün)'); setMsg('✓ Paylaşıldı!'); setTimeout(loadInsights, 5000); }
+  else { setMsg('✕ ' + (j.error || 'Yayınlanamadı')); toast('Yayınlanamadı', 'err'); }
+  btn.disabled = false; btn.innerHTML = orig;
 }
 // Serbest görseli SEÇİLEN ORANA sığdır (contain: tüm görsel görünür, oran bozulmaz) + alt gradyen + logo
 let _logo = null;
@@ -287,6 +324,12 @@ async function updatePreview() {
   const media = $('#igPhoneMedia');
   media.className = 'ig-phone-media ' + (FMT_META[igFormat].aspect === 'tall' ? 'tall' : 'feed');
   let bg = null, overlay = '';
+  if (igSource === 'ozel') {
+    if (curOzel) bg = ozelUrl(curOzel);
+    if (bg) { media.style.backgroundImage = `url("${bg}")`; media.style.backgroundSize = 'cover'; media.style.backgroundColor = '#0A2540'; media.innerHTML = ''; }
+    else { media.style.backgroundImage = ''; media.innerHTML = '<span class="ig-ph-empty">Özel gün seç</span>'; }
+    $('#igPhoneCap').textContent = ''; return;
+  }
   if (igSource === 'daire') {
     const p = currentProp();
     if (p) {
@@ -494,8 +537,10 @@ async function publishNow() {
   const msgEl = $('#igPublishMsg'); const setMsg = (t) => { msgEl.textContent = t; };
   if (igSource === 'daire' && !currentProp()) { toast('Önce daire seç', 'err'); return; }
   if (igSource === 'free' && !igSelected.size) { toast('Önce görsel yükle', 'err'); return; }
+  if (igSource === 'ozel' && !curOzel) { toast('Önce bir özel gün seç', 'err'); return; }
   if (!confirm(`Bu gönderi @${igUsername} hesabında YAYINLANACAK. Onaylıyor musun?`)) return;
   const btn = $('#igPublish'); const orig = btn.innerHTML; btn.disabled = true; btn.textContent = 'Yayınlanıyor…';
+  if (igSource === 'ozel') { return publishOzel(setMsg, btn, orig); }
   const caption = $('#igCaption').value || '';
   try {
     let body;
@@ -802,6 +847,25 @@ function renderInsights(j) {
 
 /* ---------- OLAYLAR ---------- */
 $('#igSource').addEventListener('click', (e) => { const b = e.target.closest('button[data-src]'); if (b) setSource(b.dataset.src); });
+
+// Özel Günler: kart seç / görsel değiştir
+let _ozelUploadTarget = '';
+$('#igOzelGrid').addEventListener('click', (e) => {
+  const up = e.target.closest('[data-up]');
+  if (up) { e.stopPropagation(); _ozelUploadTarget = up.dataset.up; $('#igOzelUpload').click(); return; }
+  const card = e.target.closest('.ig-ocard'); if (!card) return;
+  curOzel = curOzel === card.dataset.md ? '' : card.dataset.md;
+  renderOzelGrid(); updatePreview();
+});
+$('#igOzelUpload').addEventListener('change', async (e) => {
+  const file = e.target.files[0]; e.target.value = ''; if (!file || !_ozelUploadTarget) return;
+  const md = _ozelUploadTarget;
+  toast('Görsel yükleniyor…');
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(`_ig/ozel/${md}.webp`, file, { upsert: true, contentType: file.type || 'image/webp' });
+  if (error) { toast('Yüklenemedi: ' + error.message, 'err'); return; }
+  _ozelBust[md] = Date.now(); renderOzelGrid(); if (curOzel === md) updatePreview();
+  toast('Görsel güncellendi ✓', 'ok');
+});
 $('#igSearch').addEventListener('input', renderPropGrid);
 $('#igPropGrid').addEventListener('click', (e) => { const b = e.target.closest('.ig-pcard[data-id]'); if (b) onPropChange(b.dataset.id); });
 $('#igPropView').addEventListener('click', (e) => { const b = e.target.closest('button[data-pview]'); if (b) { igPropView = b.dataset.pview; $$('#igPropView button').forEach((x) => x.classList.toggle('active', x === b)); renderPropGrid(); } });

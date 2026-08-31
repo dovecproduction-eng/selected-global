@@ -1,5 +1,5 @@
 // Selected Global — Planlayıcı ortak modülü (auth, toast, tür sınıflandırma, saat)
-import { supabase, SUPER_ADMIN_EMAIL, nameFromEmail } from './config.js?v=124';
+import { supabase, SUPER_ADMIN_EMAIL, nameFromEmail } from './config.js?v=125';
 export { supabase };
 
 const $ = (s) => document.querySelector(s);

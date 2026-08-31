@@ -1,6 +1,6 @@
 // Selected Global — Otomasyon (kampanya oluşturucu)
-import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=124';
-import { SUPABASE_URL, CURRENCY } from './config.js?v=124';
+import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=125';
+import { SUPABASE_URL, CURRENCY } from './config.js?v=125';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
