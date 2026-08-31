@@ -208,9 +208,15 @@ create trigger trg_notify_activity after insert on public.activity_log
 
 -- Günlük özet: her akşam 21:00 KKTC (18:00 UTC) tek mail
 do $$ begin perform cron.unschedule('ig-daily-summary'); exception when others then null; end $$;
-select cron.schedule('ig-daily-summary', '0 18 * * *', $d$
+select cron.schedule('ig-daily-summary', '0 14 * * *', $d$
   select net.http_get(
     url := 'https://selected-global-ashen.vercel.app/api/notify?action=daily&key=214ed5fab4204cb2e490c6cb5f10e370',
     timeout_milliseconds := 30000
   );
 $d$);
+
+-- Sabah raporu (08:00 KKTC = 05:00 UTC): aylık plan + Janna işlemleri + dün yayınlananlar + yaklaşan önemli günler
+do $$ begin perform cron.unschedule('ig-morning'); exception when others then null; end $$;
+select cron.schedule('ig-morning', '0 5 * * *', $m$
+  select net.http_get(url := 'https://selected-global-ashen.vercel.app/api/notify?action=morning&key=214ed5fab4204cb2e490c6cb5f10e370', timeout_milliseconds := 40000);
+$m$);
