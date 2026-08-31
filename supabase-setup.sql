@@ -157,8 +157,11 @@ drop policy if exists "sched_read" on public.scheduled_posts;
 create policy "sched_read" on public.scheduled_posts for select to authenticated using (true);
 drop policy if exists "sched_del" on public.scheduled_posts;
 create policy "sched_del" on public.scheduled_posts for delete to authenticated using (true);
+-- UPDATE izni (yeniden zamanlama için). Bu policy/grant olmadan UPDATE sessizce 0 satır günceller.
+drop policy if exists "sched_update" on public.scheduled_posts;
+create policy "sched_update" on public.scheduled_posts for update to authenticated using (true) with check (true);
 revoke all on public.scheduled_posts from anon;
-grant select, insert, delete on public.scheduled_posts to authenticated;
+grant select, insert, update, delete on public.scheduled_posts to authenticated;
 create index if not exists idx_sched_due on public.scheduled_posts(status, publish_at);
 
 -- ZAMANLAYICI TETİĞİ (Supabase pg_cron) — her 5 dk'da bir sunucu ucunu çağırır, zamanı geleni yayınlar.

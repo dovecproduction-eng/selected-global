@@ -1,5 +1,5 @@
 // Selected Global — Planlayıcı ortak modülü (auth, toast, tür sınıflandırma, saat)
-import { supabase, SUPER_ADMIN_EMAIL, nameFromEmail } from './config.js?v=127';
+import { supabase, SUPER_ADMIN_EMAIL, nameFromEmail } from './config.js?v=128';
 export { supabase };
 
 const $ = (s) => document.querySelector(s);
@@ -116,8 +116,10 @@ export function openPostDrawer(p, onRefresh) {
   };
   document.querySelector('#plReSave').onclick = async () => {
     const v = document.querySelector('#plReDate').value; if (!v) { toast('Tarih seç', 'err'); return; }
-    const { error } = await supabase.from('scheduled_posts').update({ publish_at: new Date(v).toISOString() }).eq('id', p.id);
+    const { data, error } = await supabase.from('scheduled_posts').update({ publish_at: new Date(v).toISOString() }).eq('id', p.id).select();
     if (error) { toast('Güncellenemedi: ' + error.message, 'err'); return; }
+    if (!data || !data.length) { toast('Güncellenemedi — yetki (RLS) eksik olabilir', 'err'); return; }
+    p.publish_at = data[0].publish_at;
     toast('Yeniden zamanlandı', 'ok'); closePostDrawer(); onRefresh && onRefresh();
   };
   document.querySelector('#plDrawer').classList.add('open');
