@@ -60,6 +60,85 @@ async function authed(req) {
 
 const ACTS = { create: 'Ekledi', update: 'Düzenledi', delete: 'Sildi', price_change: 'Fiyat değiştirdi', photo_add: 'Fotoğraf ekledi', photo_download: 'Fotoğraf indirdi', portfolio_create: 'Portföy oluşturdu', media_create: 'Instagram gönderisi', excel: 'Excel işlemi' };
 
+// Türkiye + KKTC önemli günler (yıllık; dini bayramlar 2026 yaklaşık — her yıl güncellenebilir)
+const IMPORTANT = [
+  { md: '01-01', name: 'Yılbaşı', tag: 'TR·KKTC' },
+  { md: '02-14', name: 'Sevgililer Günü', tag: 'Pazarlama' },
+  { md: '03-18', name: 'Çanakkale Zaferi ve Şehitleri Anma', tag: 'TR' },
+  { md: '03-20', name: 'Ramazan Bayramı (yaklaşık)', tag: 'Dini' },
+  { md: '04-23', name: 'Ulusal Egemenlik ve Çocuk Bayramı', tag: 'TR' },
+  { md: '05-01', name: 'Emek ve Dayanışma Günü', tag: 'TR·KKTC' },
+  { md: '05-10', name: 'Anneler Günü', tag: 'Pazarlama' },
+  { md: '05-19', name: "Atatürk'ü Anma, Gençlik ve Spor Bayramı", tag: 'TR' },
+  { md: '05-26', name: 'Kurban Bayramı (yaklaşık)', tag: 'Dini' },
+  { md: '06-21', name: 'Babalar Günü', tag: 'Pazarlama' },
+  { md: '07-15', name: 'Demokrasi ve Milli Birlik Günü', tag: 'TR' },
+  { md: '07-20', name: 'Barış ve Özgürlük Bayramı', tag: 'KKTC' },
+  { md: '08-01', name: 'Toplumsal Direniş Bayramı', tag: 'KKTC' },
+  { md: '08-30', name: 'Zafer Bayramı', tag: 'TR' },
+  { md: '10-29', name: 'Cumhuriyet Bayramı', tag: 'TR' },
+  { md: '11-10', name: "Atatürk'ü Anma Günü (10 Kasım)", tag: 'TR' },
+  { md: '11-15', name: 'KKTC Cumhuriyet Bayramı', tag: 'KKTC' },
+  { md: '11-24', name: 'Öğretmenler Günü', tag: 'TR' },
+  { md: '12-31', name: 'Yılbaşı Gecesi', tag: 'Pazarlama' },
+];
+// Bir MM-DD için bugünden itibaren bir sonraki gerçekleşme (KKTC) ve kaç gün kaldığı
+function nextOcc(md) {
+  const nowStr = new Date().toLocaleDateString('en-CA', { timeZone: TZ });
+  const y = +nowStr.slice(0, 4);
+  let d = new Date(`${y}-${md}T12:00:00`);
+  const todayNoon = new Date(`${nowStr}T12:00:00`);
+  if (d < todayNoon) d = new Date(`${y + 1}-${md}T12:00:00`);
+  const days = Math.round((d - todayNoon) / 86400000);
+  return { date: d, days };
+}
+const fDayName = (d) => d.toLocaleDateString('tr-TR', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' });
+const SH = () => ({ apikey: SKEY, Authorization: `Bearer ${SKEY}` });
+
+async function planHtml() {
+  const sp = await (await fetch(`${SUP}/rest/v1/scheduled_posts?select=format,images,caption,publish_at&status=eq.pending&order=publish_at.asc`, { headers: SH() })).json();
+  if (!Array.isArray(sp) || !sp.length) return '<p style="color:#8A97A6;font-size:13px">Zamanlı gönderi yok.</p>';
+  const dayK = (iso) => new Date(iso).toLocaleDateString('en-CA', { timeZone: TZ });
+  const fMonth = (iso) => new Date(iso).toLocaleDateString('tr-TR', { timeZone: TZ, month: 'long', year: 'numeric' });
+  const fD = (iso) => new Date(iso).toLocaleDateString('tr-TR', { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'long' });
+  const lbl = (p) => { const k = kindOf(p); return k.includes('Daire') ? ((p.caption || '').split('\n')[0].slice(0, 38) || 'Daire') : k; };
+  const byMon = {}; sp.forEach((p) => { (byMon[dayK(p.publish_at).slice(0, 7)] = byMon[dayK(p.publish_at).slice(0, 7)] || []).push(p); });
+  let html = '';
+  for (const mk of Object.keys(byMon).sort()) {
+    const items = byMon[mk];
+    html += `<div style="background:#0A2540;color:#fff;border-radius:8px;padding:8px 12px;margin:16px 0 8px"><b>${fMonth(items[0].publish_at)}</b> <span style="opacity:.7;font-size:12px">· ${items.length} gönderi</span></div>`;
+    const byDay = {}; items.forEach((p) => { (byDay[dayK(p.publish_at)] = byDay[dayK(p.publish_at)] || []).push(p); });
+    for (const dk of Object.keys(byDay).sort()) { const its = byDay[dk];
+      html += `<div style="font-size:12.5px;padding:4px 0 1px;border-top:1px solid #EFF3F8"><b style="color:#0A2540">${fD(its[0].publish_at)}</b></div>`;
+      for (const p of its) html += `<div style="font-size:12px;padding:1px 0 1px 6px;color:#5B6B7B"><b style="color:#8A97A6;display:inline-block;width:42px">${fmtT(p.publish_at)}</b> ${kindOf(p)} — ${esc(lbl(p))}</div>`;
+    }
+  }
+  return html;
+}
+async function jannaHtml() {
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const acts = await (await fetch(`${SUP}/rest/v1/activity_log?select=actor_name,action,entity_ref,created_at&created_at=gte.${since}&order=created_at.desc`, { headers: SH() })).json();
+  if (!Array.isArray(acts)) return null;
+  const j = acts.filter((a) => /janna/i.test(a.actor_name || ''));
+  if (!j.length) return null;
+  return j.map((a) => `<div style="font-size:13px;padding:4px 0;border-top:1px solid #EFF3F8;color:#0A2540">• <b>${esc(ACTS[a.action] || a.action)}</b>${a.entity_ref ? ' — ' + esc(a.entity_ref) : ''} <span style="color:#8A97A6;font-size:12px">(${fmtT(a.created_at)})</span></div>`).join('');
+}
+async function publishedHtml() {
+  const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString();
+  const pub = await (await fetch(`${SUP}/rest/v1/scheduled_posts?select=format,images,publish_at&status=eq.published&publish_at=gte.${since}&order=publish_at.desc`, { headers: SH() })).json();
+  if (!Array.isArray(pub) || !pub.length) return null;
+  return pub.map((p) => `<div style="font-size:13px;padding:4px 0;border-top:1px solid #EFF3F8;color:#0A2540">✓ ${fmtT(p.publish_at)} — ${kindOf(p)}</div>`).join('');
+}
+function remindersHtml() {
+  const up = IMPORTANT.map((x) => ({ ...x, ...nextOcc(x.md) })).filter((x) => x.days >= 0 && x.days <= 7).sort((a, b) => a.days - b.days);
+  if (!up.length) return null;
+  return up.map((x) => `<div style="font-size:13px;padding:6px 0;border-top:1px solid #EFF3F8;color:#0A2540">📌 <b>${esc(x.name)}</b> <span style="color:#B8924A;font-weight:700">${x.days === 0 ? 'BUGÜN' : x.days + ' gün sonra'}</span> <span style="color:#8A97A6;font-size:12px">· ${fDayName(x.date)} · ${x.tag}</span></div>`).join('');
+}
+function importantListHtml() {
+  const list = IMPORTANT.map((x) => ({ ...x, ...nextOcc(x.md) })).sort((a, b) => a.days - b.days);
+  return list.map((x) => `<div style="font-size:13px;padding:6px 0;border-top:1px solid #EFF3F8;color:#0A2540"><b>${esc(x.name)}</b> — ${fDayName(x.date)} <span style="color:#8A97A6;font-size:12px">· ${x.tag} · ${x.days} gün kaldı</span></div>`).join('');
+}
+
 module.exports = async (req, res) => {
   const action = (req.query && req.query.action) || 'send';
   if (!(await authed(req))) return res.status(401).json({ error: 'unauthorized' });
@@ -112,6 +191,27 @@ module.exports = async (req, res) => {
       body += (acts && acts.length) ? acts.map((a) => `<div style="font-size:13px;color:#0A2540;padding:4px 0">• <b>${esc(a.actor_name || '—')}</b> ${esc(ACTS[a.action] || a.action)}${a.entity_ref ? ' — ' + esc(a.entity_ref) : ''}</div>`).join('') : `<div style="font-size:13px;color:#8A97A6">Bugün işlem yok.</div>`;
       const out = await sendMail(`📊 Günlük özet — ${dateStr}`, body);
       return res.status(out.ok ? 200 : 400).json({ ...out, published: okP.length, failed: failP.length, actions: (acts || []).length });
+    }
+    // 4) Önemli günler tam listesi (elle/istenince)
+    if (action === 'important') {
+      const body = h('🗓️ Önemli Günler', 'Türkiye + Kuzey Kıbrıs — yaklaşana göre sıralı') + importantListHtml()
+        + `<p style="margin:16px 0 0;color:#8A97A6;font-size:12px">Her önemli gün yaklaştıkça 1 hafta öncesinden günlük hatırlatma gelir. Dini bayram tarihleri yaklaşıktır.</p>`;
+      const out = await sendMail('🗓️ Önemli Günler — Türkiye & Kuzey Kıbrıs', body);
+      return res.status(out.ok ? 200 : 400).json(out);
+    }
+    // 5) SABAH RAPORU (pg_cron 08:00) — plan + Janna + yayınlananlar + önemli gün hatırlatma
+    if (action === 'morning') {
+      if (!SKEY) return res.status(500).json({ error: 'SUPABASE_SERVICE_KEY yok' });
+      const [plan, janna, published] = await Promise.all([planHtml(), jannaHtml(), publishedHtml()]);
+      const rem = remindersHtml();
+      const dateStr = new Date().toLocaleDateString('tr-TR', { timeZone: TZ, weekday: 'long', day: 'numeric', month: 'long' });
+      let body = h('☀️ Günaydın', dateStr);
+      if (rem) body += `<h2 style="font-size:15px;color:#B8924A;margin:20px 0 4px">🗓️ Yaklaşan önemli günler</h2>` + rem;
+      body += `<h2 style="font-size:15px;color:#0A2540;margin:20px 0 4px">✅ Dün yayınlananlar</h2>` + (published || '<div style="color:#8A97A6;font-size:13px">Dün yayın yok.</div>');
+      if (janna) body += `<h2 style="font-size:15px;color:#0A2540;margin:20px 0 4px">👤 Janna — son 24 saat</h2>` + janna;
+      body += `<h2 style="font-size:15px;color:#0A2540;margin:20px 0 8px">📅 Aylık çekim planı</h2>` + plan;
+      const out = await sendMail(`☀️ Günaydın — Selected Global · ${dateStr}`, body);
+      return res.status(out.ok ? 200 : 400).json({ ...out, reminders: !!rem, jannaActions: !!janna, published: !!published });
     }
     return res.status(400).json({ error: 'geçersiz action' });
   } catch (e) { return res.status(500).json({ error: String((e && e.message) || e) }); }

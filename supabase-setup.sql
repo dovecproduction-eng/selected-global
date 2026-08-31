@@ -189,6 +189,7 @@ create policy "delete_images" on storage.objects for delete to authenticated usi
 create table if not exists public.app_config (key text primary key, value text);
 alter table public.app_config enable row level security;
 revoke all on public.app_config from anon, authenticated;
+grant all on public.app_config to service_role;
 -- (Değerler REST ile service_role tarafından yazılır: RESEND_API_KEY, NOTIFY_SECRET, NOTIFY_TO)
 
 -- Kullanıcı işlemleri: activity_log'a kayıt eklenince /api/notify'a POST (mail atar)
