@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=129';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=130';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=129';
+} from './ui.js?v=130';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -532,6 +532,42 @@ async function prepareImages(setMsg) {
   return urls;
 }
 
+// ---- TEK SEFERLİK: plandaki/otomasyondaki daire gönderilerini markalı kapak + 4:5 carousel'e dönüştür ----
+function matchProp(post) {
+  let best = null, bestN = 0;
+  for (const p of props) { const set = new Set(p.fotograflar || []); let n = 0; for (const u of (post.images || [])) if (set.has(u)) n++; if (n > bestN) { bestN = n; best = p; } }
+  return bestN > 0 ? best : null;
+}
+async function rebrandPlan() {
+  const box = document.createElement('div');
+  box.style.cssText = 'position:fixed;left:16px;right:16px;bottom:16px;max-width:560px;margin:0 auto;background:#0A2540;color:#fff;padding:16px 18px;border-radius:14px;box-shadow:0 14px 44px rgba(0,0,0,.45);z-index:99999;font-size:.84rem;line-height:1.5';
+  box.innerHTML = '<b>📸 Plan markalı görsellere dönüştürülüyor…</b><div id="rbLog" style="margin-top:8px;max-height:220px;overflow:auto;opacity:.92"></div>';
+  document.body.appendChild(box);
+  const log = (t) => { const l = box.querySelector('#rbLog'); l.innerHTML = t + '<br>' + l.innerHTML; };
+  const { data: rows, error } = await supabase.from('scheduled_posts').select('*').eq('status', 'pending').order('publish_at', { ascending: true });
+  if (error) { log('HATA: ' + error.message); return; }
+  const targets = (rows || []).filter((r) => { const u = (r.images && r.images[0]) || ''; return ['carousel', 'post'].includes(r.format) && u && !u.includes('/_ig/'); });
+  log(`${targets.length} daire gönderisi işlenecek (eğitici/özel gün/story hariç).`);
+  let done = 0, skip = 0, fail = 0, i = 0;
+  for (const post of targets) {
+    i++;
+    try {
+      const p = matchProp(post);
+      if (!p) { skip++; log(`⏭ ${i}/${targets.length} eşleşen daire yok (${post.publish_at.slice(0, 10)})`); continue; }
+      const cover = await renderCoverImage(p);
+      const newImgs = [];
+      if (cover) newImgs.push(await uploadPublic(cover, 'jpg'));
+      const slides = (post.images || []);
+      for (let k = 0; k < slides.length && newImgs.length < 10; k++) { const f = await brandFitted(slides[k], 'feed'); newImgs.push(await uploadPublic(await (await fetch(f)).blob(), 'jpg')); }
+      if (newImgs.length < 2) { fail++; log(`✕ ${i} yetersiz görsel: ${pickTitle(p)}`); continue; }
+      const { data: upd, error: ue } = await supabase.from('scheduled_posts').update({ images: newImgs, format: 'carousel' }).eq('id', post.id).select();
+      if (ue || !upd || !upd.length) { fail++; log(`✕ ${i} güncellenemedi: ${ue ? ue.message : 'yetki (RLS)?'}`); continue; }
+      done++; log(`✓ ${i}/${targets.length} ${pickTitle(p)} — markalı kapak + ${newImgs.length - 1} slayt`);
+    } catch (e) { fail++; log(`✕ ${i} ${(e && e.message) || e}`); }
+  }
+  log(`<b>Bitti: ${done} tamam · ${skip} atlandı · ${fail} hata.</b> Takvim/Gönderiler'i yenile.`);
+}
+
 async function publishNow() {
   if (!igConnected) { toast('Instagram bağlı değil', 'err'); return; }
   const msgEl = $('#igPublishMsg'); const setMsg = (t) => { msgEl.textContent = t; };
@@ -903,6 +939,11 @@ $('#igOnOff').addEventListener('click', toggleOnline);
 $('#igAnalizBtn').addEventListener('click', () => { $('#analizModal').classList.add('open'); loadInsights(); });
 // Merkez menüden ?analiz=1 ile gelindiyse analizi otomatik aç
 if (new URLSearchParams(location.search).get('analiz') === '1') { setTimeout(() => { if (!$('#app').classList.contains('hidden')) $('#igAnalizBtn').click(); }, 800); }
+// ?rebrand=1 → plandaki ham daire gönderilerini markalı carousel'e dönüştür (tek seferlik bakım)
+if (new URLSearchParams(location.search).get('rebrand') === '1') {
+  const t = setInterval(() => { if (props.length && !$('#app').classList.contains('hidden')) { clearInterval(t); rebrandPlan(); } }, 500);
+  setTimeout(() => clearInterval(t), 20000);
+}
 // Takvim öğesi üzerine gelince (tıklamadan) detay balonu göster
 function calTip() { let t = document.getElementById('igCalTip'); if (!t) { t = document.createElement('div'); t.id = 'igCalTip'; t.className = 'ig-cal-tip'; document.body.appendChild(t); } return t; }
 $('#igSchedList').addEventListener('mouseover', (e) => { const el = e.target.closest('[data-tip]'); if (!el) return; const t = calTip(); t.textContent = el.dataset.tip; t.classList.add('show'); });
