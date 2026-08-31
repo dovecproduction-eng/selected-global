@@ -1,7 +1,7 @@
 // Selected Global — Otomasyon (kampanya oluşturucu)
-import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=134';
-import { SUPABASE_URL, CURRENCY, STORAGE_BUCKET } from './config.js?v=134';
-import { renderCoverImage } from './ui.js?v=134';
+import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=135';
+import { SUPABASE_URL, CURRENCY, STORAGE_BUCKET } from './config.js?v=135';
+import { renderCoverImage } from './ui.js?v=135';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -98,6 +98,8 @@ function computePlan() {
   const every = Math.max(1, +$('#auEduEvery').value || 3);
   const eduTime = $('#auEduTime').value || '10:00';
   const eduStory = $('#auEduStory').checked;
+  const enStory = $('#auEnStory') ? $('#auEnStory').checked : false;
+  const enGap = Math.max(1, +($('#auEnStoryGap') && $('#auEnStoryGap').value) || 5);
   const rows = []; let daire = 0, edu = 0, story = 0;
 
   if (useDaire) {
@@ -117,7 +119,8 @@ function computePlan() {
       const day = e * every;
       rows.push({ format: 'carousel', images: feed, video_url: null, caption: ECAPS[e % ECAPS.length] + ETAGS, publish_at: iso(addDays(start, day), eduTime), status: 'pending', created_by: currentEmail() });
       edu++;
-      if (eduStory) { const st = []; for (let s = 1; s <= 7; s++) st.push(`${AUTO}/${C}_story_${s}.jpg`); rows.push({ format: 'story', images: st, video_url: null, caption: '', publish_at: iso(addDays(start, day), eduTime, 12), status: 'pending', created_by: currentEmail() }); story += 7; }
+      if (eduStory) { const st = []; for (let s = 1; s <= 7; s++) st.push(`${AUTO}/${C}_story_${s}.webp`); rows.push({ format: 'story', images: st, video_url: null, caption: '', publish_at: iso(addDays(start, day), eduTime, 12), status: 'pending', created_by: currentEmail() }); story += 7; }
+      if (enStory) { const en = []; for (let s = 1; s <= 7; s++) en.push(`${AUTO}/${C}_en_story_${s}.webp`); rows.push({ format: 'story', images: en, video_url: null, caption: '', publish_at: iso(addDays(start, day + enGap), eduTime, 12), status: 'pending', created_by: currentEmail() }); story += 7; }
     }
   }
   rows.sort((a, b) => a.publish_at.localeCompare(b.publish_at));
@@ -205,7 +208,7 @@ initAuth(async () => {
   $('#auStart').value = `${t.getFullYear()}-${p(t.getMonth() + 1)}-${p(t.getDate())}`;
   renderDaireTimes();
   await loadDaireler();
-  ['auUseDaire', 'auUseEdu', 'auDairePerDay', 'auEduEvery', 'auEduTime', 'auEduStory', 'auStart', 'auClear'].forEach((id) =>
+  ['auUseDaire', 'auUseEdu', 'auDairePerDay', 'auEduEvery', 'auEduTime', 'auEduStory', 'auEnStory', 'auEnStoryGap', 'auStart', 'auClear'].forEach((id) =>
     $('#' + id).addEventListener('input', () => { if (id === 'auDairePerDay') renderDaireTimes(); if (id === 'auUseDaire' || id === 'auUseEdu') toggleSourceFields(); renderPreview(); }));
   $('#auGenerate').addEventListener('click', generate);
   toggleSourceFields(); renderPreview();

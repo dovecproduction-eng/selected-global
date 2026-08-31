@@ -11,8 +11,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=134" />
-  <link rel="stylesheet" href="assets/css/planner.css?v=134" />
+  <link rel="stylesheet" href="assets/css/style.css?v=135" />
+  <link rel="stylesheet" href="assets/css/planner.css?v=135" />
 </head>
 <body class="admin-body">
 
@@ -102,7 +102,11 @@
           </div>
           <div class="au-field" data-for="edu">
             <label>📚 Eğitici yayın saati (KKTC)</label>
-            <div class="au-inline"><input type="time" id="auEduTime" value="10:00" /><label class="au-check" style="margin-left:auto"><input type="checkbox" id="auEduStory" checked /> Story de ekle</label></div>
+            <div class="au-inline"><input type="time" id="auEduTime" value="10:00" /><label class="au-check" style="margin-left:auto"><input type="checkbox" id="auEduStory" checked /> TR story (7 görsel)</label></div>
+          </div>
+          <div class="au-field" data-for="edu">
+            <label>🇬🇧 İngilizce story — kaç gün sonra?</label>
+            <div class="au-inline"><input type="number" id="auEnStoryGap" min="1" max="14" value="5" /><span class="au-hint">gün sonra</span><label class="au-check" style="margin-left:auto"><input type="checkbox" id="auEnStory" checked /> EN story (7 görsel)</label></div>
           </div>
 
           <h3 class="au-h">3 · Başlangıç</h3>
@@ -132,6 +136,6 @@
   </div>
 
   <div class="ig-toast-wrap" id="toastWrap"></div>
-  <script type="module" src="assets/js/otomasyon.js?v=134"></script>
+  <script type="module" src="assets/js/otomasyon.js?v=135"></script>
 </body>
 </html>
