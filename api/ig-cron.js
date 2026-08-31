@@ -82,9 +82,19 @@ async function publishOne(format, images, videoUrl, caption) {
     if (!ok(c) || !cid(c)) return { ok: false, error: errOf(c) };
     containerId = cid(c);
   } else if (format === 'story') {
-    const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'photo', media_type: 'STORIES', image_url: images[0] });
-    if (!ok(c) || !cid(c)) return { ok: false, error: errOf(c) };
-    containerId = cid(c);
+    // Story satırındaki HER görsel ayrı story olarak yayınlanır (eğitici seri = 7 story)
+    const list = images.slice(0, 15);
+    if (!list.length) return { ok: false, error: 'görsel yok' };
+    let lastId = null, okCount = 0, firstErr = '';
+    for (const img of list) {
+      const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'photo', media_type: 'STORIES', image_url: img });
+      if (!ok(c) || !cid(c)) { if (!firstErr) firstErr = errOf(c); continue; }
+      await waitReady(cid(c));
+      const pub = await publishWithRetry(cid(c));
+      if (ok(pub)) { okCount++; lastId = cid(pub); } else if (!firstErr) firstErr = errOf(pub);
+    }
+    if (!okCount) return { ok: false, error: firstErr || 'story yayınlanamadı' };
+    return { ok: true, id: lastId, count: okCount };
   } else {
     const c = await exec('INSTAGRAM_CREATE_MEDIA_CONTAINER', { ig_user_id: IG, content_type: 'photo', image_url: images[0], caption });
     if (!ok(c) || !cid(c)) return { ok: false, error: errOf(c) };

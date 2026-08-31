@@ -1,7 +1,7 @@
 // Selected Global — Otomasyon (kampanya oluşturucu)
-import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=133';
-import { SUPABASE_URL, CURRENCY, STORAGE_BUCKET } from './config.js?v=133';
-import { renderCoverImage } from './ui.js?v=133';
+import { initAuth, supabase, toast, currentEmail } from './planner-common.js?v=134';
+import { SUPABASE_URL, CURRENCY, STORAGE_BUCKET } from './config.js?v=134';
+import { renderCoverImage } from './ui.js?v=134';
 
 const $ = (s) => document.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -117,7 +117,7 @@ function computePlan() {
       const day = e * every;
       rows.push({ format: 'carousel', images: feed, video_url: null, caption: ECAPS[e % ECAPS.length] + ETAGS, publish_at: iso(addDays(start, day), eduTime), status: 'pending', created_by: currentEmail() });
       edu++;
-      if (eduStory) { rows.push({ format: 'story', images: [`${AUTO}/${C}_story_1.jpg`], video_url: null, caption: '', publish_at: iso(addDays(start, day), eduTime, 12), status: 'pending', created_by: currentEmail() }); story++; }
+      if (eduStory) { const st = []; for (let s = 1; s <= 7; s++) st.push(`${AUTO}/${C}_story_${s}.jpg`); rows.push({ format: 'story', images: st, video_url: null, caption: '', publish_at: iso(addDays(start, day), eduTime, 12), status: 'pending', created_by: currentEmail() }); story += 7; }
     }
   }
   rows.sort((a, b) => a.publish_at.localeCompare(b.publish_at));
