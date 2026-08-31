@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=136" />
+  <link rel="stylesheet" href="assets/css/style.css?v=137" />
 </head>
 <body class="admin-body">
 
@@ -168,7 +168,10 @@
         <div class="panel">
           <div class="panel-head">
             <h3>Daireler (<span id="propCount">0</span>)</h3>
-            <button class="btn btn-primary" id="addPropBtn"><span id="plusIcon"></span> Yeni daire ekle</button>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost" id="addPropTextBtn">✍️ Yazarak ekle</button>
+              <button class="btn btn-primary" id="addPropBtn"><span id="plusIcon"></span> Yeni daire ekle</button>
+            </div>
           </div>
           <div class="admin-filters" id="propFilters">
             <div class="segmented" id="pf_tip">
@@ -214,6 +217,28 @@
         </div>
       </section>
     </main>
+  </div>
+
+  <!-- YAZARAK DAİRE EKLE MODALI -->
+  <div class="modal-overlay" id="textAddModal">
+    <div class="modal" style="max-width:560px">
+      <div class="modal-head">
+        <h3>✍️ Yazarak daire ekle</h3>
+        <button class="icon-btn" data-close></button>
+      </div>
+      <div class="modal-body">
+        <div class="field">
+          <label>Daireyi tek satırda yaz <span class="text-muted">— proje, tip, oda ve fiyatı otomatik anlar</span></label>
+          <textarea id="taInput" rows="3" placeholder="Örn: Four Season 1 4+2 satılık daire 115.000 stg"></textarea>
+        </div>
+        <div class="ta-preview" id="taPreview"></div>
+        <p class="hint" style="margin-top:10px">Örnekler: <em>“Panorama 2+1 kiralık 850 stg”</em> · <em>“La Isla 3+1 satılık villa 240.000 eur”</em> · <em>“Sky Sakarya stüdyo satılık 95.000 gbp”</em></p>
+      </div>
+      <div class="modal-foot">
+        <button class="btn btn-ghost" data-close>Vazgeç</button>
+        <button class="btn btn-primary" id="taGo">Çözümle ve düzenle →</button>
+      </div>
+    </div>
   </div>
 
   <!-- DAİRE FORM MODALI -->
@@ -514,6 +539,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=136"></script>
+  <script type="module" src="assets/js/admin.js?v=137"></script>
 </body>
 </html>

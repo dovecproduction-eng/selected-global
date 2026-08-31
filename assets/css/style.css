@@ -978,6 +978,15 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-upload:hover { border-color: var(--navy-500); color: var(--navy); }
 .ig-upload.drag { border-color: var(--gold); background: var(--bg-tint); color: var(--navy); }
 .ig-upload strong { color: var(--navy); }
+/* Yazarak daire ekle — çözümleme önizleme çipleri */
+.ta-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
+.ta-preview:empty { display: none; }
+.ta-chip { font-size: .82rem; padding: 5px 11px; border-radius: 999px; border: 1px solid var(--line); background: var(--bg-soft); color: var(--muted); }
+.ta-chip.ok { background: rgba(184,146,74,.12); border-color: var(--gold); color: var(--navy); }
+.ta-chip.ok b { color: var(--gold-600, #916f2e); }
+.ta-chip.no { opacity: .6; }
+#taInput { font-size: 1rem; }
+
 /* Özel Günler grid */
 .ig-ozel-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); gap: 12px; margin-top: 8px; }
 .ig-ocard { position: relative; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: #fff; cursor: pointer; transition: .15s; display: flex; flex-direction: column; }
