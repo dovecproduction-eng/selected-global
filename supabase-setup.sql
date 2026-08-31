@@ -220,3 +220,9 @@ do $$ begin perform cron.unschedule('ig-morning'); exception when others then nu
 select cron.schedule('ig-morning', '0 5 * * *', $m$
   select net.http_get(url := 'https://selected-global-ashen.vercel.app/api/notify?action=morning&key=214ed5fab4204cb2e490c6cb5f10e370', timeout_milliseconds := 40000);
 $m$);
+
+-- ÖZEL GÜN otomatik paylaşımı (07:00 KKTC = 04:00 UTC): bugün özel günse _ig/ozel/{MM-DD}.webp'i story olarak paylaşır.
+do $$ begin perform cron.unschedule('ig-ozelgun'); exception when others then null; end $$;
+select cron.schedule('ig-ozelgun', '0 4 * * *', $z$
+  select net.http_get(url := 'https://selected-global-ashen.vercel.app/api/ozelgun?key=760b63b56654ca2185d214d552cc376a', timeout_milliseconds := 40000);
+$z$);
