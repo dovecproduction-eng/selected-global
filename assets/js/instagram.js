@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=131';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=132';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=131';
+} from './ui.js?v=132';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -543,17 +543,18 @@ function matchByCaption(post) {
   return hit.length === 1 ? hit[0] : null;
 }
 const _isAuto = (u) => String(u || '').includes('/_ortak/');
-function buildSlides(p) {
+// Kapak KARTINDAN sonra gelecek foto slaytları: önce kapak fotoğrafı + kendi fotoğrafların, en son 2 _ortak. (kart 1 slot → en fazla 9)
+function buildPhotoSlides(p) {
   const all = (p.fotograflar || []).filter(Boolean);
   if (!all.length) return [];
   const ki = Math.min(Math.max(p.kapak_index || 0, 0), all.length - 1);
   const cover = all[ki];
   const own = all.filter((u) => !_isAuto(u));
   const auto = all.filter((u) => _isAuto(u));
-  let tail = [...new Set(auto.slice(-2))].filter((u) => u && u !== cover);  // son 2 otomatik foto
-  let head = [...new Set([cover, ...own.filter((u) => u !== cover)])].filter((u) => u && !tail.includes(u));
-  head = head.slice(0, Math.max(0, 10 - tail.length));
-  return [...head, ...tail].slice(0, 10);
+  const tail = [...new Set(auto.slice(-2))].filter((u) => u && u !== cover);   // son 2 otomatik (_ortak) foto
+  let body = [...new Set([cover, ...own.filter((u) => u !== cover)])].filter((u) => u && !tail.includes(u));
+  body = body.slice(0, Math.max(0, 9 - tail.length));
+  return [...body, ...tail].slice(0, 9);
 }
 async function rebrandPlan() {
   const box = document.createElement('div');
@@ -572,10 +573,14 @@ async function rebrandPlan() {
     try {
       const p = matchByCaption(post);
       if (!p) { skip++; log(`⏭ ${i}/${targets.length} eşleşen daire yok (${(post.caption || '').split('\n')[0].slice(0, 40)})`); continue; }
-      const slides = buildSlides(p);
-      if (!slides.length) { skip++; log(`⏭ ${i} fotoğraf yok: ${pickTitle(p)}`); continue; }
+      const photos = buildPhotoSlides(p);
       const newImgs = [];
-      for (const u of slides) { const f = await brandFitted(u, 'feed'); newImgs.push(await uploadPublic(await (await fetch(f)).blob(), 'jpg')); }
+      // 1. slayt: bilgi KARTI (satılık/kiralık + tip + bölge + fiyat). Başarısızsa kapak fotoğrafına düş.
+      let card = null; try { card = await renderCoverImage(p); } catch (_) {}
+      if (card) newImgs.push(await uploadPublic(card, 'jpg'));
+      else if (photos[0]) { const f = await brandFitted(photos[0], 'feed'); newImgs.push(await uploadPublic(await (await fetch(f)).blob(), 'jpg')); }
+      for (const u of photos) { if (newImgs.length >= 10) break; const f = await brandFitted(u, 'feed'); newImgs.push(await uploadPublic(await (await fetch(f)).blob(), 'jpg')); }
+      if (!newImgs.length) { skip++; log(`⏭ ${i} fotoğraf yok: ${pickTitle(p)}`); continue; }
       const fmt = newImgs.length >= 2 ? 'carousel' : 'post';
       const { data: upd, error: ue } = await supabase.from('scheduled_posts').update({ images: newImgs, format: fmt }).eq('id', post.id).select();
       if (ue || !upd || !upd.length) { fail++; log(`✕ ${i} güncellenemedi: ${ue ? ue.message : 'yetki (RLS)?'}`); continue; }
