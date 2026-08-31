@@ -1,5 +1,5 @@
 // Selected Global — Takvim (sade, sadece ay görünümü)
-import { initAuth, supabase, toast, classify, FMT, fmtTime, fmtDay, fmtFull, dayKey, esc, openPostDrawer, wirePostDrawer } from './planner-common.js?v=125';
+import { initAuth, supabase, toast, classify, FMT, fmtTime, fmtDay, fmtFull, dayKey, esc, openPostDrawer, wirePostDrawer } from './planner-common.js?v=126';
 
 const $ = (s) => document.querySelector(s);
 const WD = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -36,14 +36,16 @@ function renderMonth() {
     const inMonth = d.getMonth() === viewMonth.getMonth();
     const items = (byDay[key] || []).slice().sort((a, b) => a.publish_at.localeCompare(b.publish_at));
     const isToday = key === todayKey;
+    const isPast = key < todayKey;   // geçmiş gün → üzerine büyük X
     // Özet: türe göre renkli noktalar (en çok 6) + sayı
     const dots = items.slice(0, 6).map((p) => `<span class="pl-dot" style="background:${FMT[classify(p)].color}"></span>`).join('');
     const more = items.length > 6 ? `<span class="pl-dot-more">+${items.length - 6}</span>` : '';
     const summary = items.length
       ? `<div class="pl-cell-sum"><div class="pl-dots">${dots}${more}</div><span class="pl-cnt">${items.length} gönderi</span></div>`
       : '';
-    html += `<button class="pl-cell${inMonth ? '' : ' out'}${isToday ? ' today' : ''}${items.length ? ' has' : ''}"${items.length ? ` data-day="${key}"` : ' disabled'}>
-      <span class="pl-cell-d">${d.getDate()}</span>${summary}</button>`;
+    const xmark = (isPast && inMonth) ? '<span class="pl-x" aria-hidden="true">✕</span>' : '';
+    html += `<button class="pl-cell${inMonth ? '' : ' out'}${isToday ? ' today' : ''}${isPast ? ' past' : ''}${items.length ? ' has' : ''}"${items.length ? ` data-day="${key}"` : ' disabled'}>
+      <span class="pl-cell-d">${d.getDate()}</span>${summary}${xmark}</button>`;
   }
   $('#plGrid').innerHTML = html;
 }

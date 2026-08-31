@@ -44,9 +44,16 @@
 .pl-weekhead span { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); text-align: center; }
 
 .pl-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
-.pl-cell { min-height: 118px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; transition: .15s var(--ease); }
+.pl-cell { position: relative; min-height: 118px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; transition: .15s var(--ease); overflow: hidden; }
 .pl-cell.out { background: var(--bg-soft); opacity: .6; }
 .pl-cell.today { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
+/* Geçmiş gün — üzerinde büyük X */
+.pl-cell.past { background: var(--bg-soft); }
+.pl-cell.past .pl-cell-d span { color: var(--muted); }
+.pl-cell.past.today { border-color: var(--gold); }
+.pl-x { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 3.4rem; font-weight: 400; line-height: 1; color: rgba(10,37,64,.13); pointer-events: none; z-index: 1; }
+.pl-cell.past .pl-cell-sum, .pl-cell.past .pl-cell-d { position: relative; z-index: 2; }
+@media (max-width: 760px){ .pl-x { font-size: 2.4rem; } }
 .pl-cell-d { display: flex; align-items: center; justify-content: space-between; }
 .pl-cell-d span { font-size: .86rem; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
 .pl-cell.today .pl-cell-d span { color: var(--gold); }

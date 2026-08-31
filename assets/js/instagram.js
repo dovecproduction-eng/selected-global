@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=125';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=126';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=125';
+} from './ui.js?v=126';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -769,7 +769,7 @@ function renderScheduler() {
       ${r.status === 'pending' ? `<button class="icon-btn danger" data-schdel="${esc(r.id)}" title="İptal et">✕</button>` : ''}
     </div>`;
   }).join('');
-  box.innerHTML = cal + (sorted.length ? `<div class="ig-sched-title">Planlanan gönderiler</div>${items}` : '<p class="text-muted" style="font-size:.82rem;margin-top:10px">Henüz zamanlanmış gönderi yok. Yukarıdan tarih/saat seçip "Zamanla"ya bas.</p>');
+  box.innerHTML = (sorted.length ? `<div class="ig-sched-title">Planlanan gönderiler</div>${items}` : '<p class="text-muted" style="font-size:.82rem;margin-top:10px">Henüz zamanlanmış gönderi yok. Yukarıdan tarih/saat seçip "Zamanla"ya bas.</p>');
 }
 
 /* ---------- ANALİZ ---------- */
