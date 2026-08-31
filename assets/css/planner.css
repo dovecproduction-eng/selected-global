@@ -47,13 +47,15 @@
 .pl-cell { position: relative; min-height: 118px; background: var(--bg); border: 1px solid var(--line); border-radius: 12px; padding: 8px; display: flex; flex-direction: column; gap: 6px; transition: .15s var(--ease); overflow: hidden; }
 .pl-cell.out { background: var(--bg-soft); opacity: .6; }
 .pl-cell.today { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold) inset; }
-/* Geçmiş gün — üzerinde büyük X */
-.pl-cell.past { background: var(--bg-soft); }
-.pl-cell.past .pl-cell-d span { color: var(--muted); }
+/* Geçmiş gün — koyu gri zemin + boşlukta büyük X */
+.pl-cell.past { background: #cfd5dd; border-color: #b9c1cb; }
+.pl-cell.past .pl-cell-d span { color: #4a5563; }
+.pl-cell.past .pl-cnt { color: #566072; }
 .pl-cell.past.today { border-color: var(--gold); }
-.pl-x { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 3.4rem; font-weight: 400; line-height: 1; color: rgba(10,37,64,.13); pointer-events: none; z-index: 1; }
+/* X: sayının altındaki boş alana ortalanır, rakamların üstüne gelmez */
+.pl-x { position: absolute; top: 26px; left: 0; right: 0; bottom: 0; display: flex; align-items: center; justify-content: center; font-size: 3rem; font-weight: 400; line-height: 1; color: rgba(40,52,68,.28); pointer-events: none; z-index: 1; }
 .pl-cell.past .pl-cell-sum, .pl-cell.past .pl-cell-d { position: relative; z-index: 2; }
-@media (max-width: 760px){ .pl-x { font-size: 2.4rem; } }
+@media (max-width: 760px){ .pl-x { font-size: 2rem; top: 22px; } }
 .pl-cell-d { display: flex; align-items: center; justify-content: space-between; }
 .pl-cell-d span { font-size: .86rem; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
 .pl-cell.today .pl-cell-d span { color: var(--gold); }
