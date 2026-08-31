@@ -7,6 +7,21 @@ const SKEY = process.env.SUPABASE_SERVICE_KEY;
 const CRON_SECRET = process.env.CRON_SECRET;
 const BASE = 'https://backend.composio.dev/api/v3';
 
+// E-posta bildirimi (notify ucuna gönderir; NOTIFY_SECRET yoksa sessiz geçer)
+const NOTIFY_URL = (process.env.PUBLIC_URL || 'https://selected-global-ashen.vercel.app') + '/api/notify?action=send';
+const NOTIFY_SECRET = process.env.NOTIFY_SECRET;
+const kindLabel = (row) => row.format === 'story' ? '⚡ Story' : (((row.images || [])[0] || '').includes('/_ig/auto/') ? '📚 Eğitici carousel' : '🏠 Daire carousel');
+async function mailPost(row, okFlag, errMsg) {
+  if (!NOTIFY_SECRET) return;
+  const when = new Date(row.publish_at).toLocaleString('tr-TR', { timeZone: 'Europe/Nicosia', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' });
+  const cap = (row.caption || '').split('\n')[0].slice(0, 90);
+  const subject = okFlag ? `✅ Yayınlandı — ${kindLabel(row)}` : `⚠️ Yayınlanamadı — ${kindLabel(row)}`;
+  const html = okFlag
+    ? `<h1 style="margin:0 0 12px;font-size:20px;color:#0A2540">✅ Instagram'da yayınlandı</h1><table style="width:100%;border-collapse:collapse"><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px;width:110px">Tür</td><td style="padding:6px 0;color:#0A2540;font-weight:600">${kindLabel(row)}</td></tr><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px">Saat</td><td style="padding:6px 0;color:#0A2540;font-weight:600">${when}</td></tr>${cap ? `<tr><td style="padding:6px 0;color:#8A97A6;font-size:13px">İçerik</td><td style="padding:6px 0;color:#0A2540">${cap}</td></tr>` : ''}</table><p style="margin:18px 0 0"><a href="https://www.instagram.com/selected.sales.janna" style="color:#B8924A;font-weight:700">Instagram'da gör →</a></p>`
+    : `<h1 style="margin:0 0 12px;font-size:20px;color:#B23A3A">⚠️ Yayınlanamadı</h1><table style="width:100%;border-collapse:collapse"><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px;width:110px">Tür</td><td style="padding:6px 0;color:#0A2540;font-weight:600">${kindLabel(row)}</td></tr><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px">Saat</td><td style="padding:6px 0;color:#0A2540;font-weight:600">${when}</td></tr><tr><td style="padding:6px 0;color:#8A97A6;font-size:13px">Hata</td><td style="padding:6px 0;color:#B23A3A">${String(errMsg || '').slice(0, 200)}</td></tr></table><p style="margin:14px 0 0;color:#5B6B7B;font-size:13px">Takvim/Gönderiler sayfasından tekrar deneyebilirsin.</p>`;
+  try { await fetch(NOTIFY_URL, { method: 'POST', headers: { 'content-type': 'application/json', 'x-notify-secret': NOTIFY_SECRET }, body: JSON.stringify({ subject, html }) }); } catch (_) { /* sessiz */ }
+}
+
 async function exec(tool, args) {
   const r = await fetch(`${BASE}/tools/execute/${tool}`, {
     method: 'POST', headers: { 'x-api-key': KEY, 'content-type': 'application/json' },
@@ -95,8 +110,8 @@ module.exports = async (req, res) => {
       // İŞLENEN REELS: video hazır mı? hazırsa yayınla
       if (row.status === 'processing') {
         const st = await statusOf(row.ig_post_id);
-        if (st === 'FINISHED') { const pub = await publishWithRetry(row.ig_post_id); await patch(row.id, ok(pub) ? { status: 'published', result: 'ok', ig_post_id: cid(pub) } : { status: 'failed', result: errOf(pub).slice(0, 300) }); processed.push({ id: row.id, ok: ok(pub) }); }
-        else if (st === 'ERROR' || st === 'EXPIRED') { await patch(row.id, { status: 'failed', result: 'medya işlenemedi ' + st }); processed.push({ id: row.id, ok: false }); }
+        if (st === 'FINISHED') { const pub = await publishWithRetry(row.ig_post_id); const okp = ok(pub); await patch(row.id, okp ? { status: 'published', result: 'ok', ig_post_id: cid(pub) } : { status: 'failed', result: errOf(pub).slice(0, 300) }); await mailPost(row, okp, okp ? '' : errOf(pub)); processed.push({ id: row.id, ok: okp }); }
+        else if (st === 'ERROR' || st === 'EXPIRED') { await patch(row.id, { status: 'failed', result: 'medya işlenemedi ' + st }); await mailPost(row, false, 'medya işlenemedi ' + st); processed.push({ id: row.id, ok: false }); }
         // IN_PROGRESS → dokunma, sonraki turda tekrar bak
         continue;
       }
@@ -119,16 +134,17 @@ module.exports = async (req, res) => {
           if (!ok(c) || !cid(c)) { bad = errOf(c); break; }
           children.push(cid(c));
         }
-        if (bad) { await patch(row.id, { status: 'failed', result: ('görsel yüklenemedi: ' + bad).slice(0, 300) }); processed.push({ id: row.id, ok: false }); continue; }
+        if (bad) { await patch(row.id, { status: 'failed', result: ('görsel yüklenemedi: ' + bad).slice(0, 300) }); await mailPost(row, false, 'görsel yüklenemedi: ' + bad); processed.push({ id: row.id, ok: false }); continue; }
         const car = await exec('INSTAGRAM_CREATE_CAROUSEL_CONTAINER', { ig_user_id: IG, children, caption: row.caption || '' });
         if (ok(car) && cid(car)) await patch(row.id, { status: 'processing', ig_post_id: cid(car) });
-        else await patch(row.id, { status: 'failed', result: ('carousel oluşturulamadı: ' + errOf(car)).slice(0, 300) });
+        else { await patch(row.id, { status: 'failed', result: ('carousel oluşturulamadı: ' + errOf(car)).slice(0, 300) }); await mailPost(row, false, 'carousel oluşturulamadı: ' + errOf(car)); }
         processed.push({ id: row.id, ok: ok(car) });
         continue;
       }
       // PENDING foto/story: hemen yayınla (hızlı)
       const out = await publishOne(row.format, row.images || [], row.video_url, row.caption || '');
       await patch(row.id, out.ok ? { status: 'published', result: 'ok', ig_post_id: out.id || null } : { status: 'failed', result: String(out.error).slice(0, 300) });
+      await mailPost(row, out.ok, out.ok ? '' : out.error);
       processed.push({ id: row.id, ok: out.ok });
     } catch (e) { await patch(row.id, { status: 'failed', result: String(e.message || e).slice(0, 300) }); }
   }
