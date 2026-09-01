@@ -1,5 +1,5 @@
 // Selected Global — Takvim (sade, sadece ay görünümü)
-import { initAuth, supabase, toast, classify, FMT, fmtTime, fmtDay, fmtFull, dayKey, esc, openPostDrawer, wirePostDrawer } from './planner-common.js?v=139';
+import { initAuth, supabase, toast, classify, FMT, fmtTime, fmtDay, fmtFull, dayKey, esc, openPostDrawer, wirePostDrawer } from './planner-common.js?v=140';
 
 const $ = (s) => document.querySelector(s);
 const WD = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
@@ -65,7 +65,8 @@ function openDay(key) {
     <span class="pl-day-sm"><b>${stories.length}</b> hikaye</span>
   </div>`;
   $('#plDrawerTitle').innerHTML = `<span class="pl-day-title">${esc(fmtDay(items[0].publish_at))}</span>`;
-  $('#plDrawerBody').innerHTML = summary + `<div class="pl-day-list">${items.map((p) => {
+  const addBtn = `<a class="btn btn-gold btn-block pl-day-add" href="paylas.html?date=${encodeURIComponent(key)}">➕ Bu güne gönderi ekle <span class="pl-day-add-s">daire · carousel · hikaye</span></a>`;
+  $('#plDrawerBody').innerHTML = summary + addBtn + `<div class="pl-day-list">${items.map((p) => {
     const kind = classify(p); const f = FMT[kind]; const thumb = (p.images && p.images[0]) || '';
     return `<button class="pl-day-row" data-id="${esc(p.id)}">
       <span class="pl-day-th"${thumb ? ` style="background-image:url('${esc(thumb)}')"` : ''}></span>

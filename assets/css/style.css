@@ -978,6 +978,10 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-upload:hover { border-color: var(--navy-500); color: var(--navy); }
 .ig-upload.drag { border-color: var(--gold); background: var(--bg-tint); color: var(--navy); }
 .ig-upload strong { color: var(--navy); }
+/* Takvimden "bu güne ekle" → zamanlama alanını vurgula */
+.ig-schedule.pulse { animation: igPulse 1.2s ease-in-out 2; border-radius: 12px; }
+@keyframes igPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(184,146,74,0); } 50% { box-shadow: 0 0 0 5px rgba(184,146,74,.35); } }
+
 /* Yazarak daire ekle — çözümleme önizleme çipleri */
 .ta-preview { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }
 .ta-preview:empty { display: none; }

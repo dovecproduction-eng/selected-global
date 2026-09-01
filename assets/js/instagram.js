@@ -1,9 +1,9 @@
 // Selected Global — Instagram hazırlık sayfası (Phase 1: elle paylaşım yardımcısı)
-import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=139';
+import { supabase, CURRENCY, creatorContact, nameFromEmail, STORAGE_BUCKET, SUPER_ADMIN_EMAIL } from './config.js?v=140';
 import {
   esc, pickTitle, regionDisplay, slugify, toast, coverUrl,
   downloadPropertyPhotos, downloadReel, makeReel, renderCoverImage, renderFooter,
-} from './ui.js?v=139';
+} from './ui.js?v=140';
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -965,6 +965,25 @@ if (new URLSearchParams(location.search).get('analiz') === '1') { setTimeout(() 
 if (new URLSearchParams(location.search).get('rebrand') === '1') {
   const t = setInterval(() => { if (props.length && !$('#app').classList.contains('hidden')) { clearInterval(t); rebrandPlan(); } }, 500);
   setTimeout(() => clearInterval(t), 20000);
+}
+// ?date=YYYY-MM-DD → takvimden "bu güne gönderi ekle": zamanlama tarihini ön-doldur, alanı vurgula
+{
+  const dp = new URLSearchParams(location.search).get('date');
+  if (dp && /^\d{4}-\d{2}-\d{2}$/.test(dp)) {
+    const t = setInterval(() => {
+      if ($('#app').classList.contains('hidden')) return;
+      clearInterval(t);
+      const wrap = $('#igScheduleWrap'); if (wrap) wrap.classList.remove('hidden');
+      const el = $('#igSchedule'); if (el) { el.value = `${dp}T12:00`; }
+      setTimeout(() => {
+        wrap?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        wrap?.classList.add('pulse'); setTimeout(() => wrap?.classList.remove('pulse'), 2400);
+        const d = new Date(dp + 'T12:00');
+        toast(`${d.toLocaleDateString('tr-TR', { day: 'numeric', month: 'long' })} için: daire/hikaye seç, saat ayarla, 🕒 Zamanla`, 'ok');
+      }, 700);
+    }, 400);
+    setTimeout(() => clearInterval(t), 15000);
+  }
 }
 // Takvim öğesi üzerine gelince (tıklamadan) detay balonu göster
 function calTip() { let t = document.getElementById('igCalTip'); if (!t) { t = document.createElement('div'); t.id = 'igCalTip'; t.className = 'ig-cal-tip'; document.body.appendChild(t); } return t; }
