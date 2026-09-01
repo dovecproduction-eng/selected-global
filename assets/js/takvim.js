@@ -1,7 +1,7 @@
 // Selected Global — Takvim (sade, sadece ay görünümü)
-import { initAuth, supabase, toast, classify, FMT, fmtTime, fmtDay, fmtFull, dayKey, esc, openPostDrawer, wirePostDrawer, currentEmail } from './planner-common.js?v=141';
-import { renderCoverImage, pickTitle, regionDisplay } from './ui.js?v=141';
-import { STORAGE_BUCKET, CURRENCY, SUPABASE_URL } from './config.js?v=141';
+import { initAuth, supabase, toast, classify, FMT, fmtTime, fmtDay, fmtFull, dayKey, esc, openPostDrawer, wirePostDrawer, currentEmail } from './planner-common.js?v=142';
+import { renderCoverImage, pickTitle, regionDisplay } from './ui.js?v=142';
+import { STORAGE_BUCKET, CURRENCY, SUPABASE_URL } from './config.js?v=142';
 
 const $ = (s) => document.querySelector(s);
 const AUTO = `${SUPABASE_URL}/storage/v1/object/public/property-images/_ig/auto`;
@@ -154,10 +154,31 @@ function quickAddHtml(key) {
     </div>
     <div class="pl-qa-pane" data-pane="daire"><select id="qaDaire"><option value="">Daire seç…</option>${daireOpts}</select></div>
     <div class="pl-qa-pane hidden" data-pane="story"><div class="pl-qa-2"><select id="qaSeri">${seriOpts}</select><select id="qaLang"><option value="tr">🇹🇷 Türkçe</option><option value="en">🇬🇧 İngilizce</option></select></div></div>
+    <div class="pl-qa-prev" id="qaPreview"></div>
     <div class="pl-qa-row"><input type="time" id="qaTime" value="12:00" /><button class="btn btn-gold" id="qaGo">🕒 Bu güne zamanla</button></div>
     <div id="qaMsg" class="pl-qa-msg"></div>
     <a class="pl-qa-site" href="paylas.html?date=${encodeURIComponent(key)}">Yeni Gönderi sayfasında hazırla ↗</a>
   </div>`;
+}
+let _qaPrevTok = 0;
+async function renderDairePreview(p) {
+  const box = $('#qaPreview'); if (!box) return;
+  const tok = ++_qaPrevTok;
+  const slides = buildPhotoSlides(p);
+  const thumbs = slides.slice(0, 6).map((u) => `<span class="pl-qa-th" style="background-image:url('${esc(u)}')"></span>`).join('');
+  box.innerHTML = `<div class="pl-qa-prev-main loading">Kapak hazırlanıyor…</div><div class="pl-qa-strip">${thumbs}</div>`;
+  try {
+    const card = await renderCoverImage(p);
+    if (tok !== _qaPrevTok) return;   // seçim değiştiyse iptal
+    const url = URL.createObjectURL(card);
+    box.innerHTML = `<div class="pl-qa-prev-main" style="background-image:url('${url}')"><span class="pl-qa-badge">1 / ${slides.length + 1}</span></div><div class="pl-qa-strip">${thumbs}</div>`;
+  } catch (_) { if (tok === _qaPrevTok) box.innerHTML = `<div class="pl-qa-strip">${thumbs}</div>`; }
+}
+function renderStoryPreview() {
+  const box = $('#qaPreview'); if (!box) return;
+  const C = $('#qaSeri').value, lang = $('#qaLang').value;
+  const imgs = Array.from({ length: 7 }, (_, i) => lang === 'en' ? `${AUTO}/${C}_en_story_${i + 1}.webp` : `${AUTO}/${C}_story_${i + 1}.webp`);
+  box.innerHTML = `<div class="pl-qa-prev-main tall" style="background-image:url('${imgs[0]}')"><span class="pl-qa-badge">1 / 7</span></div><div class="pl-qa-strip">${imgs.map((u) => `<span class="pl-qa-th tall" style="background-image:url('${u}')"></span>`).join('')}</div>`;
 }
 function wireQuickAdd(key) {
   let tab = 'daire';
@@ -165,7 +186,12 @@ function wireQuickAdd(key) {
     tab = b.dataset.qa;
     $('#plDrawerBody').querySelectorAll('[data-qa]').forEach((x) => x.classList.toggle('active', x === b));
     $('#plDrawerBody').querySelectorAll('[data-pane]').forEach((p) => p.classList.toggle('hidden', p.dataset.pane !== tab));
+    if (tab === 'story') renderStoryPreview();
+    else { const p = daireList.find((x) => x.id === $('#qaDaire').value); if (p) renderDairePreview(p); else { $('#qaPreview').innerHTML = ''; } }
   });
+  $('#qaDaire').onchange = () => { const p = daireList.find((x) => x.id === $('#qaDaire').value); if (p) renderDairePreview(p); else $('#qaPreview').innerHTML = ''; };
+  $('#qaSeri').onchange = renderStoryPreview;
+  $('#qaLang').onchange = renderStoryPreview;
   $('#qaGo').onclick = () => quickAdd(key, tab);
 }
 async function quickAdd(key, tab) {
