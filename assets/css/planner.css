@@ -278,3 +278,25 @@
 .pl-day-sum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
 .pl-day-sm { background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 12px 8px; text-align: center; font-size: .74rem; font-weight: 700; color: var(--muted); display: flex; flex-direction: column; gap: 2px; }
 .pl-day-sm b { font-family: var(--font-display); font-size: 1.5rem; font-weight: 600; color: var(--navy); font-variant-numeric: tabular-nums; line-height: 1; }
+
+/* ============ MOBİL (takvim / hub / otomasyon) ============ */
+@media (max-width: 600px) {
+  .pl-hero-row { gap: 12px; }
+  .pl-day-sum { flex-wrap: wrap; gap: 8px 14px; }
+  .pl-cal-legend, .pl-legend { flex-wrap: wrap; }
+  /* Gün paneli tam genişlik + rahat okunur */
+  .pl-drawer { width: 100%; }
+  .pl-drawer-body { padding: 16px 16px 40px; }
+  /* Takvim hücreleri: sayı üstte, nokta/sayaç alt — sıkışmasın */
+  .pl-cell { min-height: 66px; padding: 4px; gap: 3px; }
+  .pl-cell-d span { font-size: .78rem; }
+  .pl-dot { width: 6px; height: 6px; }
+  .pl-x { font-size: 1.5rem; top: 18px; }
+  .pl-cell-plus { opacity: .55; font-size: .95rem; right: 5px; bottom: 4px; }
+  /* Otomasyon: özet hücreleri sarsın */
+  .au-sum { flex-wrap: wrap; }
+}
+@media (max-width: 380px) {
+  .pl-weekhead span { font-size: .64rem; }
+  .pl-cell { min-height: 56px; }
+}

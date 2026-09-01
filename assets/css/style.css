@@ -1172,3 +1172,64 @@ svg { width: 1.2em; height: 1.2em; display: inline-block; vertical-align: middle
 .ig-topnav a:hover { color: #fff; background: rgba(255,255,255,.12); }
 .ig-topnav a.active { color: var(--navy); background: #fff; }
 @media (max-width: 720px){ .ig-topnav{ order: 3; width: 100%; justify-content: center; margin: 6px 0 0; } .admin-topbar .header-inner{ flex-wrap: wrap; } }
+
+/* ============================================================
+   MOBİL SAĞLAMLAŞTIRMA — telefonda üst üste binen yazıları önle
+   ============================================================ */
+/* Label içindeki floatlı butonlar (Tümünü seç / Otomatik oluştur / galeri-liste)
+   her ekranda flex ile hizalanır → asla metnin üstüne binmez */
+label:has([style*="float"]) { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+label [style*="float"] { float: none !important; margin-left: auto !important; }
+
+@media (max-width: 600px) {
+  html, body { max-width: 100%; overflow-x: hidden; }
+  img, video, canvas { max-width: 100%; height: auto; }
+  .container { padding-left: 14px; padding-right: 14px; }
+
+  /* Üst bar: aksiyonlar sarsın, taşmasın */
+  .admin-topbar .header-inner { flex-wrap: wrap; row-gap: 8px; }
+  .header-actions { flex-wrap: wrap; gap: 6px 8px; justify-content: flex-end; }
+  .header-actions .link-quiet { font-size: .8rem; }
+
+  /* Sekme şeridi yatay kaydırılabilir olsun (taşarsa) */
+  .admin-tabs-inner { overflow-x: auto; -webkit-overflow-scrolling: touch; white-space: nowrap; gap: 4px; }
+  .admin-tabs-inner button { flex: 0 0 auto; }
+
+  /* Panel başlıkları alt alta, butonlar tam genişlik */
+  .panel-head { flex-direction: column; align-items: stretch; gap: 10px; }
+  .panel-head > div { display: flex; gap: 8px; width: 100%; }
+  .panel-head .btn { flex: 1; justify-content: center; }
+
+  /* Filtreler sarsın */
+  .admin-filters { flex-wrap: wrap; gap: 8px; }
+  .admin-filters > * { min-width: 0; }
+
+  /* Başlık şeritleri küçülsün */
+  .ig-titlebar, .pl-hero { padding: 16px 0; }
+  .ig-titlebar h1 { font-size: 1.35rem; }
+  .ig-titlebar p, .pl-hero p { font-size: .85rem; }
+  .pl-hero h1 { font-size: 1.5rem; }
+
+  /* Instagram profil başlığı: sarsın, kullanıcı adı taşmasın */
+  .ig-profile { flex-wrap: wrap; row-gap: 10px; }
+  .ig-profile-info { min-width: 0; flex: 1; }
+  .ig-username { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ig-profile-actions { width: 100%; }
+
+  /* Kaynak / format butonları sığsın */
+  .ig-format { gap: 6px; }
+  .ig-format button { min-width: 0; flex: 1 1 44%; font-size: .8rem; padding: 8px 6px; }
+
+  /* Modal'lar ekrana otursun (içerik kaydırılır, başlık taşmaz) */
+  .modal { max-width: 100% !important; width: 100%; max-height: 92vh; display: flex; flex-direction: column; }
+  .modal-head, .modal-foot { flex: 0 0 auto; }
+  .modal-body { flex: 1 1 auto; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+
+  /* Aksiyon satırları sarsın */
+  .ig-actions, .modal-foot { flex-wrap: wrap; gap: 8px; }
+  .ig-actions .btn, .modal-foot .btn { flex: 1 1 auto; }
+}
+
+@media (max-width: 380px) {
+  .ig-format button { flex-basis: 100%; }
+}
