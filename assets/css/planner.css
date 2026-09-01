@@ -114,8 +114,23 @@
 .pl-capbox { margin-top: 18px; background: var(--bg-soft); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
 .pl-capbox label { font-size: .7rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
 .pl-capbox p { margin-top: 8px; font-size: .88rem; line-height: 1.55; white-space: pre-wrap; color: var(--navy); }
-.pl-day-add { margin: 4px 0 16px; display: flex; flex-direction: column; gap: 2px; align-items: center; text-align: center; }
-.pl-day-add-s { font-size: .72rem; font-weight: 600; opacity: .8; }
+/* Hızlı ekle paneli (gün drawer'ı) */
+.pl-qa { background: var(--bg-tint); border: 1px solid var(--line); border-radius: 12px; padding: 12px; margin: 4px 0 16px; }
+.pl-qa-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.pl-qa-tabs button { flex: 1; padding: 8px 10px; border: 1px solid var(--line); background: var(--bg); border-radius: 9px; font-weight: 700; font-size: .82rem; color: var(--muted); cursor: pointer; transition: .15s; }
+.pl-qa-tabs button.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+.pl-qa-pane select, .pl-qa-row input { width: 100%; padding: 9px 11px; border: 1px solid var(--line); border-radius: 9px; font-family: var(--font-body); font-size: .9rem; color: var(--navy); background: var(--bg); }
+.pl-qa-2 { display: flex; gap: 6px; } .pl-qa-2 select { flex: 1; }
+.pl-qa-row { display: flex; gap: 6px; margin-top: 8px; }
+.pl-qa-row input { flex: .8; } .pl-qa-row .btn { flex: 1.2; white-space: nowrap; }
+.pl-qa-msg { font-size: .8rem; color: var(--muted); margin-top: 8px; min-height: 1em; }
+.pl-qa-msg.err { color: var(--danger); }
+.pl-qa-site { display: inline-block; margin-top: 10px; font-size: .8rem; color: var(--navy-500, #3a5b82); text-decoration: underline; }
+.pl-day-empty { color: var(--muted); font-size: .9rem; margin: 0 0 12px; }
+.pl-cell-plus { position: absolute; right: 8px; bottom: 6px; font-size: 1.1rem; color: var(--gold); opacity: 0; transition: .15s; font-weight: 700; }
+.pl-cell[data-add]:hover .pl-cell-plus { opacity: 1; }
+.pl-cell[data-add] { cursor: pointer; }
+.pl-cell[data-add]:hover { border-color: var(--gold); background: var(--bg-tint); }
 .pl-resched { margin: 0 0 22px; padding: 16px; background: var(--bg-tint); border: 1px solid var(--line); border-radius: 12px; }
 .pl-resched-cur { margin: 10px 0 0; font-size: .8rem; color: var(--navy); }
 .pl-resched-row input[type="date"] { flex: 1.4; }
