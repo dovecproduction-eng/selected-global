@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=148';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark, isCommonPhoto, renderCoverImage, renderStatusStoryImage } from './ui.js?v=148';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=149';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark, isCommonPhoto, renderCoverImage, renderStatusStoryImage } from './ui.js?v=149';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -938,7 +938,6 @@ function itemGallery(p, ctx) {
 function itemCompact(p, ctx) {
   const meta = [tipBadge(p), p.proje ? `<span class="c-proje">${esc(p.proje)}</span>` : null, p.konut_tipi ? esc(p.konut_tipi) : null, regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : null, p.oda_sayisi ? esc(p.oda_sayisi) : null].filter(Boolean).join(' · ');
   return `<div class="compact-row${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
-    ${soldOverlayHtml(p, ctx)}
     ${ctx === 'select' ? `<span class="row-check">${ICON.check}</span>` : ''}
     <span class="c-title">${esc(pickTitle(p) || 'Başlıksız')}</span>
     <span class="c-meta">${meta}</span>
