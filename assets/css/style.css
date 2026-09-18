@@ -374,6 +374,18 @@ button { font-family: inherit; cursor: pointer; }
 .prop-gcard.sel { border-color: var(--navy); box-shadow: 0 0 0 2px rgba(10,37,64,.18); }
 .gtile.sel { outline: 3px solid var(--navy); outline-offset: -3px; }
 
+/* Daire durum çerçevesi: aksiyon yoksa yeşil, kapora alındıysa sarı çerçeve; satıldıysa gri tabaka */
+.admin-item.status-none, .prop-gcard.status-none, .compact-row.status-none, .gtile.status-none { border: 2px solid var(--ok); }
+.admin-item.status-kapora, .prop-gcard.status-kapora, .compact-row.status-kapora, .gtile.status-kapora { border: 2px solid var(--gold); }
+.admin-item.status-sold, .prop-gcard.status-sold, .compact-row.status-sold, .gtile.status-sold { position: relative; }
+.admin-item.status-sold::after, .prop-gcard.status-sold::after, .compact-row.status-sold::after, .gtile.status-sold::after {
+  content: ''; position: absolute; inset: 0; background: rgba(100,110,120,.45); pointer-events: none; z-index: 3; border-radius: inherit;
+}
+.prop-table tbody tr.status-none td:first-child { box-shadow: inset 4px 0 0 var(--ok); }
+.prop-table tbody tr.status-kapora td:first-child { box-shadow: inset 4px 0 0 var(--gold); }
+.prop-table tbody tr.status-sold td:first-child { box-shadow: inset 4px 0 0 #8A97A6; }
+.prop-table tbody tr.status-sold { opacity: .6; }
+
 /* Etiket rozetleri (tablo/kompakt) */
 .badge-rent, .badge-sale { display: inline-block; font-size: .7rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
 .badge-rent { background: #E8EEF6; color: var(--navy); }

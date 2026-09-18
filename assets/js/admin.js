@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=146';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark, isCommonPhoto, renderCoverImage, renderStatusStoryImage } from './ui.js?v=146';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=147';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark, isCommonPhoto, renderCoverImage, renderStatusStoryImage } from './ui.js?v=147';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -881,6 +881,12 @@ function itemTail(p, ctx) {
   return `<div class="acts">${statusHtml(p)}<button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div>`;
 }
 function selCls(p, ctx) { return ctx === 'select' && selected.has(p.id) ? ' sel' : ''; }
+// Kart çerçevesi/tabakası: aksiyon yoksa yeşil, kapora alındıysa sarı, satıldıysa gri tabaka
+// (yalnız Daireler/browse görünümünde — portföy seçim ekranında seçim rengiyle karışmasın)
+function statusClass(p, ctx) {
+  if (ctx !== 'browse') return '';
+  return p.satis_durumu === 'satildi' ? ' status-sold' : p.satis_durumu === 'kapora' ? ' status-kapora' : ' status-none';
+}
 function ekleyenLine(p) {
   const parts = [
     p.blok ? `Blok ${esc(p.blok)}` : `<span class="miss">⚠ Blok eklenmeli</span>`,
@@ -899,7 +905,7 @@ function ekleyenLine(p) {
 
 function itemList(p, ctx) {
   const cover = coverUrl(p); const n = (p.fotograflar || []).length;
-  return `<div class="admin-item${selCls(p, ctx)}" data-id="${p.id}">
+  return `<div class="admin-item${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
     <div class="thumb-wrap">${cover ? `<img class="thumb" src="${esc(cover)}" alt="" /><span class="thumb-brand">${logoMark(true)}</span>` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}</div>
     <div class="meta"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ekleyenLine(p)}</div>
     ${itemTail(p, ctx)}
@@ -907,14 +913,14 @@ function itemList(p, ctx) {
 }
 function itemGrid(p, ctx) {
   const n = (p.fotograflar || []).length;
-  return `<div class="prop-gcard${selCls(p, ctx)}" data-id="${p.id}">
+  return `<div class="prop-gcard${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
     <div class="gcard-media branded">${brandedCover(p)}${n ? `<span class="pcount">${ICON.camera}${n}</span>` : ''}${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : ''}</div>
     <div class="gcard-body"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ekleyenLine(p)}${ctx === 'browse' ? `<div class="gcard-acts">${itemTail(p, ctx)}</div>` : ''}</div>
   </div>`;
 }
 function itemGallery(p, ctx) {
   const cover = coverUrl(p);
-  return `<div class="gtile${selCls(p, ctx)}" data-id="${p.id}">
+  return `<div class="gtile${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
     ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
     <div class="gtile-overlay">${p.proje ? `<span class="gt-proje">${esc(p.proje)}</span>` : ''}<span class="gt-price">${priceText(p)}</span><span class="gt-title">${esc(pickTitle(p) || 'Başlıksız')}</span></div>
     ${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : (canEdit(p) ? `<button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>` : '')}
@@ -922,7 +928,7 @@ function itemGallery(p, ctx) {
 }
 function itemCompact(p, ctx) {
   const meta = [tipBadge(p), p.proje ? `<span class="c-proje">${esc(p.proje)}</span>` : null, p.konut_tipi ? esc(p.konut_tipi) : null, regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : null, p.oda_sayisi ? esc(p.oda_sayisi) : null].filter(Boolean).join(' · ');
-  return `<div class="compact-row${selCls(p, ctx)}" data-id="${p.id}">
+  return `<div class="compact-row${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
     ${ctx === 'select' ? `<span class="row-check">${ICON.check}</span>` : ''}
     <span class="c-title">${esc(pickTitle(p) || 'Başlıksız')}</span>
     <span class="c-meta">${meta}</span>
@@ -932,7 +938,7 @@ function itemCompact(p, ctx) {
 }
 function viewTable(list, ctx) {
   const head = `<tr>${ctx === 'select' ? '<th></th>' : ''}<th>Başlık</th><th>Tip</th><th>Konut</th><th>Bölge</th><th>Oda</th><th>Banyo</th><th>Kat</th><th>m²</th><th>Fiyat</th><th>Eşya</th>${ctx === 'browse' ? '<th></th>' : ''}</tr>`;
-  const rows = list.map((p) => `<tr data-id="${p.id}" class="${selCls(p, ctx).trim()}">
+  const rows = list.map((p) => `<tr data-id="${p.id}" class="${(selCls(p, ctx) + statusClass(p, ctx)).trim()}">
     ${ctx === 'select' ? `<td><span class="tcheck">${ICON.check}</span></td>` : ''}
     <td class="td-title">${esc(pickTitle(p) || '—')}</td>
     <td>${tipBadge(p)}</td>
