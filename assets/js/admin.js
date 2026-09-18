@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=143';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark } from './ui.js?v=143';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=146';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark, isCommonPhoto, renderCoverImage, renderStatusStoryImage } from './ui.js?v=146';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -470,9 +470,13 @@ function applyProjectPhotos(proje) {
 // düzenleme/yükleme sırası ne olursa olsun eksik kalanları kayıtta sona ekler.
 function withProjectCommons(urls, proje) {
   const commons = PROJECT_COMMON_PHOTOS[proje] || [];
-  if (!commons.length) return urls;
   const have = new Set(urls);
-  return [...urls, ...commons.filter((u) => !have.has(u))];
+  const missing = commons.filter((u) => !have.has(u));
+  // Kendi fotoğrafları önde, aradaki (varsa) otomatik fotoğraflar da sona alınır — kayıtta
+  // sıra ne olursa olsun garanti sağlanır.
+  const own = urls.filter((u) => !isCommonPhoto(u));
+  const existingCommon = urls.filter((u) => isCommonPhoto(u));
+  return [...own, ...existingCommon, ...missing];
 }
 
 // Kullanıcı projeyi değiştirince il/ilçe + olanaklar + ortak fotoğraflar otomatik dolar (kayıt yüklerken tetiklenmez)
@@ -544,6 +548,9 @@ const ALLOWED_LOGINS = [SUPER_ADMIN_EMAIL, 'janna@selectedglobal.com'];
 function isAllowedEmail(email) { return !!email && ALLOWED_LOGINS.some((a) => asciiLower(email) === asciiLower(a)); }
 
 async function init() {
+  // Şifre sıfırlama linkiyle geldiyse normal giriş/oturum akışına karışma — onAuthStateChange
+  // içindeki PASSWORD_RECOVERY dinleyicisi "yeni şifre belirle" ekranını zaten açacak.
+  if (/type=recovery/.test(location.hash)) return;
   const { data: { session } } = await supabase.auth.getSession();
   const email = session?.user?.email || '';
   if (session && isAllowedEmail(email)) { myEmail = email; showApp(); }
@@ -588,6 +595,61 @@ $('#loginForm').addEventListener('submit', async (e) => {
 });
 
 $('#logoutBtn').addEventListener('click', async () => { await supabase.auth.signOut(); showLogin(); });
+
+/* ============== ŞİFREMİ UNUTTUM / YENİ ŞİFRE BELİRLE ============== */
+$('#forgotLink')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  $('#forgotErr').textContent = ''; $('#forgotForm')?.reset();
+  $('#forgotEmail').value = $('#loginEmail').value.trim();
+  $('#loginScreen').classList.add('hidden');
+  $('#forgotScreen').classList.remove('hidden');
+});
+$('#backToLoginLink')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  $('#forgotScreen').classList.add('hidden');
+  $('#loginScreen').classList.remove('hidden');
+});
+$('#forgotForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = $('#forgotEmail').value.trim();
+  const err = $('#forgotErr'); err.textContent = '';
+  const btn = $('#forgotBtn'); btn.disabled = true; btn.textContent = 'Gönderiliyor…';
+  // Link bu sayfaya (admin.html) geri dönecek şekilde gönderilir — Supabase projesinde
+  // Authentication → URL Configuration altında bu adresin (Site URL / Redirect URLs) tanımlı olması gerekir.
+  const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  btn.disabled = false; btn.textContent = 'Sıfırlama linki gönder';
+  if (error) { err.textContent = 'Gönderilemedi: ' + error.message; return; }
+  err.style.color = 'var(--ok)';
+  err.textContent = 'Link gönderildi. E-postanı kontrol et (spam klasörü dahil) ve linke birkaç dakika içinde tıkla.';
+});
+// Sıfırlama linkine tıklanınca Supabase geçici bir oturum açar ve bu olayı tetikler
+supabase.auth.onAuthStateChange((event) => {
+  if (event === 'PASSWORD_RECOVERY') {
+    $('#loginScreen').classList.add('hidden');
+    $('#forgotScreen').classList.add('hidden');
+    $('#app').classList.add('hidden');
+    $('#recoveryErr').textContent = ''; $('#recoveryForm')?.reset();
+    $('#recoveryScreen').classList.remove('hidden');
+  }
+});
+$('#recoveryForm')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const n1 = $('#recoveryPass1').value, n2 = $('#recoveryPass2').value;
+  const err = $('#recoveryErr'); err.textContent = '';
+  if (n1.length < 6) { err.textContent = 'Yeni şifre en az 6 karakter olmalı.'; return; }
+  if (n1 !== n2) { err.textContent = 'Şifreler aynı değil.'; return; }
+  const btn = $('#recoveryBtn'); btn.disabled = true; btn.textContent = 'Kaydediliyor…';
+  const { data, error } = await supabase.auth.updateUser({ password: n1 });
+  btn.disabled = false; btn.textContent = 'Şifreyi kaydet';
+  if (error) { err.textContent = 'Kaydedilemedi: ' + error.message; return; }
+  const email = data.user?.email || '';
+  history.replaceState(null, '', location.pathname);  // URL'deki token'ı temizle
+  if (!isAllowedEmail(email)) { $('#recoveryScreen').classList.add('hidden'); showLogin(); $('#loginErr').textContent = 'Bu panele giriş yetkiniz yok.'; return; }
+  myEmail = email;
+  $('#recoveryScreen').classList.add('hidden');
+  toast('Şifre güncellendi', 'ok');
+  showApp();
+});
 
 /* ============== KULLANICI MENÜSÜ / HESAP ============== */
 $('#userBtn')?.addEventListener('click', (e) => { e.stopPropagation(); $('#userDropdown').classList.toggle('hidden'); });
@@ -673,6 +735,8 @@ const ACTION_META = {
   media_create:     { label: 'Görsel/Video yaptı', emoji: '🎬', cls: '' },
   export:           { label: 'Excel dışa aktardı', emoji: '📊', cls: '' },
   delete:           { label: 'Sildi',              emoji: '🗑️', cls: 'danger' },
+  satildi:          { label: 'Satıldı işaretledi', emoji: '🎉', cls: 'ok' },
+  kapora:           { label: 'Kapora alındı işaretledi', emoji: '💵', cls: 'warn' },
 };
 function actionMeta(a) { return ACTION_META[a] || { label: a || '—', emoji: '•', cls: '' }; }
 function fmtWhen(iso) { try { return new Date(iso).toLocaleString('tr-TR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch { return iso || ''; } }
@@ -804,10 +868,17 @@ async function loadProps() {
 // ---- Birleşik görünüm sistemi (browse = Daireler, select = portföy seçimi) ----
 function priceText(p) { return p.fiyat != null ? fmtPrice(p.fiyat, p.para_birimi, p.tip).replace(/<[^>]+>/g, '') : '—'; }
 function tipBadge(p) { return `<span class="badge-${p.tip === 'satilik' ? 'sale' : 'rent'}">${p.tip === 'satilik' ? 'Satılık' : 'Kiralık'}</span>`; }
+// Satıldı / Kapora Alındı butonları (henüz işaretlenmemişse) ya da durum rozeti + geri al (işaretliyse)
+function statusHtml(p) {
+  const sd = p.satis_durumu;
+  if (sd === 'satildi') return `<span class="status-badge sold" title="Satıldı">🎉 Satıldı</span><button class="icon-btn" data-undostatus="${p.id}" title="İşareti kaldır (yayınlanmış Instagram gönderisi geri alınmaz)">${ICON.x}</button>`;
+  if (sd === 'kapora') return `<span class="status-badge deposit" title="Kapora Alındı">💵 Kapora</span><button class="icon-btn" data-undostatus="${p.id}" title="İşareti kaldır (yayınlanmış Instagram gönderisi geri alınmaz)">${ICON.x}</button>`;
+  return `<button type="button" class="status-btn sold" data-sold="${p.id}" title="Satıldı olarak işaretle, kapak oluştur ve Instagram'a 10 dk sonra paylaş">Satıldı</button><button type="button" class="status-btn deposit" data-deposit="${p.id}" title="Kapora alındı olarak işaretle ve Instagram'a 10 dk sonra paylaş">Kapora Alındı</button>`;
+}
 function itemTail(p, ctx) {
   if (ctx === 'select') return `<span class="row-check">${ICON.check}</span>`;
   if (!canEdit(p)) return `<div class="acts"></div>`;   // yalnız sahibi/süper admin düzenler-siler
-  return `<div class="acts"><button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div>`;
+  return `<div class="acts">${statusHtml(p)}<button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button></div>`;
 }
 function selCls(p, ctx) { return ctx === 'select' && selected.has(p.id) ? ' sel' : ''; }
 function ekleyenLine(p) {
@@ -873,7 +944,7 @@ function viewTable(list, ctx) {
     <td>${p.metrekare != null ? esc(p.metrekare) : '—'}</td>
     <td class="price">${priceText(p)}</td>
     <td>${p.esyali == null ? '—' : (p.esyali ? 'Eşyalı' : 'Eşyasız')}</td>
-    ${ctx === 'browse' ? `<td><div class="t-acts">${canEdit(p) ? `<button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>` : ''}</div></td>` : ''}
+    ${ctx === 'browse' ? `<td><div class="t-acts">${canEdit(p) ? `${statusHtml(p)}<button class="icon-btn" data-edit="${p.id}" title="Düzenle">${ICON.edit}</button><button class="icon-btn danger" data-del="${p.id}" title="Sil">${ICON.trash}</button>` : ''}</div></td>` : ''}
   </tr>`).join('');
   return `<table class="prop-table"><thead>${head}</thead><tbody>${rows}</tbody></table>`;
 }
@@ -886,11 +957,14 @@ function renderView(el, list, mode, ctx) {
 
   if (ctx === 'browse') {
     el.querySelectorAll('[data-id]').forEach((it) => it.addEventListener('click', (e) => {
-      if (e.target.closest('[data-edit],[data-del]')) return;
+      if (e.target.closest('[data-edit],[data-del],[data-sold],[data-deposit],[data-undostatus]')) return;
       openGallery(it.dataset.id);
     }));
     el.querySelectorAll('[data-edit]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); openProp(b.dataset.edit); });
     el.querySelectorAll('[data-del]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); delProp(b.dataset.del); });
+    el.querySelectorAll('[data-sold]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); markStatus(b.dataset.sold, 'satildi', b); });
+    el.querySelectorAll('[data-deposit]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); markStatus(b.dataset.deposit, 'kapora', b); });
+    el.querySelectorAll('[data-undostatus]').forEach((b) => b.onclick = (e) => { e.stopPropagation(); undoStatus(b.dataset.undostatus); });
   } else {
     el.querySelectorAll('[data-id]').forEach((it) => it.addEventListener('click', () => {
       const id = it.dataset.id;
@@ -1199,7 +1273,9 @@ function openProp(id) {
   if (p?.fotograflar?.length) {
     const cov = Math.min(p.kapak_index || 0, p.fotograflar.length - 1);
     const ordered = [p.fotograflar[cov], ...p.fotograflar.filter((_, i) => i !== cov)];
-    photos = ordered.map((url) => ({ url, path: urlToPath(url) }));
+    // common bayrağını URL'den geri kur (_ortak/ yolu) — yoksa yeni yüklenen fotoğraflar
+    // otomatik fotoğrafların ÖNÜNE değil ARKASINA eklenir ve sıra bozulur.
+    photos = ordered.map((url) => ({ url, path: urlToPath(url), common: isCommonPhoto(url) }));
   }
   // Satış danışmanı atama alanı — yalnız süper admin (Orçun) görür
   const af = $('#assignField');
@@ -1228,6 +1304,9 @@ function urlToPath(url) {
 
 let previewSortable = null;
 function renderPreviews() {
+  // Otomatik (proje ortak alan) fotoğraflar her zaman sonda kalsın — sürükleme veya
+  // "tıkla = kapak yap" ile öne alınmış olsalar bile burada geri sona taşınır.
+  photos.sort((a, b) => (a.common ? 1 : 0) - (b.common ? 1 : 0));
   const el = $('#previews');
   el.innerHTML = photos.map((ph, i) => `
     <div class="pv ${i === 0 ? 'cover' : ''}" data-i="${i}" title="${i === 0 ? 'Kapak fotoğrafı' : 'Sürükleyerek sırala · tıkla = kapak yap'}">
@@ -1458,6 +1537,86 @@ async function savePropPayload(payload) {
     if (!error) toast('Kaydedildi, fakat Blok/Daire No/Sahiplik için önce SQL’i çalıştırın', 'err');
   }
   return error;
+}
+
+// ---- Satıldı / Kapora Alındı: kapak+hikaye görseli üret, Instagram'a 10 dk sonrasına zamanla ----
+const STATUS_TAGS = "\n\n#selectedglobal #kuzeykıbrıs #kktc #northcyprus #cyprusrealestate";
+const STATUS_COPY = {
+  satildi: {
+    ribbonTr: 'SATILDI', ribbonEn: 'SOLD', color: '#B23A3A',
+    subTr: 'Hayırlı olsun! 🎉', subEn: 'Congratulations! 🎉',
+    confirmMsg: (label) => `"${label}" SATILDI olarak işaretlenecek:\n\n• Vitrinden kaldırılacak\n• Satıldı kapağı oluşturulup Instagram'da 10 dakika sonra otomatik paylaşılacak (gönderi + hikaye)\n\nDevam edilsin mi?`,
+    doneMsg: 'Satıldı olarak işaretlendi. Instagram gönderisi ~10 dakika içinde paylaşılacak.',
+  },
+  kapora: {
+    ribbonTr: 'KAPORA ALINDI', ribbonEn: 'DEPOSIT RECEIVED', color: '#B8924A',
+    subTr: 'Hayırlı olsun! 🎉', subEn: 'Congratulations! 🎉',
+    confirmMsg: (label) => `"${label}" KAPORA ALINDI olarak işaretlenecek:\n\n• Vitrinde kalır, kartında "Kapora Alındı" rozeti görünür\n• Kapak oluşturulup Instagram'da 10 dakika sonra otomatik paylaşılacak (gönderi + hikaye)\n\nDevam edilsin mi?`,
+    doneMsg: 'Kapora alındı olarak işaretlendi. Instagram gönderisi ~10 dakika içinde paylaşılacak.',
+  },
+};
+async function uploadStatusImage(blob) {
+  const path = `_ig/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.jpg`;
+  const { error } = await supabase.storage.from(STORAGE_BUCKET).upload(path, blob, { contentType: 'image/jpeg' });
+  if (error) throw new Error('Görsel yüklenemedi: ' + error.message);
+  return supabase.storage.from(STORAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+}
+function statusCaption(p, cfg) {
+  const bolge = p.bolge ? regionDisplay(p.bolge) : '';
+  const tr = `${cfg.ribbonTr} 🎉\n\n${pickTitle(p) || ''}${bolge ? `\n📍 ${bolge}` : ''}\n\n${cfg.subTr}`;
+  const en = `${cfg.ribbonEn} 🎉\n\n${p.title_en || pickTitle(p) || ''}${bolge ? `\n📍 ${bolge}` : ''}\n\n${cfg.subEn}`;
+  return `${tr}\n\n・-・-・-・\n\n${en}${STATUS_TAGS}`;
+}
+async function markStatus(id, kind, btn) {
+  const p = props.find((x) => x.id === id);
+  if (!p) return;
+  if (!canEdit(p)) { toast('Bu daireyi yalnız ekleyen kişi veya yetkili işaretleyebilir', 'err'); return; }
+  const cfg = STATUS_COPY[kind];
+  const label = entityLabel(p);
+  if (!confirm(cfg.confirmMsg(label))) return;
+  const origTxt = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Hazırlanıyor…'; }
+  try {
+    const coverBlob = await renderCoverImage(p, { ribbon: { tr: cfg.ribbonTr, en: cfg.ribbonEn, color: cfg.color } });
+    if (!coverBlob) throw new Error('Kapak oluşturulamadı — dairenin kendi fotoğrafı yok');
+    const storyBlob = await renderStatusStoryImage(p, { color: cfg.color, trBig: cfg.ribbonTr, enBig: cfg.ribbonEn, subTr: cfg.subTr, subEn: cfg.subEn });
+    const [coverImgUrl, storyImgUrl] = await Promise.all([
+      uploadStatusImage(coverBlob),
+      storyBlob ? uploadStatusImage(storyBlob) : Promise.resolve(null),
+    ]);
+    const publishAt = new Date(Date.now() + 10 * 60000).toISOString();
+    const caption = statusCaption(p, cfg);
+    const rows = [{ created_by: myEmail, format: 'post', images: [coverImgUrl], caption, publish_at: publishAt, status: 'pending', property_id: p.id }];
+    if (storyImgUrl) rows.push({ created_by: myEmail, format: 'story', images: [storyImgUrl], caption: '', publish_at: publishAt, status: 'pending', property_id: p.id });
+    const { error: se } = await supabase.from('scheduled_posts').insert(rows);
+    if (se) throw new Error('Zamanlama kaydedilemedi: ' + se.message);
+    const { error: ue } = await supabase.from('properties').update({ satis_durumu: kind }).eq('id', id);
+    if (ue) throw new Error('Daire güncellenemedi: ' + ue.message);
+    p.satis_durumu = kind;
+    renderPropList();
+    logAct(kind, 'property', label, kind === 'satildi' ? 'Satıldı + Instagram planlandı' : 'Kapora alındı + Instagram planlandı');
+    toast(cfg.doneMsg, 'ok');
+  } catch (e) {
+    console.error(e);
+    toast(e.message || 'İşlem başarısız oldu', 'err');
+    if (btn) { btn.disabled = false; btn.textContent = origTxt; }
+  }
+}
+async function undoStatus(id) {
+  const p = props.find((x) => x.id === id);
+  if (!p) return;
+  if (!canEdit(p)) { toast('Bu daire için yetkiniz yok', 'err'); return; }
+  if (!confirm(`"${entityLabel(p)}" için işaret kaldırılsın mı?\n\nHenüz yayınlanmamış (bekleyen) Instagram gönderisi varsa o da iptal edilir. Zaten yayınlanmış olan gönderi geri alınamaz.`)) return;
+  try {
+    await supabase.from('scheduled_posts').delete().eq('property_id', id).eq('status', 'pending');
+    const { error } = await supabase.from('properties').update({ satis_durumu: null }).eq('id', id);
+    if (error) throw new Error(error.message);
+    p.satis_durumu = null;
+    renderPropList();
+    toast('İşaret kaldırıldı', 'ok');
+  } catch (e) {
+    toast(e.message || 'İşlem başarısız oldu', 'err');
+  }
 }
 
 async function delProp(id) {

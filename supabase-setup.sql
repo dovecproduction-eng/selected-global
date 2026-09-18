@@ -187,6 +187,30 @@ create policy "upload_images" on storage.objects for insert to authenticated wit
 create policy "update_images" on storage.objects for update to authenticated using (bucket_id = 'property-images');
 create policy "delete_images" on storage.objects for delete to authenticated using (bucket_id = 'property-images');
 
+-- ============================================================
+-- SATILDI / KAPORA ALINDI — daire durumu + zamanlanan gönderiyle ilişki
+-- Bu bloğu Supabase → SQL Editor'da BİR KEZ çalıştırın (tekrar çalıştırmak güvenli).
+-- ============================================================
+alter table public.properties add column if not exists satis_durumu text;
+do $$ begin
+  alter table public.properties add constraint properties_satis_durumu_check
+    check (satis_durumu is null or satis_durumu in ('satildi','kapora'));
+exception when duplicate_object then null; end $$;
+
+-- "Satıldı" vitrinden kaldırılır, "Kapora Alındı" vitrinde rozetle kalır — bu yüzden
+-- müşteri (anon) tarafının da bu sütunu okuyabilmesi gerekir (tablo-geneli grant'ı yeniden yaz).
+revoke select on public.properties from anon;
+grant  select (
+  id, ref_kodu, konut_tipi, baslik, title_en, tip, oda_sayisi, fiyat, para_birimi,
+  metrekare, bolge, banyo_sayisi, kat, esyali, ozellikler, aciklama, desc_en,
+  fotograflar, kapak_index, created_at, ekleyen, proje, satis_durumu
+) on public.properties to anon;
+
+-- Zamanlanmış gönderiyi ilgili daireye bağlar — Satıldı/Kapora işareti geri alınınca henüz
+-- yayınlanmamış (pending) gönderiyi iptal edebilmek için.
+alter table public.scheduled_posts add column if not exists property_id uuid references public.properties(id) on delete set null;
+create index if not exists idx_sched_property on public.scheduled_posts(property_id);
+
 -- ============== E-POSTA BİLDİRİMLERİ ==============
 -- Ayar tablosu (RESEND anahtarı vb. burada; yalnız service_role okur — anahtar repoda tutulmaz)
 create table if not exists public.app_config (key text primary key, value text);

@@ -1,6 +1,6 @@
 // Selected Global — ortak yardımcılar (ikonlar, formatlama, header, toast, dil)
-import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=143';
-import { getLang, setLang, t, applyI18n } from './i18n.js?v=143';
+import { CURRENCY, BRAND, ALL_LISTINGS_URL, REGION_GROUPS } from './config.js?v=146';
+import { getLang, setLang, t, applyI18n } from './i18n.js?v=146';
 
 // ---------- Bölge yardımcıları (ilçe + alt bölge) ----------
 const AREA_TO_DISTRICT = {};
@@ -73,6 +73,13 @@ export function pickDesc(row) {
 // Otomatik gelen "proje ortak alan" fotoğrafı mı? (_ortak/ yolunda saklanır)
 export function isCommonPhoto(url) { return !!url && url.includes('/_ortak/'); }
 
+// Galeri sırası: dairenin kendi (manuel) fotoğrafları önce, otomatik eklenen proje ortak
+// fotoğrafları HER ZAMAN sonda — kayıt sırasında bozulmuş olsa bile görüntülemede düzeltir.
+export function orderedPhotos(arr) {
+  const list = arr || [];
+  return [...list.filter((u) => !isCommonPhoto(u)), ...list.filter((u) => isCommonPhoto(u))];
+}
+
 // Kapak = SADECE dairenin kendi (yüklediği) fotoğrafı. Sadece otomatik ortak foto varsa kapak yok.
 export function coverUrl(row) {
   const arr = row.fotograflar || [];
@@ -116,6 +123,7 @@ export function brandedCover(row, hidePrice = false) {
     <div class="cover-photo">
       <span class="type-tag ${isSale ? 'sale' : ''}">${isSale ? t('badge_sale') : t('badge_rent')}</span>
       ${row.proje ? `<span class="proje-tag">${esc(row.proje)}</span>` : ''}
+      ${row.satis_durumu === 'kapora' ? `<span class="deposit-tag">${getLang() === 'tr' ? 'Kapora Alındı' : 'Deposit Received'}</span>` : ''}
       ${cover ? `<img src="${esc(cover)}" alt="${esc(pickTitle(row))}" loading="lazy" />` : `<span class="ph ph-empty">${ICON.camera}<span>${getLang() === 'tr' ? 'Görsel eklenmedi' : 'No image added'}</span></span>`}
       <div class="cover-overlay">
         <div class="ov-price">${fmtPrice(hidePrice ? null : row.fiyat, row.para_birimi, row.tip)}</div>
@@ -335,8 +343,27 @@ function roundRect(ctx, x, y, w, h, r) {
   ctx.closePath();
 }
 
+// Çapraz "Satıldı / Kapora Alındı" kurdelesi (sol üst köşe, iki dilli: TR üstte büyük, EN altta küçük)
+function drawRibbon(ctx, W, tr, en, color) {
+  ctx.save();
+  const bandW = Math.round(W * 0.68), bandH = 74;
+  ctx.translate(-bandW * 0.2, bandH * 0.62);
+  ctx.rotate(-Math.PI / 4);
+  ctx.shadowColor = 'rgba(0,0,0,.35)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 4;
+  ctx.fillStyle = color;
+  ctx.fillRect(0, 0, bandW, bandH);
+  ctx.shadowColor = 'transparent';
+  ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.font = '800 30px Manrope, system-ui, sans-serif';
+  ctx.fillText(tr, bandW / 2, bandH * 0.37);
+  ctx.font = '700 17px Manrope, system-ui, sans-serif';
+  ctx.fillText(en, bandW / 2, bandH * 0.75);
+  ctx.restore();
+}
+
 // Markalı kapağı (foto + gradyen + logo + bilgiler) gerçek bir görsele çizip blob döndürür
-export async function renderCoverImage(row) {
+// opts.ribbon = { tr, en, color } verilirse sol üst köşeye çapraz "Satıldı/Kapora Alındı" kurdelesi eklenir.
+export async function renderCoverImage(row, opts = {}) {
   const cover = coverUrl(row);
   if (!cover) return null;
   const W = 1080, H = 1350;
@@ -413,6 +440,61 @@ export async function renderCoverImage(row) {
     ctx.fillText(right.join('  ·  '), W - 60, baseY);
   }
   ctx.textAlign = 'left';
+
+  if (opts.ribbon) drawRibbon(ctx, W, opts.ribbon.tr, opts.ribbon.en, opts.ribbon.color || '#B23A3A');
+
+  if (photoObj) setTimeout(() => URL.revokeObjectURL(photoObj), 1000);
+  return await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));
+}
+
+// "Satıldı / Kapora Alındı" hikaye görseli (9:16) — foto + üst/alt gradyen + büyük iki dilli
+// kutlama metni (hikayelerde caption desteklenmediği için yazı doğrudan görsele gömülür) + logo.
+export async function renderStatusStoryImage(row, opts) {
+  const cover = coverUrl(row) || (row.fotograflar || []).find(Boolean);
+  if (!cover) return null;
+  const W = 1080, H = 1920;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+
+  let photoObj;
+  try {
+    const { img, obj } = await loadImage(cover); photoObj = obj;
+    const s = Math.max(W / img.width, H / img.height);
+    const dw = img.width * s, dh = img.height * s;
+    ctx.drawImage(img, (W - dw) / 2, (H - dh) / 2, dw, dh);
+  } catch (e) { ctx.fillStyle = '#0A2540'; ctx.fillRect(0, 0, W, H); }
+
+  const gTop = ctx.createLinearGradient(0, 0, 0, H * 0.3);
+  gTop.addColorStop(0, 'rgba(10,37,64,.6)'); gTop.addColorStop(1, 'rgba(10,37,64,0)');
+  ctx.fillStyle = gTop; ctx.fillRect(0, 0, W, H * 0.3);
+  const gBot = ctx.createLinearGradient(0, H * 0.52, 0, H);
+  gBot.addColorStop(0, 'rgba(10,37,64,0)'); gBot.addColorStop(1, 'rgba(10,37,64,.95)');
+  ctx.fillStyle = gBot; ctx.fillRect(0, H * 0.52, W, H * 0.48);
+
+  try { await document.fonts.ready; } catch (e) {}
+
+  const color = opts.color || '#B23A3A';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+  ctx.font = '800 96px Manrope, system-ui, sans-serif';
+  ctx.fillStyle = color;
+  ctx.fillText(opts.trBig, W / 2, H * 0.70);
+  ctx.font = '700 42px Manrope, system-ui, sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(opts.enBig, W / 2, H * 0.70 + 58);
+  ctx.font = '600 36px Manrope, system-ui, sans-serif';
+  ctx.fillStyle = '#fff';
+  ctx.fillText(opts.subTr, W / 2, H * 0.80);
+  ctx.font = '500 28px Manrope, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255,255,255,.85)';
+  ctx.fillText(opts.subEn, W / 2, H * 0.80 + 44);
+
+  try {
+    const { img: logo, obj } = await loadImage(BRAND.logoLight);
+    const lw = 300, lh = lw * (logo.height / logo.width || 0.166);
+    ctx.drawImage(logo, (W - lw) / 2, H - 170, lw, lh);
+    URL.revokeObjectURL(obj);
+  } catch (e) {}
 
   if (photoObj) setTimeout(() => URL.revokeObjectURL(photoObj), 1000);
   return await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));

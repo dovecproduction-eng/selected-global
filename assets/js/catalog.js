@@ -1,10 +1,10 @@
 // Selected Global — Tüm daireler (herkese açık vitrin)
-import { supabase, REGION_GROUPS, PUBLIC_PROPERTY_COLS } from './config.js?v=143';
-import { t, applyI18n, getLang } from './i18n.js?v=143';
+import { supabase, REGION_GROUPS, PUBLIC_PROPERTY_COLS } from './config.js?v=146';
+import { t, applyI18n, getLang } from './i18n.js?v=146';
 import {
   ICON, fmtPrice, esc, pickTitle, brandedCover, regionDistrict, regionDisplay,
   renderHeader, renderFooter, wireLangSwitch, toast,
-} from './ui.js?v=143';
+} from './ui.js?v=146';
 
 const state = { all: [], type: 'all', region: '', proje: '', room: '' };
 
@@ -104,7 +104,8 @@ async function load() {
     document.getElementById('grid').innerHTML = `<div class="state" style="grid-column:1/-1"><h3>Bağlantı hatası</h3><p>Daireler yüklenemedi.</p></div>`;
     toast('Daireler yüklenemedi', 'err'); return;
   }
-  state.all = data || [];
+  // Satıldı işaretli daireler vitrinden kaldırılır (Kapora Alındı ise rozetle vitrinde kalır)
+  state.all = (data || []).filter((r) => r.satis_durumu !== 'satildi');
   fillRegionOptions(); fillProjeOptions(); fillRoomOptions(); render();
 }
 

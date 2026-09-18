@@ -16,7 +16,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="assets/css/style.css?v=143" />
+  <link rel="stylesheet" href="assets/css/style.css?v=146" />
 </head>
 <body class="admin-body">
 
@@ -42,6 +42,48 @@
         </div>
         <button class="btn btn-primary btn-block" type="submit" id="loginBtn">Giriş yap</button>
         <p id="loginErr" class="hint" style="color:var(--danger);text-align:center;margin-top:12px"></p>
+        <p style="text-align:center;margin-top:14px">
+          <a href="#" id="forgotLink" class="link-quiet" style="font-size:.85rem">Şifremi unuttum</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- ŞİFRE SIFIRLAMA İSTEĞİ (e-postanı yaz → sıfırlama linki gönderilir) -->
+  <div class="login-screen hidden" id="forgotScreen">
+    <div class="login-card">
+      <h2>Şifremi unuttum</h2>
+      <p class="muted">E-postanı yaz, sıfırlama linki gönderelim</p>
+      <form id="forgotForm">
+        <div class="field">
+          <label>E-posta</label>
+          <input type="email" id="forgotEmail" required autocomplete="username" placeholder="ornek@selectedglobal.com" />
+        </div>
+        <button class="btn btn-primary btn-block" type="submit" id="forgotBtn">Sıfırlama linki gönder</button>
+        <p id="forgotErr" class="hint" style="color:var(--danger);text-align:center;margin-top:12px"></p>
+        <p style="text-align:center;margin-top:14px">
+          <a href="#" id="backToLoginLink" class="link-quiet" style="font-size:.85rem">← Girişe dön</a>
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <!-- YENİ ŞİFRE BELİRLE (e-postadaki sıfırlama linkinden gelince açılır) -->
+  <div class="login-screen hidden" id="recoveryScreen">
+    <div class="login-card">
+      <h2>Yeni şifre belirle</h2>
+      <p class="muted">Hesabın için yeni bir şifre gir</p>
+      <form id="recoveryForm">
+        <div class="field">
+          <label>Yeni şifre</label>
+          <input type="password" id="recoveryPass1" required autocomplete="new-password" placeholder="••••••••" />
+        </div>
+        <div class="field">
+          <label>Yeni şifre (tekrar)</label>
+          <input type="password" id="recoveryPass2" required autocomplete="new-password" placeholder="••••••••" />
+        </div>
+        <button class="btn btn-primary btn-block" type="submit" id="recoveryBtn">Şifreyi kaydet</button>
+        <p id="recoveryErr" class="hint" style="color:var(--danger);text-align:center;margin-top:12px"></p>
       </form>
     </div>
   </div>
@@ -539,6 +581,6 @@
 
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
   <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
-  <script type="module" src="assets/js/admin.js?v=143"></script>
+  <script type="module" src="assets/js/admin.js?v=146"></script>
 </body>
 </html>
