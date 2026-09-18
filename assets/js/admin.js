@@ -1,6 +1,6 @@
 // Selected Global — Admin paneli
-import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=147';
-import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark, isCommonPhoto, renderCoverImage, renderStatusStoryImage } from './ui.js?v=147';
+import { supabase, REGION_GROUPS, KONUT_TIPLERI, ODA_TIPLERI, PROJELER, STORAGE_BUCKET, CURRENCY, BRAND, ALL_LISTINGS_URL, nameFromEmail, CREATORS, creatorContact, SUPER_ADMIN_EMAIL } from './config.js?v=148';
+import { ICON, esc, pickTitle, pickDesc, coverUrl, fmtPrice, toast, brandedCover, downloadPropertyPhotos, downloadReel, slugify, regionDistrict, regionDisplay, logoMark, isCommonPhoto, renderCoverImage, renderStatusStoryImage } from './ui.js?v=148';
 
 // WhatsApp paylaşım metni (link önizlemesi p.html OG etiketlerinden gelir)
 const waShare = (url) => `https://wa.me/?text=${encodeURIComponent(url)}`;
@@ -887,6 +887,12 @@ function statusClass(p, ctx) {
   if (ctx !== 'browse') return '';
   return p.satis_durumu === 'satildi' ? ' status-sold' : p.satis_durumu === 'kapora' ? ' status-kapora' : ' status-none';
 }
+// Satıldı (gri tabaka) kartının ortasında "Satışa geri koy" butonu — geri alma undoStatus() ile aynı
+// (henüz yayınlanmamış Instagram gönderisi varsa onu da iptal eder).
+function soldOverlayHtml(p, ctx) {
+  if (ctx !== 'browse' || p.satis_durumu !== 'satildi' || !canEdit(p)) return '';
+  return `<div class="sold-overlay"><button type="button" class="btn btn-primary btn-sm sold-restore" data-undostatus="${p.id}">↺ Satışa geri koy</button></div>`;
+}
 function ekleyenLine(p) {
   const parts = [
     p.blok ? `Blok ${esc(p.blok)}` : `<span class="miss">⚠ Blok eklenmeli</span>`,
@@ -906,6 +912,7 @@ function ekleyenLine(p) {
 function itemList(p, ctx) {
   const cover = coverUrl(p); const n = (p.fotograflar || []).length;
   return `<div class="admin-item${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
+    ${soldOverlayHtml(p, ctx)}
     <div class="thumb-wrap">${cover ? `<img class="thumb" src="${esc(cover)}" alt="" /><span class="thumb-brand">${logoMark(true)}</span>` : `<div class="thumb" style="display:grid;place-items:center;color:#B6C2D0">${ICON.camera}</div>`}${n ? `<span class="thumb-count">${ICON.camera}${n}</span>` : ''}</div>
     <div class="meta"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ekleyenLine(p)}</div>
     ${itemTail(p, ctx)}
@@ -914,6 +921,7 @@ function itemList(p, ctx) {
 function itemGrid(p, ctx) {
   const n = (p.fotograflar || []).length;
   return `<div class="prop-gcard${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
+    ${soldOverlayHtml(p, ctx)}
     <div class="gcard-media branded">${brandedCover(p)}${n ? `<span class="pcount">${ICON.camera}${n}</span>` : ''}${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : ''}</div>
     <div class="gcard-body"><div class="t">${esc(pickTitle(p) || 'Başlıksız')}</div>${propTags(p)}${ekleyenLine(p)}${ctx === 'browse' ? `<div class="gcard-acts">${itemTail(p, ctx)}</div>` : ''}</div>
   </div>`;
@@ -921,6 +929,7 @@ function itemGrid(p, ctx) {
 function itemGallery(p, ctx) {
   const cover = coverUrl(p);
   return `<div class="gtile${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
+    ${soldOverlayHtml(p, ctx)}
     ${cover ? `<img src="${esc(cover)}" alt="" />` : `<span class="ph">${ICON.camera}</span>`}
     <div class="gtile-overlay">${p.proje ? `<span class="gt-proje">${esc(p.proje)}</span>` : ''}<span class="gt-price">${priceText(p)}</span><span class="gt-title">${esc(pickTitle(p) || 'Başlıksız')}</span></div>
     ${ctx === 'select' ? `<span class="row-check tile-check">${ICON.check}</span>` : (canEdit(p) ? `<button class="icon-btn danger gt-del" data-del="${p.id}" title="Sil">${ICON.trash}</button>` : '')}
@@ -929,6 +938,7 @@ function itemGallery(p, ctx) {
 function itemCompact(p, ctx) {
   const meta = [tipBadge(p), p.proje ? `<span class="c-proje">${esc(p.proje)}</span>` : null, p.konut_tipi ? esc(p.konut_tipi) : null, regionDisplay(p.bolge) ? esc(regionDisplay(p.bolge)) : null, p.oda_sayisi ? esc(p.oda_sayisi) : null].filter(Boolean).join(' · ');
   return `<div class="compact-row${selCls(p, ctx)}${statusClass(p, ctx)}" data-id="${p.id}">
+    ${soldOverlayHtml(p, ctx)}
     ${ctx === 'select' ? `<span class="row-check">${ICON.check}</span>` : ''}
     <span class="c-title">${esc(pickTitle(p) || 'Başlıksız')}</span>
     <span class="c-meta">${meta}</span>
@@ -1612,14 +1622,18 @@ async function undoStatus(id) {
   const p = props.find((x) => x.id === id);
   if (!p) return;
   if (!canEdit(p)) { toast('Bu daire için yetkiniz yok', 'err'); return; }
-  if (!confirm(`"${entityLabel(p)}" için işaret kaldırılsın mı?\n\nHenüz yayınlanmamış (bekleyen) Instagram gönderisi varsa o da iptal edilir. Zaten yayınlanmış olan gönderi geri alınamaz.`)) return;
+  const wasSold = p.satis_durumu === 'satildi';
+  const q = wasSold
+    ? `"${entityLabel(p)}" satışa geri konulsun mu?\n\n• Vitrinde tekrar görünür\n• Henüz yayınlanmamış (bekleyen) Instagram gönderisi varsa iptal edilir. Zaten yayınlanmış olan gönderi geri alınamaz.`
+    : `"${entityLabel(p)}" için işaret kaldırılsın mı?\n\nHenüz yayınlanmamış (bekleyen) Instagram gönderisi varsa o da iptal edilir. Zaten yayınlanmış olan gönderi geri alınamaz.`;
+  if (!confirm(q)) return;
   try {
     await supabase.from('scheduled_posts').delete().eq('property_id', id).eq('status', 'pending');
     const { error } = await supabase.from('properties').update({ satis_durumu: null }).eq('id', id);
     if (error) throw new Error(error.message);
     p.satis_durumu = null;
     renderPropList();
-    toast('İşaret kaldırıldı', 'ok');
+    toast(wasSold ? 'Satışa geri koyuldu' : 'İşaret kaldırıldı', 'ok');
   } catch (e) {
     toast(e.message || 'İşlem başarısız oldu', 'err');
   }

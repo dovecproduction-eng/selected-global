@@ -378,9 +378,14 @@ button { font-family: inherit; cursor: pointer; }
 .admin-item.status-none, .prop-gcard.status-none, .compact-row.status-none, .gtile.status-none { border: 2px solid var(--ok); }
 .admin-item.status-kapora, .prop-gcard.status-kapora, .compact-row.status-kapora, .gtile.status-kapora { border: 2px solid var(--gold); }
 .admin-item.status-sold, .prop-gcard.status-sold, .compact-row.status-sold, .gtile.status-sold { position: relative; }
-.admin-item.status-sold::after, .prop-gcard.status-sold::after, .compact-row.status-sold::after, .gtile.status-sold::after {
-  content: ''; position: absolute; inset: 0; background: rgba(100,110,120,.45); pointer-events: none; z-index: 3; border-radius: inherit;
+/* Gri tabaka + ortada "Satışa geri koy" — tabaka tıklamayı geçirir (altındaki Düzenle/Sil çalışır), buton hariç */
+.sold-overlay {
+  position: absolute; inset: 0; z-index: 4; border-radius: inherit;
+  background: rgba(100,110,120,.55);
+  display: flex; align-items: center; justify-content: center;
+  pointer-events: none;
 }
+.sold-overlay .sold-restore { pointer-events: auto; box-shadow: 0 2px 10px rgba(0,0,0,.35); }
 .prop-table tbody tr.status-none td:first-child { box-shadow: inset 4px 0 0 var(--ok); }
 .prop-table tbody tr.status-kapora td:first-child { box-shadow: inset 4px 0 0 var(--gold); }
 .prop-table tbody tr.status-sold td:first-child { box-shadow: inset 4px 0 0 #8A97A6; }
